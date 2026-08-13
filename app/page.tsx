@@ -20,6 +20,11 @@ type LogEntry = {
   notes: string;
 };
 
+type WeightEntry = {
+  weight: number;
+  date: string;
+};
+
 function metersToFeetInches(
   meters: number
 ) {
@@ -53,6 +58,15 @@ export default function Home() {
     Record<string, boolean>
   >({});
 
+  const [weightHistory, setWeightHistory] =
+    useState<WeightEntry[]>([]);
+
+  const [showWeightEditor, setShowWeightEditor] =
+    useState(false);
+
+  const [newWeight, setNewWeight] =
+    useState("");
+
   useEffect(() => {
     const savedLogs =
       localStorage.getItem("logs");
@@ -82,7 +96,44 @@ export default function Home() {
         JSON.parse(savedCompleted)
       );
     }
+
+    const savedWeights =
+      localStorage.getItem(
+        "weightHistory"
+      );
+
+    if (savedWeights) {
+      setWeightHistory(
+        JSON.parse(savedWeights)
+      );
+    }
   }, []);
+
+  function saveWeight() {
+    const parsed =
+      parseFloat(newWeight);
+
+    if (isNaN(parsed)) return;
+
+    const updated = [
+      ...weightHistory,
+      {
+        weight: parsed,
+        date:
+          new Date().toISOString(),
+      },
+    ];
+
+    setWeightHistory(updated);
+
+    localStorage.setItem(
+      "weightHistory",
+      JSON.stringify(updated)
+    );
+
+    setNewWeight("");
+    setShowWeightEditor(false);
+  }
 
   const latestLog =
     logs.length > 0 ? logs[0] : null;
@@ -95,8 +146,43 @@ export default function Home() {
       latestLog?.vaultPR || ""
     ) || START_PR;
 
+  const latestWeightEntry =
+    weightHistory.length > 0
+      ? weightHistory[
+          weightHistory.length - 1
+        ]
+      : null;
+
   const currentWeight =
-    latestLog?.bodyWeight || "--";
+    latestWeightEntry
+      ? latestWeightEntry.weight.toFixed(
+          1
+        )
+      : "--";
+
+  const thirtyDaysAgo =
+    Date.now() -
+    30 *
+      24 *
+      60 *
+      60 *
+      1000;
+
+  const comparisonWeight =
+    weightHistory.find(
+      (entry) =>
+        new Date(
+          entry.date
+        ).getTime() >=
+        thirtyDaysAgo
+    );
+
+  const monthlyChange =
+    latestWeightEntry &&
+    comparisonWeight
+      ? latestWeightEntry.weight -
+        comparisonWeight.weight
+      : null;
 
   const progressPercent =
     Math.max(
@@ -154,6 +240,7 @@ export default function Home() {
 
   let nextWorkoutDay =
     "Complete!";
+
   let nextWorkoutSummary =
     "All workouts finished";
 
@@ -303,6 +390,7 @@ export default function Home() {
               <p className="font-medium">
                 Breakfast
               </p>
+
               <p className="text-sm text-gray-500">
                 {plan.breakfast}
               </p>
@@ -312,6 +400,7 @@ export default function Home() {
               <p className="font-medium">
                 Lunch
               </p>
+
               <p className="text-sm text-gray-500">
                 {plan.lunch}
               </p>
@@ -321,6 +410,7 @@ export default function Home() {
               <p className="font-medium">
                 Dinner
               </p>
+
               <p className="text-sm text-gray-500">
                 {plan.dinner}
               </p>
@@ -330,6 +420,7 @@ export default function Home() {
               <p className="font-medium">
                 Snack
               </p>
+
               <p className="text-sm text-gray-500">
                 {plan.snack}
               </p>
@@ -366,7 +457,66 @@ export default function Home() {
 
           <p className="text-3xl font-bold">
             {currentWeight}
+            {currentWeight !== "--"
+              ? " lbs"
+              : ""}
           </p>
+
+          {monthlyChange !==
+            null && (
+            <p
+              className={`text-sm mt-1 font-medium ${
+                monthlyChange > 0
+                  ? "text-green-600"
+                  : monthlyChange < 0
+                  ? "text-red-600"
+                  : "text-gray-500"
+              }`}
+            >
+              {monthlyChange > 0
+                ? "+"
+                : ""}
+              {monthlyChange.toFixed(
+                1
+              )}
+              lbs (30d)
+            </p>
+          )}
+
+          <button
+            onClick={() =>
+              setShowWeightEditor(
+                !showWeightEditor
+              )
+            }
+            className="mt-3 w-full bg-blue-500 text-white rounded-xl py-2 text-sm font-medium"
+          >
+            Update Weight
+          </button>
+
+          {showWeightEditor && (
+            <div className="mt-3 space-y-2">
+              <input
+                type="number"
+                step="0.1"
+                value={newWeight}
+                onChange={(e) =>
+                  setNewWeight(
+                    e.target.value
+                  )
+                }
+                placeholder="182.4"
+                className="w-full border rounded-xl p-2"
+              />
+
+              <button
+                onClick={saveWeight}
+                className="w-full bg-green-500 text-white rounded-xl py-2"
+              >
+                Save
+              </button>
+            </div>
+          )}
         </Card>
       </div>
     </main>
