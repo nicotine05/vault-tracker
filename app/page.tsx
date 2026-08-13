@@ -184,6 +184,27 @@ export default function Home() {
         comparisonWeight.weight
       : null;
 
+  const previousWeightEntry =
+    weightHistory.length > 1
+      ? weightHistory[
+          weightHistory.length - 2
+        ]
+      : null;
+
+  const dailyChange =
+    latestWeightEntry &&
+    previousWeightEntry
+      ? latestWeightEntry.weight -
+        previousWeightEntry.weight
+      : null;
+
+  const previousDate =
+    previousWeightEntry
+      ? new Date(
+          previousWeightEntry.date
+        ).toLocaleDateString()
+      : null;
+
   const progressPercent =
     Math.max(
       0,
@@ -462,26 +483,45 @@ export default function Home() {
               : ""}
           </p>
 
-          {monthlyChange !==
-            null && (
-            <p
-              className={`text-sm mt-1 font-medium ${
-                monthlyChange > 0
-                  ? "text-green-600"
-                  : monthlyChange < 0
-                  ? "text-red-600"
-                  : "text-gray-500"
-              }`}
-            >
-              {monthlyChange > 0
-                ? "+"
-                : ""}
-              {monthlyChange.toFixed(
-                1
-              )}
-              lbs (30d)
-            </p>
-          )}
+          <div className="mt-1 space-y-1">
+
+            {dailyChange !== null && (
+              <p
+                className={`text-sm font-medium ${
+                  dailyChange > 0
+                    ? "text-green-600"
+                    : dailyChange < 0
+                    ? "text-red-600"
+                    : "text-gray-500"
+                }`}
+              >
+                {dailyChange > 0
+                  ? "+"
+                  : ""}
+                {dailyChange.toFixed(1)}
+                lbs since {previousDate}
+              </p>
+            )}
+
+            {monthlyChange !== null && (
+              <p
+                className={`text-sm font-medium ${
+                  monthlyChange > 0
+                    ? "text-green-600"
+                    : monthlyChange < 0
+                    ? "text-red-600"
+                    : "text-gray-500"
+                }`}
+              >
+                {monthlyChange > 0
+                  ? "+"
+                  : ""}
+                {monthlyChange.toFixed(1)}
+                lbs (30d)
+              </p>
+            )}
+
+          </div>
 
           <button
             onClick={() =>
