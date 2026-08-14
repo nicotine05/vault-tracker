@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { Redis } from "@upstash/redis";
+import { getServerEnv } from "@/lib/server/env";
 import type { SyncBlob, UserRecord, UserRole } from "@/lib/server/types";
 
 export type CoachAthleteLink = {
@@ -32,8 +33,8 @@ let redisClient: Redis | null = null;
 
 function getRedisClient(): Redis | null {
   if (
-    !process.env.UPSTASH_REDIS_REST_URL ||
-    !process.env.UPSTASH_REDIS_REST_TOKEN
+    !getServerEnv("UPSTASH_REDIS_REST_URL") ||
+    !getServerEnv("UPSTASH_REDIS_REST_TOKEN")
   ) {
     return null;
   }
@@ -46,12 +47,12 @@ function getRedisClient(): Redis | null {
 }
 
 function getStorePath(): string {
-  const configured = process.env.DATABASE_PATH;
+  const configured = getServerEnv("DATABASE_PATH");
   if (configured) {
     return path.resolve(configured);
   }
 
-  if (process.env.VERCEL) {
+  if (getServerEnv("VERCEL")) {
     return "/tmp/vault-tracker-store.json";
   }
 

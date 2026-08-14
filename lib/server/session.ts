@@ -1,16 +1,12 @@
 import { createHmac, timingSafeEqual } from "crypto";
+import { requireServerEnv } from "@/lib/server/env";
 import type { SessionPayload, UserRole } from "@/lib/server/types";
 
 const SESSION_COOKIE = "vt_session";
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 function getSessionSecret(): string {
-  const secret = process.env.SESSION_SECRET;
-  if (!secret) {
-    throw new Error("SESSION_SECRET is not configured");
-  }
-
-  return secret;
+  return requireServerEnv("SESSION_SECRET");
 }
 
 export function createSessionToken(userId: string, role: UserRole): string {
