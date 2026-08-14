@@ -53,10 +53,61 @@ function metersToFeetInches(
   return `${feet}ft ${inches}in`;
 }
 
+function parseVaultPRToMeters(
+  value: string | undefined | null
+): number | null {
+  if (!value) return null;
+
+  const clean = value
+    .toString()
+    .trim()
+    .replace(/,/g, "")
+    .toLowerCase();
+
+  if (!clean) return null;
+
+  const apostropheMatch =
+    clean.match(
+      /(\d+(?:\.\d+)?)\s*['’]\s*(\d+(?:\.\d+)?)?\s*(?:in|inch|")?/i
+    );
+
+  if (apostropheMatch) {
+    const feet = Number(
+      apostropheMatch[1] || "0"
+    );
+    const inches = Number(
+      apostropheMatch[2] || "0"
+    );
+    return ((feet * 12) + inches) * 0.0254;
+  }
+
+  const ftMatch = clean.match(
+    /(\d+(?:\.\d+)?)\s*(?:ft|feet)\s*(\d+(?:\.\d+)?)?\s*(?:in|inch)?/i
+  );
+
+  if (ftMatch) {
+    const feet = Number(ftMatch[1] || "0");
+    const inches = Number(ftMatch[2] || "0");
+    return ((feet * 12) + inches) * 0.0254;
+  }
+
+  const plainNumber = Number(clean.replace(/[^0-9.]/g, ""));
+  if (!Number.isFinite(plainNumber)) return null;
+
+  if (plainNumber > 9) {
+    return plainNumber * 0.3048;
+  }
+
+  return plainNumber;
+}
+
 export default function Home() {
   const [logs, setLogs] = useState<
     LogEntry[]
   >([]);
+
+  const [vaultRunPRs, setVaultRunPRs] =
+    useState<Record<string, string>>({});
 
   const [currentWeek, setCurrentWeek] =
     useState(1);
@@ -129,6 +180,17 @@ export default function Home() {
       setPlannerByWeek(parsedPlanner);
     }
 
+    const savedVaultRunPRs =
+      localStorage.getItem(
+        "vaultRunPRs"
+      );
+
+    if (savedVaultRunPRs) {
+      setVaultRunPRs(
+        JSON.parse(savedVaultRunPRs)
+      );
+    }
+
     const savedGenerated =
       localStorage.getItem(
         "generatedSchedules"
@@ -150,6 +212,29 @@ export default function Home() {
         JSON.parse(savedWeights)
       );
     }
+
+    const syncRunPRs = () => {
+      const updated =
+        localStorage.getItem(
+          "vaultRunPRs"
+        );
+      if (updated) {
+        setVaultRunPRs(
+          JSON.parse(updated)
+        );
+      }
+    };
+
+    window.addEventListener(
+      "storage",
+      syncRunPRs
+    );
+
+    return () =>
+      window.removeEventListener(
+        "storage",
+        syncRunPRs
+      );
   }, []);
 
   function saveWeight() {
@@ -188,14 +273,25 @@ export default function Home() {
   const GOAL_PR_INCHES =
     GOAL_PR * 39.3701;
 
+  const vaultPRCandidates =
+    Object.values(vaultRunPRs);
+
   const highestLoggedPR =
-    logs.reduce((max, log) => {
-      const value =
-        parseFloat(log.vaultPR || "");
-      return Number.isFinite(value)
-        ? Math.max(max, value)
-        : max;
-    }, START_PR);
+    vaultPRCandidates.reduce(
+      (max, candidate) => {
+        const parsed =
+          parseVaultPRToMeters(
+            candidate
+          );
+
+        if (parsed === null) {
+          return max;
+        }
+
+        return Math.max(max, parsed);
+      },
+      START_PR
+    );
 
   const currentPR = highestLoggedPR;
   const currentPRInches =
@@ -435,7 +531,7 @@ export default function Home() {
         <Card>
           <div className="flex justify-between mb-2">
             <span className="font-medium">
-              Year Goal
+              Vault Goal
             </span>
 
             <span className="font-bold">

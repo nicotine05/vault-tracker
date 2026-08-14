@@ -479,7 +479,7 @@ export default function VaultPage() {
           {showPRMenu && (
             <div className="border-t pt-3 mt-3 space-y-2">
               <p className="font-semibold">
-                Run PRs
+                PR by Step
               </p>
 
               {([
