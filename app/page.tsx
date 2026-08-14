@@ -42,11 +42,15 @@ function metersToFeetInches(
   );
 
   const inches =
-    totalInches - feet * 12;
+    Math.round(
+      totalInches - feet * 12
+    );
 
-  return `${feet}'${inches.toFixed(
-    1
-  )}"`;
+  if (inches === 0) {
+    return `${feet}ft`;
+  }
+
+  return `${feet}ft ${inches}in`;
 }
 
 export default function Home() {
@@ -177,8 +181,12 @@ export default function Home() {
   const latestLog =
     logs.length > 0 ? logs[0] : null;
 
-  const START_PR = 3.96;
+  const START_PR = 3.6576;
   const GOAL_PR = 4.57;
+  const START_PR_INCHES =
+    START_PR * 39.3701;
+  const GOAL_PR_INCHES =
+    GOAL_PR * 39.3701;
 
   const highestLoggedPR =
     logs.reduce((max, log) => {
@@ -190,6 +198,8 @@ export default function Home() {
     }, START_PR);
 
   const currentPR = highestLoggedPR;
+  const currentPRInches =
+    currentPR * 39.3701;
 
   const latestWeightEntry =
     weightHistory.length > 0
@@ -256,9 +266,10 @@ export default function Home() {
       Math.min(
         100,
         Math.round(
-          ((currentPR - START_PR) /
-            (GOAL_PR -
-              START_PR)) *
+          ((currentPRInches -
+            START_PR_INCHES) /
+            (GOAL_PR_INCHES -
+              START_PR_INCHES)) *
             100
         )
       )
@@ -396,7 +407,7 @@ export default function Home() {
       <div className="mb-6 flex items-start justify-between">
         <div>
           <h1 className="text-4xl font-bold">
-            Road to 15'0"
+            Road to 15ft
           </h1>
 
           <div className="flex items-center gap-2 mt-1">
@@ -443,15 +454,13 @@ export default function Home() {
 
           <p className="text-sm text-gray-500 mt-2">
             Current PR:{" "}
-            {currentPR.toFixed(2)}m (
             {metersToFeetInches(
               currentPR
             )}
-            )
           </p>
 
           <p className="text-sm text-gray-500">
-            Goal PR: 4.57m (15'0")
+            Goal PR: 15ft
           </p>
         </Card>
       </div>
