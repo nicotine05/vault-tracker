@@ -10,10 +10,13 @@ import {
 } from "react";
 import type { AthleteSummary, PublicUser } from "@/lib/server/types";
 import {
+  clearLocalSyncData,
   getCoachViewingAthleteId,
+  getSyncContextAthleteId,
   pullRemoteSync,
   pushRemoteSync,
   setCoachViewingAthleteId,
+  setSyncContextAthleteId,
   setSyncEnabled,
 } from "@/lib/sync/syncClient";
 import { setCoachReadOnly } from "@/lib/sync/readOnly";
@@ -79,8 +82,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     setUser(payload.user);
     setAthletes(payload.athletes ?? []);
-    setSyncEnabled(true);
     setCoachReadOnly(payload.user.role === "coach");
+
+    let syncAthleteId: string | null = null;
 
     if (payload.user.role === "coach") {
       const storedAthleteId = getCoachViewingAthleteId();
@@ -92,14 +96,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           ? storedAthleteId
           : payload.athletes?.[0]?.id ?? null;
 
+      syncAthleteId = validAthlete;
       setViewingAthleteId(validAthlete);
       setCoachViewingAthleteId(validAthlete);
     } else {
+      syncAthleteId = payload.user.id;
       setViewingAthleteId(payload.user.id);
       setCoachViewingAthleteId(null);
     }
 
+    const previousSyncContext = getSyncContextAthleteId();
+    if (
+      previousSyncContext !== syncAthleteId ||
+      (payload.user.role === "coach" && !syncAthleteId)
+    ) {
+      clearLocalSyncData({ silent: true });
+    }
+    setSyncContextAthleteId(syncAthleteId);
+
     await pullRemoteSync();
+    setSyncEnabled(true);
   }, []);
 
   useEffect(() => {
@@ -152,19 +168,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       credentials: "include",
     });
 
+    setSyncEnabled(false);
+    clearLocalSyncData();
+    setSyncContextAthleteId(null);
     setUser(null);
     setAthletes([]);
     setViewingAthleteId(null);
     setCoachViewingAthleteId(null);
-    setSyncEnabled(false);
     setCoachReadOnly(false);
   }, []);
 
   const selectAthlete = useCallback(
     async (athleteId: string | null) => {
+      setSyncEnabled(false);
       setViewingAthleteId(athleteId);
       setCoachViewingAthleteId(athleteId);
+
+      if (getSyncContextAthleteId() !== athleteId) {
+        clearLocalSyncData({ silent: true });
+      }
+      setSyncContextAthleteId(athleteId);
+
       await pullRemoteSync();
+      setSyncEnabled(true);
     },
     []
   );

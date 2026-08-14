@@ -1,11 +1,18 @@
 import { getItem, setItem } from "@/lib/storage/localStore";
 import { isCoachReadOnly } from "@/lib/sync/readOnly";
 import {
+  EMPTY_RUN_PRS,
+  EMPTY_SPRINT_PRS,
+  EMPTY_STRENGTH_PRS,
+  EMPTY_STEP_REFS,
+} from "@/lib/storage/logStore";
+import { STORAGE_EVENTS, STORAGE_KEYS } from "@/lib/storage/keys";
+import {
   COACH_VIEWING_ATHLETE_KEY,
+  SYNC_CONTEXT_KEY,
   SYNC_STORAGE_KEYS,
   type SyncStorageKey,
 } from "@/lib/sync/syncKeys";
-import { STORAGE_EVENTS } from "@/lib/storage/keys";
 
 type SyncResponse = {
   data: Record<string, unknown>;
@@ -41,6 +48,67 @@ export function setCoachViewingAthleteId(athleteId: string | null): void {
   }
 }
 
+function notifyStorageRefresh(): void {
+  window.dispatchEvent(new Event(STORAGE_EVENTS.PROGRAM_CHANGED));
+  window.dispatchEvent(new Event(STORAGE_EVENTS.WEIGHT_CHANGED));
+  window.dispatchEvent(new Event(STORAGE_EVENTS.VAULT_RUN_PRS_CHANGED));
+}
+
+/** Reset all synced local data to defaults before loading an account's snapshot. */
+export function clearLocalSyncData(options?: { silent?: boolean }): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  localStorage.setItem(STORAGE_KEYS.CURRENT_WEEK, "1");
+  localStorage.setItem(STORAGE_KEYS.PLANNING_WEEK, "1");
+
+  const defaults: Record<string, unknown> = {
+    [STORAGE_KEYS.WEEKLY_PLANNER]: {},
+    [STORAGE_KEYS.SCHEDULE_SNAPSHOTS]: {},
+    [STORAGE_KEYS.COMPLETED_WORKOUTS]: {},
+    [STORAGE_KEYS.EXECUTION_HISTORY]: {},
+    [STORAGE_KEYS.WEIGHT_HISTORY]: [],
+    [STORAGE_KEYS.VAULT_RUN_PRS]: EMPTY_RUN_PRS,
+    [STORAGE_KEYS.VAULT_PR_HISTORY]: [],
+    [STORAGE_KEYS.SPRINT_PRS]: EMPTY_SPRINT_PRS,
+    [STORAGE_KEYS.STRENGTH_PRS]: EMPTY_STRENGTH_PRS,
+    [STORAGE_KEYS.VAULT_LOGS]: [],
+    [STORAGE_KEYS.VAULT_STEP_REFERENCES]: EMPTY_STEP_REFS,
+    [STORAGE_KEYS.MIGRATION_V1]: true,
+  };
+
+  for (const [key, value] of Object.entries(defaults)) {
+    setItem(key, value, { skipSync: true });
+  }
+
+  lastPushedAt = 0;
+
+  if (!options?.silent) {
+    notifyStorageRefresh();
+  }
+}
+
+export function getSyncContextAthleteId(): string | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  return localStorage.getItem(SYNC_CONTEXT_KEY);
+}
+
+export function setSyncContextAthleteId(athleteId: string | null): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  if (athleteId) {
+    localStorage.setItem(SYNC_CONTEXT_KEY, athleteId);
+  } else {
+    localStorage.removeItem(SYNC_CONTEXT_KEY);
+  }
+}
+
 function buildLocalSnapshot(): Record<string, unknown> {
   const snapshot: Record<string, unknown> = {};
 
@@ -57,6 +125,8 @@ function buildLocalSnapshot(): Record<string, unknown> {
 }
 
 function applyRemoteSnapshot(data: Record<string, unknown>): void {
+  clearLocalSyncData({ silent: true });
+
   for (const key of SYNC_STORAGE_KEYS) {
     const value = data[key];
     if (value === undefined || value === null) {
@@ -71,9 +141,7 @@ function applyRemoteSnapshot(data: Record<string, unknown>): void {
     setItem(key, value, { skipSync: true });
   }
 
-  window.dispatchEvent(new Event(STORAGE_EVENTS.PROGRAM_CHANGED));
-  window.dispatchEvent(new Event(STORAGE_EVENTS.WEIGHT_CHANGED));
-  window.dispatchEvent(new Event(STORAGE_EVENTS.VAULT_RUN_PRS_CHANGED));
+  notifyStorageRefresh();
 }
 
 function getSyncUrl(): string {

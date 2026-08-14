@@ -21,3 +21,4 @@ export const SYNC_STORAGE_KEYS = [
 export type SyncStorageKey = (typeof SYNC_STORAGE_KEYS)[number];
 
 export const COACH_VIEWING_ATHLETE_KEY = "coachViewingAthleteId";
+export const SYNC_CONTEXT_KEY = "syncContextAthleteId";
