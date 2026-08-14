@@ -254,7 +254,7 @@ export default function ProgramPage() {
           </div>
 
           {warnings.length > 0 && (
-            <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 shadow-sm">
+            <div className="sticky top-0 z-10 mt-4 rounded-xl border border-amber-200 bg-amber-50/95 px-3 py-2 shadow-sm backdrop-blur-sm">
               <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-amber-900">
                 <span aria-hidden="true">⚠</span>
                 <span>Warnings</span>
