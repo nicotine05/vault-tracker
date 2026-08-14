@@ -34,6 +34,50 @@ type HeightPREntry = {
   sevenL: string;
 };
 
+function parseVaultPRToMeters(
+  value: string | undefined | null
+): number | null {
+  if (!value) return null;
+
+  const clean = value
+    .toString()
+    .trim()
+    .replace(/,/g, "")
+    .toLowerCase();
+
+  if (!clean) return null;
+
+  const apostropheMatch =
+    clean.match(
+      /(\d+(?:\.\d+)?)\s*['’]\s*(\d+(?:\.\d+)?)?\s*(?:in|inch|")?/i
+    );
+
+  if (apostropheMatch) {
+    const feet = Number(apostropheMatch[1] || "0");
+    const inches = Number(apostropheMatch[2] || "0");
+    return ((feet * 12) + inches) * 0.0254;
+  }
+
+  const ftMatch = clean.match(
+    /(\d+(?:\.\d+)?)\s*(?:ft|feet)\s*(\d+(?:\.\d+)?)?\s*(?:in|inch)?/i
+  );
+
+  if (ftMatch) {
+    const feet = Number(ftMatch[1] || "0");
+    const inches = Number(ftMatch[2] || "0");
+    return ((feet * 12) + inches) * 0.0254;
+  }
+
+  const plainNumber = Number(clean.replace(/[^0-9.]/g, ""));
+  if (!Number.isFinite(plainNumber)) return null;
+
+  if (plainNumber > 9) {
+    return plainNumber * 0.3048;
+  }
+
+  return plainNumber;
+}
+
 function metersToFeetInches(
   meters: number
 ) {
@@ -45,17 +89,24 @@ function metersToFeetInches(
   );
 
   const inches =
-    totalInches - feet * 12;
+    Math.round(
+      totalInches - feet * 12
+    );
 
-  return `${feet}'${inches.toFixed(
-    1
-  )}"`;
+  if (inches === 0) {
+    return `${feet}ft`;
+  }
+
+  return `${feet}ft ${inches}in`;
 }
 
 export default function ProgressPage() {
   const [logs, setLogs] = useState<
     LogEntry[]
   >([]);
+
+  const [vaultRunPRs, setVaultRunPRs] =
+    useState<Record<string, string>>({});
 
   const [
     trainingHistory,
@@ -86,6 +137,21 @@ export default function ProgressPage() {
       setLogs(JSON.parse(savedLogs));
     }
 
+    const loadVaultRunPRs = () => {
+      const savedVaultRunPRs =
+        localStorage.getItem(
+          "vaultRunPRs"
+        );
+
+      if (savedVaultRunPRs) {
+        setVaultRunPRs(
+          JSON.parse(savedVaultRunPRs)
+        );
+      }
+    };
+
+    loadVaultRunPRs();
+
     const savedHistory =
       localStorage.getItem(
         "trainingHistory"
@@ -107,17 +173,39 @@ export default function ProgressPage() {
         JSON.parse(savedPRHistory)
       );
     }
+
+    const syncVaultRunPRs = () => {
+      loadVaultRunPRs();
+    };
+
+    window.addEventListener(
+      "vaultRunPRsChanged",
+      syncVaultRunPRs
+    );
+
+    return () =>
+      window.removeEventListener(
+        "vaultRunPRsChanged",
+        syncVaultRunPRs
+      );
   }, []);
 
   const latestLog =
     logs.length > 0 ? logs[0] : null;
 
   const currentPR =
-    parseFloat(
-      latestLog?.vaultPR || ""
-    ) || 3.96;
+    Object.values(vaultRunPRs).reduce(
+      (max, value) => {
+        const parsed =
+          parseVaultPRToMeters(value);
+        return parsed === null
+          ? max
+          : Math.max(max, parsed);
+      },
+      3.6576
+    );
 
-  const START_PR = 3.96;
+  const START_PR = 3.6576;
   const GOAL_PR = 4.57;
 
   const goalProgress = Math.max(
@@ -189,7 +277,11 @@ export default function ProgressPage() {
     const remaining =
       Math.round(inches % 12);
 
-    return `${feet}'${remaining}"`;
+    if (remaining === 0) {
+      return `${feet}ft`;
+    }
+
+    return `${feet}ft ${remaining}in`;
   }
 
   return (
@@ -216,7 +308,7 @@ export default function ProgressPage() {
           </p>
 
           <p className="font-bold text-xl">
-            {currentPR.toFixed(2)}m
+            {metersToFeetInches(currentPR)}
           </p>
 
           <p className="text-xs text-gray-500">
@@ -248,7 +340,7 @@ export default function ProgressPage() {
         </div>
 
         <p className="text-sm text-gray-500 mt-2">
-          Goal: 15'0"
+          Goal: 15ft
         </p>
       </Card>
 

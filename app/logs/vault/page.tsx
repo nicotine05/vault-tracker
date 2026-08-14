@@ -196,6 +196,9 @@ export default function VaultPage() {
       "vaultRunPRs",
       JSON.stringify(runPRs)
     );
+    window.dispatchEvent(
+      new Event("vaultRunPRsChanged")
+    );
   }, [runPRs, loaded]);
 
   useEffect(() => {

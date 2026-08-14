@@ -229,12 +229,21 @@ export default function Home() {
       "storage",
       syncRunPRs
     );
+    window.addEventListener(
+      "vaultRunPRsChanged",
+      syncRunPRs
+    );
 
-    return () =>
+    return () => {
       window.removeEventListener(
         "storage",
         syncRunPRs
       );
+      window.removeEventListener(
+        "vaultRunPRsChanged",
+        syncRunPRs
+      );
+    };
   }, []);
 
   function saveWeight() {
@@ -525,40 +534,6 @@ export default function Home() {
         >
           ⚙️
         </Link>
-      </div>
-
-      <div className="mb-4">
-        <Card>
-          <div className="flex justify-between mb-2">
-            <span className="font-medium">
-              Vault Goal
-            </span>
-
-            <span className="font-bold">
-              {progressPercent}%
-            </span>
-          </div>
-
-          <div className="w-full bg-gray-200 rounded-full h-3">
-            <div
-              className="bg-blue-500 h-3 rounded-full"
-              style={{
-                width: `${progressPercent}%`,
-              }}
-            />
-          </div>
-
-          <p className="text-sm text-gray-500 mt-2">
-            Current PR:{" "}
-            {metersToFeetInches(
-              currentPR
-            )}
-          </p>
-
-          <p className="text-sm text-gray-500">
-            Goal PR: 15ft
-          </p>
-        </Card>
       </div>
 
       <div className="mb-4">
