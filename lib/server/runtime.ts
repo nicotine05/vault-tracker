@@ -7,11 +7,19 @@ type RequestContext = {
 
 const requestContext = new AsyncLocalStorage<RequestContext>();
 
-const SESSION_SECRET_KEY = ["SESSION", "_SECRET"].join("");
+/** Avoid static `process.env.SESSION_SECRET` so Next.js cannot bake in an empty build value. */
+function readRuntimeEnv(name: string): string | undefined {
+  const env = globalThis.process?.env;
+  if (!env) {
+    return undefined;
+  }
 
-/** Dynamic lookup so Turbopack/Vercel cannot inline an empty build-time value. */
-function readSessionSecretFromProcessEnv(): string | undefined {
-  return process.env[SESSION_SECRET_KEY];
+  return env[name];
+}
+
+function resolveSessionSecret(): string | undefined {
+  const key = ["SESSION", "_SECRET"].join("");
+  return readRuntimeEnv(key) ?? readRuntimeEnv("VT_SESSION_SECRET");
 }
 
 /** Call at the start of API routes so env vars are read at runtime on Vercel. */
@@ -19,14 +27,13 @@ export async function prepareServerRequest(): Promise<void> {
   await connection();
 
   requestContext.enterWith({
-    sessionSecret: readSessionSecretFromProcessEnv(),
+    sessionSecret: resolveSessionSecret(),
   });
 }
 
 export function getSessionSecret(): string {
   const secret =
-    requestContext.getStore()?.sessionSecret ??
-    readSessionSecretFromProcessEnv();
+    requestContext.getStore()?.sessionSecret ?? resolveSessionSecret();
 
   if (!secret) {
     throw new Error("SESSION_SECRET is not configured");

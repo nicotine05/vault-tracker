@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prepareServerRequest } from "@/lib/server/runtime";
+import { getSessionSecret, prepareServerRequest } from "@/lib/server/runtime";
 import {
   buildSessionCookie,
   createSessionToken,
@@ -62,7 +62,8 @@ export async function POST(request: Request) {
       await linkCoachAthlete(body.coachId, user.id);
     }
 
-    const token = createSessionToken(user.id, user.role);
+    const secret = getSessionSecret();
+    const token = createSessionToken(user.id, user.role, secret);
     const response = NextResponse.json({ user: toPublicUser(user) });
     response.headers.set("Set-Cookie", buildSessionCookie(token));
 
