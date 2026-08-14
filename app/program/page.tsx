@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import Card from "@/components/Card";
+import { useAuth } from "@/components/AuthProvider";
 import { useProgramState } from "@/lib/hooks/useProgramState";
 import { getPhaseNameForWeek } from "@/lib/domain/programWeek";
 import {
@@ -19,6 +20,7 @@ import { isWeekScheduleGenerated } from "@/lib/storage/programStore";
 import { trafficStyles, trainingTypeStyles } from "@/lib/ui/trainingStyles";
 
 export default function ProgramPage() {
+  const { isCoachReadOnly } = useAuth();
   const {
     currentWeek,
     planningWeek,
@@ -203,8 +205,10 @@ export default function ProgramPage() {
                           (type) => (
                             <button
                               key={type}
+                              type="button"
+                              disabled={isCoachReadOnly}
                               onClick={() => togglePlanner(day, type)}
-                              className={`px-3 py-1 rounded-lg border capitalize ${
+                              className={`px-3 py-1 rounded-lg border capitalize disabled:cursor-not-allowed disabled:opacity-50 ${
                                 weekPlanner[day]?.[type]
                                   ? trainingTypeStyles[type].selected
                                   : trainingTypeStyles[type].button
@@ -222,9 +226,10 @@ export default function ProgramPage() {
             </Card>
           </div>
 
-          {plannerComplete && (
+          {plannerComplete && !isCoachReadOnly && (
             <div className="mt-4">
               <button
+                type="button"
                 onClick={() => generateWeekSchedule(planningWeek)}
                 className="w-full bg-purple-600 text-white rounded-xl p-4 font-bold"
               >
@@ -328,7 +333,7 @@ export default function ProgramPage() {
                             <p className="mt-1.5 text-center text-xs font-medium text-green-700">
                               Completed ✓
                             </p>
-                          ) : (
+                          ) : !isCoachReadOnly ? (
                             <button
                               type="button"
                               onClick={() => {
@@ -355,7 +360,7 @@ export default function ProgramPage() {
                                 ? "Confirm?"
                                 : "Complete workout"}
                             </button>
-                          )}
+                          ) : null}
 
                           {isExpanded && workout && (
                             <div className="mt-1 rounded-lg border border-slate-200 bg-white p-3 text-xs space-y-2">
@@ -512,13 +517,15 @@ export default function ProgramPage() {
             })}
           </Card>
 
-          <button
-            type="button"
-            onClick={() => resetWeekPlanner(planningWeek)}
-            className="mt-3 w-full border border-gray-300 text-gray-700 rounded-xl p-2 text-sm"
-          >
-            Reset
-          </button>
+          {!isCoachReadOnly && (
+            <button
+              type="button"
+              onClick={() => resetWeekPlanner(planningWeek)}
+              className="mt-3 w-full border border-gray-300 text-gray-700 rounded-xl p-2 text-sm"
+            >
+              Reset
+            </button>
+          )}
         </div>
       )}
     </main>

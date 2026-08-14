@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import AccountSettings from "@/components/AccountSettings";
 import Card from "@/components/Card";
+import { useAuth } from "@/components/AuthProvider";
 import { program } from "@/lib/data";
 import { getPhaseNameForWeek } from "@/lib/domain/programWeek";
 import { useProgramState } from "@/lib/hooks/useProgramState";
@@ -12,6 +13,7 @@ import {
 } from "@/lib/storage/programStore";
 
 export default function SettingsPage() {
+  const { isCoachReadOnly } = useAuth();
   const {
     currentWeek,
     planningWeek,
@@ -57,11 +59,18 @@ export default function SettingsPage() {
       <h1 className="text-3xl font-bold mb-4">Settings</h1>
 
       <Card title="Program Week">
-        <p className="text-sm text-gray-500 mb-4">
-          Your active week is Week {currentWeek}. Browse up to{" "}
-          {MAX_PLAN_AHEAD_WEEKS} weeks ahead to plan workouts — they&apos;ll
-          show on your calendar and Program tab.
-        </p>
+        {isCoachReadOnly ? (
+          <p className="text-sm text-gray-500 mb-4">
+            Athlete&apos;s active week is Week {currentWeek} ({viewingPhase}{" "}
+            phase). Program changes can only be made by the athlete.
+          </p>
+        ) : (
+          <p className="text-sm text-gray-500 mb-4">
+            Your active week is Week {currentWeek}. Browse up to{" "}
+            {MAX_PLAN_AHEAD_WEEKS} weeks ahead to plan workouts — they&apos;ll
+            show on your calendar and Program tab.
+          </p>
+        )}
 
         <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-4">
           <button
@@ -98,7 +107,7 @@ export default function SettingsPage() {
           </button>
         </div>
 
-        {canFinishWeek && (
+        {canFinishWeek && !isCoachReadOnly && (
           <button
             type="button"
             onClick={advanceToNextWeek}
@@ -108,7 +117,7 @@ export default function SettingsPage() {
           </button>
         )}
 
-        {canPlanAhead && (
+        {canPlanAhead && !isCoachReadOnly && (
           <button
             type="button"
             onClick={handlePlanAhead}
@@ -118,7 +127,7 @@ export default function SettingsPage() {
           </button>
         )}
 
-        {!isActiveWeek && viewingWeek < currentWeek && (
+        {!isActiveWeek && viewingWeek < currentWeek && !isCoachReadOnly && (
           <button
             type="button"
             onClick={handleReturnToActiveWeek}

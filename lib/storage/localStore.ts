@@ -1,3 +1,4 @@
+import { isCoachReadOnly } from "@/lib/sync/readOnly";
 import { SYNC_STORAGE_KEYS } from "@/lib/sync/syncKeys";
 
 export function getItem<T>(key: string, fallback: T): T {
@@ -39,6 +40,10 @@ export function setItem<T>(
   options?: { skipSync?: boolean }
 ): void {
   if (typeof window === "undefined") return;
+
+  if (isCoachReadOnly() && shouldSyncKey(key) && !options?.skipSync) {
+    return;
+  }
 
   if (typeof value === "string") {
     localStorage.setItem(key, value);

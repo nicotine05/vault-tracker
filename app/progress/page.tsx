@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Card from "@/components/Card";
 import TrainingCalendar from "@/components/TrainingCalendar";
+import { useAuth } from "@/components/AuthProvider";
 import type { HeightPREntry, RunPRs, WeightEntry } from "@/lib/domain/types";
 import {
   highestVaultPRMeters,
@@ -37,6 +38,7 @@ const START_PR_METERS = 3.6576;
 const GOAL_PR_METERS = 4.57;
 
 export default function ProgressPage() {
+  const { isCoachReadOnly } = useAuth();
   const [vaultRunPRs, setVaultRunPRs] = useState<RunPRs>(loadVaultRunPRs);
   const [prHistory, setPrHistory] = useState<HeightPREntry[]>([]);
   const [selectedRun, setSelectedRun] = useState<
@@ -199,18 +201,20 @@ export default function ProgressPage() {
 
         </div>
 
-        <button
-          onClick={() =>
-            setShowWeightEditor(
-              !showWeightEditor
-            )
-          }
-          className="mt-3 w-full bg-blue-500 text-white rounded-xl py-2 text-sm font-medium"
-        >
-          Update Weight
-        </button>
+        {!isCoachReadOnly && (
+          <button
+            onClick={() =>
+              setShowWeightEditor(
+                !showWeightEditor
+              )
+            }
+            className="mt-3 w-full bg-blue-500 text-white rounded-xl py-2 text-sm font-medium"
+          >
+            Update Weight
+          </button>
+        )}
 
-        {showWeightEditor && (
+        {showWeightEditor && !isCoachReadOnly && (
           <div className="mt-3 space-y-2">
             <input
               type="number"

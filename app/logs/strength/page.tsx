@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Card from "@/components/Card";
+import { useAuth } from "@/components/AuthProvider";
 import type { StrengthPRs } from "@/lib/domain/types";
 import {
   EMPTY_STRENGTH_PRS,
@@ -10,6 +11,7 @@ import {
 } from "@/lib/storage/logStore";
 
 export default function StrengthPage() {
+  const { isCoachReadOnly } = useAuth();
   const [prs, setPrs] = useState<StrengthPRs>(EMPTY_STRENGTH_PRS);
   const [benchPR, setBenchPR] = useState("");
   const [squatPR, setSquatPR] = useState("");
@@ -67,16 +69,21 @@ export default function StrengthPage() {
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-3xl font-bold">Strength PRs</h1>
 
-        <button
-          onClick={clearPRs}
-          className="text-xs text-red-500 border border-red-300 px-3 py-1 rounded-lg"
-        >
-          Reset
-        </button>
+        {!isCoachReadOnly && (
+          <button
+            onClick={clearPRs}
+            className="text-xs text-red-500 border border-red-300 px-3 py-1 rounded-lg"
+          >
+            Reset
+          </button>
+        )}
       </div>
 
       <Card>
-        <div className="space-y-4">
+        <fieldset
+          disabled={isCoachReadOnly}
+          className="m-0 min-w-0 space-y-4 border-0 p-0"
+        >
           <div>
             <label className="block text-sm font-medium mb-1">Bench PR</label>
             <input
@@ -112,11 +119,11 @@ export default function StrengthPage() {
 
           <button
             onClick={handleSave}
-            className="w-full bg-red-500 text-white rounded-xl p-3 font-semibold"
+            className="w-full bg-red-500 text-white rounded-xl p-3 font-semibold disabled:cursor-not-allowed disabled:opacity-50"
           >
             Update PRs
           </button>
-        </div>
+        </fieldset>
       </Card>
 
       <div className="mt-6 space-y-4">

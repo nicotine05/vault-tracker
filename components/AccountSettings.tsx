@@ -9,6 +9,7 @@ export default function AccountSettings() {
     user,
     athletes,
     viewingAthleteId,
+    isCoachReadOnly,
     logout,
     selectAthlete,
     createAthlete,
@@ -58,7 +59,7 @@ export default function AccountSettings() {
 
     try {
       await syncNow();
-      setMessage("Sync complete.");
+      setMessage(isCoachReadOnly ? "Athlete data refreshed." : "Sync complete.");
     } catch {
       setMessage("Sync failed. Try again.");
     } finally {
@@ -135,7 +136,13 @@ export default function AccountSettings() {
         disabled={syncing}
         className="mt-4 w-full rounded-xl bg-blue-600 p-3 text-sm font-semibold text-white disabled:opacity-60"
       >
-        {syncing ? "Syncing..." : "Sync now"}
+        {syncing
+          ? isCoachReadOnly
+            ? "Refreshing..."
+            : "Syncing..."
+          : isCoachReadOnly
+            ? "Refresh athlete data"
+            : "Sync now"}
       </button>
 
       <button

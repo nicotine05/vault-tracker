@@ -9,6 +9,7 @@ vNext Layout Update - LEFT COLUMN SESSIONS VERSION
 
 import { useEffect, useState } from "react";
 import Card from "@/components/Card";
+import { useAuth } from "@/components/AuthProvider";
 
 import type {
   HeightPREntry,
@@ -36,6 +37,7 @@ import {
 } from "@/lib/storage/logStore";
 
 export default function VaultPage() {
+  const { isCoachReadOnly } = useAuth();
   const [loaded, setLoaded] =
     useState(false);
 
@@ -320,6 +322,10 @@ export default function VaultPage() {
 
       <div className="space-y-4">
       <Card className="bg-violet-50 border-violet-300 shadow-md">
+        <fieldset
+          disabled={isCoachReadOnly}
+          className="m-0 min-w-0 border-0 p-0"
+        >
         <div className="space-y-3 bg-blue-50 border-blue-200 border rounded-xl p-3 h-fit">
           <div className="flex justify-between items-center">
             <h2 className="font-bold text-lg">
@@ -456,6 +462,7 @@ export default function VaultPage() {
             </div>
           )}
         </div>
+        </fieldset>
       </Card>
 
       {sessions.length > 0 && (
@@ -647,6 +654,7 @@ export default function VaultPage() {
                           )}
                         </div>
 
+                        {!isCoachReadOnly && (
                         <button
                           onClick={() =>
                             deleteSession(
@@ -657,6 +665,7 @@ export default function VaultPage() {
                         >
                           Delete Session
                         </button>
+                        )}
                       </div>
                     )}
                   </Card>
@@ -671,6 +680,10 @@ export default function VaultPage() {
 
       <div>
       <Card className="bg-purple-50 border-purple-200">
+        <fieldset
+          disabled={isCoachReadOnly}
+          className="m-0 min-w-0 space-y-4 border-0 p-0"
+        >
         <div className="space-y-4">
           <div className="bg-purple-100 border border-purple-200 rounded-xl p-3">
             <h2 className="font-bold text-lg text-purple-900">
@@ -880,6 +893,7 @@ export default function VaultPage() {
             Save Vault Session
           </button>
         </div>
+        </fieldset>
       </Card>
       </div>
 

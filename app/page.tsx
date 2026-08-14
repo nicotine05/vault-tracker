@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Card from "@/components/Card";
+import { useAuth } from "@/components/AuthProvider";
 import { program } from "@/lib/data";
 import { mealPlans } from "@/lib/mealPlans";
 import { getMealPlanKeyForWeek, getPhaseNameForWeek } from "@/lib/domain/programWeek";
@@ -23,6 +24,7 @@ import {
 } from "@/lib/storage/weightStore";
 
 export default function Home() {
+  const { isCoachReadOnly } = useAuth();
   const { currentWeek, scheduleSnapshotsByWeek } = useProgramState();
 
   const [weightHistory, setWeightHistory] = useState<WeightEntry[]>([]);
@@ -198,14 +200,16 @@ export default function Home() {
             )}
           </div>
 
-          <button
-            onClick={() => setShowWeightEditor(!showWeightEditor)}
-            className="mt-3 w-full bg-blue-500 text-white rounded-xl py-2 text-sm font-medium"
-          >
-            Update Weight
-          </button>
+          {!isCoachReadOnly && (
+            <button
+              onClick={() => setShowWeightEditor(!showWeightEditor)}
+              className="mt-3 w-full bg-blue-500 text-white rounded-xl py-2 text-sm font-medium"
+            >
+              Update Weight
+            </button>
+          )}
 
-          {showWeightEditor && (
+          {showWeightEditor && !isCoachReadOnly && (
             <div className="mt-3 space-y-2">
               <input
                 type="number"

@@ -1,4 +1,5 @@
 import { getItem, setItem } from "@/lib/storage/localStore";
+import { isCoachReadOnly } from "@/lib/sync/readOnly";
 import {
   COACH_VIEWING_ATHLETE_KEY,
   SYNC_STORAGE_KEYS,
@@ -113,7 +114,7 @@ export async function pullRemoteSync(): Promise<SyncResponse | null> {
 }
 
 export async function pushRemoteSync(force = false): Promise<void> {
-  if (!syncEnabled) {
+  if (!syncEnabled || isCoachReadOnly()) {
     return;
   }
 

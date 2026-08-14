@@ -16,12 +16,14 @@ import {
   setCoachViewingAthleteId,
   setSyncEnabled,
 } from "@/lib/sync/syncClient";
+import { setCoachReadOnly } from "@/lib/sync/readOnly";
 
 type AuthContextValue = {
   user: PublicUser | null;
   athletes: AthleteSummary[];
   loading: boolean;
   viewingAthleteId: string | null;
+  isCoachReadOnly: boolean;
   refreshSession: () => Promise<void>;
   login: (email: string, password: string) => Promise<string | null>;
   registerCoach: (
@@ -58,6 +60,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(null);
       setAthletes([]);
       setSyncEnabled(false);
+      setCoachReadOnly(false);
       return;
     }
 
@@ -70,12 +73,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(null);
       setAthletes([]);
       setSyncEnabled(false);
+      setCoachReadOnly(false);
       return;
     }
 
     setUser(payload.user);
     setAthletes(payload.athletes ?? []);
     setSyncEnabled(true);
+    setCoachReadOnly(payload.user.role === "coach");
 
     if (payload.user.role === "coach") {
       const storedAthleteId = getCoachViewingAthleteId();
@@ -152,6 +157,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setViewingAthleteId(null);
     setCoachViewingAthleteId(null);
     setSyncEnabled(false);
+    setCoachReadOnly(false);
   }, []);
 
   const selectAthlete = useCallback(
@@ -184,9 +190,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const syncNow = useCallback(async () => {
+    if (user?.role === "coach") {
+      await pullRemoteSync();
+      return;
+    }
+
     await pushRemoteSync(true);
     await pullRemoteSync();
-  }, []);
+  }, [user?.role]);
+
+  const isCoachReadOnly = user?.role === "coach";
 
   const value = useMemo(
     () => ({
@@ -194,6 +207,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       athletes,
       loading,
       viewingAthleteId,
+      isCoachReadOnly,
       refreshSession,
       login,
       registerCoach,
@@ -207,6 +221,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       athletes,
       loading,
       viewingAthleteId,
+      isCoachReadOnly,
       refreshSession,
       login,
       registerCoach,

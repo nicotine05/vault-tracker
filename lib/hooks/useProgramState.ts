@@ -14,6 +14,7 @@ import {
   subscribeProgramState,
   type ProgramState,
 } from "@/lib/storage/programStore";
+import { isCoachReadOnly } from "@/lib/sync/readOnly";
 
 export type WorkoutToggleParams = {
   weekNumber: number;
@@ -44,10 +45,15 @@ export function useProgramState() {
       return;
     }
 
+    if (isCoachReadOnly()) {
+      return;
+    }
+
     saveProgramState(state);
   }, [state, loaded]);
 
   const setCurrentWeek = useCallback((week: number) => {
+    if (isCoachReadOnly()) return;
     setState((prev) => {
       const currentWeek = Math.min(12, Math.max(1, week));
       return {
@@ -59,6 +65,7 @@ export function useProgramState() {
   }, []);
 
   const setPlanningWeek = useCallback((week: number) => {
+    if (isCoachReadOnly()) return;
     setState((prev) => ({
       ...prev,
       planningWeek: clampPlanningWeek(week, prev.currentWeek),
@@ -66,6 +73,7 @@ export function useProgramState() {
   }, []);
 
   const advanceToNextWeek = useCallback(() => {
+    if (isCoachReadOnly()) return;
     setState((prev) => {
       const nextWeek = Math.min(12, prev.currentWeek + 1);
       return {
@@ -77,6 +85,7 @@ export function useProgramState() {
   }, []);
 
   const planAhead = useCallback((week: number) => {
+    if (isCoachReadOnly()) return;
     setState((prev) => ({
       ...prev,
       planningWeek: clampPlanningWeek(week, prev.currentWeek),
@@ -85,6 +94,7 @@ export function useProgramState() {
 
   const updatePlannerDay = useCallback(
     (weekNumber: number, day: string, type: keyof PlannerDay) => {
+      if (isCoachReadOnly()) return;
       setState((prev) => {
         const weekPlanner = prev.plannerByWeek[weekNumber] ?? {};
         const dayPlanner = weekPlanner[day] ?? {
@@ -112,6 +122,7 @@ export function useProgramState() {
   );
 
   const generateWeekSchedule = useCallback((weekNumber: number) => {
+    if (isCoachReadOnly()) return;
     setState((prev) => {
       const planner = prev.plannerByWeek[weekNumber] ?? {};
       const snapshot = generateScheduleSnapshot(weekNumber, planner);
@@ -127,6 +138,7 @@ export function useProgramState() {
   }, []);
 
   const resetWeekPlanner = useCallback((weekNumber: number) => {
+    if (isCoachReadOnly()) return;
     setState((prev) => {
       const nextSnapshots = { ...prev.scheduleSnapshotsByWeek };
       delete nextSnapshots[weekNumber];
@@ -143,6 +155,7 @@ export function useProgramState() {
   }, []);
 
   const completeWorkout = useCallback((params: WorkoutToggleParams) => {
+    if (isCoachReadOnly()) return;
     const completionKey = workoutCompletionKey(
       params.weekNumber,
       params.day,

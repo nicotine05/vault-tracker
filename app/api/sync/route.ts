@@ -78,6 +78,13 @@ export async function PUT(request: Request) {
       );
     }
 
+    if (session.role === "coach") {
+      return NextResponse.json(
+        { error: "Coach accounts are read-only" },
+        { status: 403 }
+      );
+    }
+
     const body = (await request.json()) as {
       data?: Record<string, unknown>;
       clientUpdatedAt?: string | null;
