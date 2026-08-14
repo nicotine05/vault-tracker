@@ -377,21 +377,63 @@ export default function ProgramPage() {
                             <div className="mt-1 rounded-lg border border-slate-200 bg-white p-3 text-xs space-y-2">
                               {workout && "primaryLift" in workout && (
                                 <>
-                                  <div>
-                                    <span className="font-semibold">Primary:</span> {workout.primaryLift}
-                                  </div>
-                                  <div>
-                                    <span className="font-semibold">Secondary:</span> {workout.secondaryLift}
-                                  </div>
-                                  <div>
-                                    <span className="font-semibold">Superset A:</span> {workout.supersetA.join(", ")}
-                                  </div>
-                                  <div>
-                                    <span className="font-semibold">Superset B:</span> {workout.supersetB.join(", ")}
-                                  </div>
-                                  <div>
-                                    <span className="font-semibold">Finisher:</span> {workout.finisher}
-                                  </div>
+                                  {(() => {
+                                    const phase = getPhaseConfig(selectedWeek);
+                                    const phaseName = phase.name.toLowerCase() as "rebuild" | "build" | "specific";
+                                    const prescriptions = workout.phaseModifications[phaseName];
+
+                                    return (
+                                      <>
+                                        <div className="mb-2 inline-block rounded-full bg-sky-100 px-2 py-1 font-semibold text-sky-800">
+                                          {phase.name.toUpperCase()}
+                                        </div>
+
+                                        <div className="space-y-1 pt-2">
+                                          <div>
+                                            <span className="font-semibold text-sky-700">Primary</span>
+                                            <div className="text-slate-700">
+                                              {workout.primaryLift} — {prescriptions.primary}
+                                            </div>
+                                          </div>
+                                          <div>
+                                            <span className="font-semibold text-sky-700">Secondary</span>
+                                            <div className="text-slate-700">
+                                              {workout.secondaryLift} — {prescriptions.secondary}
+                                            </div>
+                                          </div>
+
+                                          <div className="pt-1">
+                                            <span className="font-semibold text-sky-700">Superset A</span>
+                                            <div className="space-y-1 text-slate-700">
+                                              {workout.supersetA.map((exercise, i) => (
+                                                <div key={i}>
+                                                  {exercise} — {prescriptions.supersetA[i]}
+                                                </div>
+                                              ))}
+                                            </div>
+                                          </div>
+
+                                          <div className="pt-1">
+                                            <span className="font-semibold text-sky-700">Superset B</span>
+                                            <div className="space-y-1 text-slate-700">
+                                              {workout.supersetB.map((exercise, i) => (
+                                                <div key={i}>
+                                                  {exercise} — {prescriptions.supersetB[i]}
+                                                </div>
+                                              ))}
+                                            </div>
+                                          </div>
+
+                                          <div className="pt-1">
+                                            <span className="font-semibold text-sky-700">Finisher</span>
+                                            <div className="text-slate-700">
+                                              {workout.finisher} — {prescriptions.finisher}
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </>
+                                    );
+                                  })()}
                                 </>
                               )}
                               {workout && "workout" in workout && (

@@ -1,3 +1,11 @@
+export type PrescriptionSet = {
+  primary: string;
+  secondary: string;
+  supersetA: string[];
+  supersetB: string[];
+  finisher: string;
+};
+
 export type StrengthWorkout = {
   id: string;
   name: string;
@@ -8,6 +16,11 @@ export type StrengthWorkout = {
   supersetB: string[];
   finisher: string;
   phase: "Rebuild" | "Build" | "Specific";
+  phaseModifications: {
+    rebuild: PrescriptionSet;
+    build: PrescriptionSet;
+    specific: PrescriptionSet;
+  };
 };
 
 export const strengthCatalog: StrengthWorkout[] = [
@@ -21,6 +34,29 @@ export const strengthCatalog: StrengthWorkout[] = [
     supersetB: ["Hamstring Curl", "DB Row"],
     finisher: "Ab Wheel",
     phase: "Rebuild",
+    phaseModifications: {
+      rebuild: {
+        primary: "4x8",
+        secondary: "4x8",
+        supersetA: ["3x10", "3x8"],
+        supersetB: ["3x10", "3x12"],
+        finisher: "3x10",
+      },
+      build: {
+        primary: "5x5",
+        secondary: "4x6",
+        supersetA: ["3x8", "3x8"],
+        supersetB: ["3x8", "3x10"],
+        finisher: "3x12",
+      },
+      specific: {
+        primary: "3x3",
+        secondary: "3x5",
+        supersetA: ["2x6", "2x6"],
+        supersetB: ["2x6", "2x8"],
+        finisher: "2x10",
+      },
+    },
   },
   {
     id: "ST2",
@@ -32,6 +68,29 @@ export const strengthCatalog: StrengthWorkout[] = [
     supersetB: ["Back Extension", "Face Pull"],
     finisher: "Farmer Carry",
     phase: "Build",
+    phaseModifications: {
+      rebuild: {
+        primary: "4x8",
+        secondary: "4x8",
+        supersetA: ["3x10", "3x8"],
+        supersetB: ["3x10", "3x12"],
+        finisher: "3x10",
+      },
+      build: {
+        primary: "5x5",
+        secondary: "4x6",
+        supersetA: ["3x8", "3x8"],
+        supersetB: ["3x8", "3x10"],
+        finisher: "3x12",
+      },
+      specific: {
+        primary: "3x3",
+        secondary: "3x5",
+        supersetA: ["2x6", "2x6"],
+        supersetB: ["2x6", "2x8"],
+        finisher: "2x10",
+      },
+    },
   },
   {
     id: "ST3",
@@ -43,6 +102,29 @@ export const strengthCatalog: StrengthWorkout[] = [
     supersetB: ["Single Leg RDL", "Band Pull Apart"],
     finisher: "Med Ball Slam",
     phase: "Build",
+    phaseModifications: {
+      rebuild: {
+        primary: "5x8",
+        secondary: "3x5",
+        supersetA: ["3x8", "3x8"],
+        supersetB: ["3x8", "3x10"],
+        finisher: "3x10",
+      },
+      build: {
+        primary: "4x6",
+        secondary: "3x5",
+        supersetA: ["3x5", "3x6"],
+        supersetB: ["3x5", "3x8"],
+        finisher: "3x10",
+      },
+      specific: {
+        primary: "3x3",
+        secondary: "3x3",
+        supersetA: ["2x5", "2x5"],
+        supersetB: ["2x5", "2x6"],
+        finisher: "2x8",
+      },
+    },
   },
   {
     id: "ST4",
@@ -54,6 +136,29 @@ export const strengthCatalog: StrengthWorkout[] = [
     supersetB: ["Rear Foot Elevated Split Squat", "Cable Row"],
     finisher: "Rotational Med Ball Throw",
     phase: "Build",
+    phaseModifications: {
+      rebuild: {
+        primary: "5x3",
+        secondary: "4x5",
+        supersetA: ["3x8", "3x8"],
+        supersetB: ["3x8", "3x10"],
+        finisher: "3x10",
+      },
+      build: {
+        primary: "4x3",
+        secondary: "3x5",
+        supersetA: ["3x5", "3x6"],
+        supersetB: ["3x5", "3x8"],
+        finisher: "3x10",
+      },
+      specific: {
+        primary: "3x2",
+        secondary: "3x3",
+        supersetA: ["2x5", "2x5"],
+        supersetB: ["2x5", "2x6"],
+        finisher: "2x8",
+      },
+    },
   },
   {
     id: "ST5",
@@ -65,6 +170,29 @@ export const strengthCatalog: StrengthWorkout[] = [
     supersetB: ["Single Leg RDL", "DB Row"],
     finisher: "Hanging Leg Raise",
     phase: "Specific",
+    phaseModifications: {
+      rebuild: {
+        primary: "4x10",
+        secondary: "4x10",
+        supersetA: ["3x10", "3x8"],
+        supersetB: ["3x10", "3x10"],
+        finisher: "3x12",
+      },
+      build: {
+        primary: "4x8",
+        secondary: "4x8",
+        supersetA: ["3x8", "3x8"],
+        supersetB: ["3x8", "3x10"],
+        finisher: "3x12",
+      },
+      specific: {
+        primary: "3x5",
+        secondary: "3x5",
+        supersetA: ["2x6", "2x6"],
+        supersetB: ["2x6", "2x8"],
+        finisher: "2x10",
+      },
+    },
   },
   {
     id: "ST6",
@@ -76,6 +204,29 @@ export const strengthCatalog: StrengthWorkout[] = [
     supersetB: ["Single Leg Calf Raise", "Band Row"],
     finisher: "Suitcase Carry",
     phase: "Specific",
+    phaseModifications: {
+      rebuild: {
+        primary: "3x10",
+        secondary: "3x10",
+        supersetA: ["3x10", "3x8"],
+        supersetB: ["3x10", "3x10"],
+        finisher: "3x12",
+      },
+      build: {
+        primary: "3x8",
+        secondary: "3x8",
+        supersetA: ["3x8", "3x8"],
+        supersetB: ["3x8", "3x10"],
+        finisher: "3x12",
+      },
+      specific: {
+        primary: "2x5",
+        secondary: "2x5",
+        supersetA: ["2x6", "2x6"],
+        supersetB: ["2x6", "2x8"],
+        finisher: "2x10",
+      },
+    },
   },
   {
     id: "ST7",
@@ -87,6 +238,29 @@ export const strengthCatalog: StrengthWorkout[] = [
     supersetB: ["Pogo Series", "Med Ball Toss"],
     finisher: "Dead Bug",
     phase: "Specific",
+    phaseModifications: {
+      rebuild: {
+        primary: "5x3",
+        secondary: "4x3",
+        supersetA: ["3x5", "3x8"],
+        supersetB: ["3x5", "3x5"],
+        finisher: "3x8",
+      },
+      build: {
+        primary: "4x3",
+        secondary: "3x3",
+        supersetA: ["3x5", "3x6"],
+        supersetB: ["3x5", "3x5"],
+        finisher: "3x8",
+      },
+      specific: {
+        primary: "3x2",
+        secondary: "3x2",
+        supersetA: ["2x3", "2x5"],
+        supersetB: ["2x3", "2x5"],
+        finisher: "2x6",
+      },
+    },
   },
   {
     id: "ST8",
@@ -98,6 +272,29 @@ export const strengthCatalog: StrengthWorkout[] = [
     supersetB: ["Box Jump", "Band Pull Apart"],
     finisher: "Plank Variation",
     phase: "Specific",
+    phaseModifications: {
+      rebuild: {
+        primary: "5x2",
+        secondary: "4x3",
+        supersetA: ["3x5", "3x8"],
+        supersetB: ["3x5", "3x5"],
+        finisher: "3x6",
+      },
+      build: {
+        primary: "4x2",
+        secondary: "3x3",
+        supersetA: ["3x3", "3x6"],
+        supersetB: ["3x3", "3x5"],
+        finisher: "3x6",
+      },
+      specific: {
+        primary: "3x1",
+        secondary: "3x2",
+        supersetA: ["2x3", "2x5"],
+        supersetB: ["2x3", "2x5"],
+        finisher: "2x5",
+      },
+    },
   },
 ];
 
