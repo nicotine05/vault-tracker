@@ -1,5 +1,6 @@
 import "./globals.css";
 import Navigation from "./Navigation";
+import { AuthProvider } from "@/components/AuthProvider";
 
 export default function RootLayout({
   children,
@@ -9,11 +10,13 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <main className="pb-24">
-          {children}
-        </main>
+        <AuthProvider>
+          <main className="pb-24">
+            {children}
+          </main>
 
-        <Navigation />
+          <Navigation />
+        </AuthProvider>
       </body>
     </html>
   );

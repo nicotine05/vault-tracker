@@ -6,32 +6,24 @@ import Card from "@/components/Card";
 import { program } from "@/lib/data";
 import { mealPlans } from "@/lib/mealPlans";
 import { getMealPlanKeyForWeek, getPhaseNameForWeek } from "@/lib/domain/programWeek";
+import { getTodayWorkoutPlan } from "@/lib/domain/todayTraining";
+import {
+  computeWeightStats,
+  formatWeightDelta,
+} from "@/lib/domain/weightStats";
 import type { WeightEntry } from "@/lib/domain/types";
 import { useProgramState } from "@/lib/hooks/useProgramState";
-import {
-  plannerDays,
-  getTrafficLightSymbol,
-  type TrafficLightLevel,
-} from "@/lib/trainingProgram";
+import { getTrafficLightSymbol } from "@/lib/trainingProgram";
+import { getPhaseBadgeClass } from "@/lib/ui/phaseStyles";
+import { trafficStyles } from "@/lib/ui/trainingStyles";
 import {
   appendWeightEntry,
   loadWeightHistory,
   subscribeWeightHistory,
 } from "@/lib/storage/weightStore";
 
-const trafficStyles: Record<TrafficLightLevel, string> = {
-  Green: "border-emerald-200 bg-emerald-50 text-emerald-900",
-  Yellow: "border-yellow-200 bg-yellow-50 text-yellow-900",
-  Orange: "border-orange-200 bg-orange-50 text-orange-900",
-  Red: "border-red-200 bg-red-50 text-red-900",
-  Black: "border-slate-300 bg-slate-800 text-white",
-};
-
 export default function Home() {
-  const {
-    currentWeek,
-    scheduleSnapshotsByWeek,
-  } = useProgramState();
+  const { currentWeek, scheduleSnapshotsByWeek } = useProgramState();
 
   const [weightHistory, setWeightHistory] = useState<WeightEntry[]>([]);
   const [showWeightEditor, setShowWeightEditor] = useState(false);
@@ -57,53 +49,12 @@ export default function Home() {
     setShowWeightEditor(false);
   }
 
-  const latestWeightEntry =
-    weightHistory.length > 0
-      ? weightHistory[weightHistory.length - 1]
-      : null;
-
-  const currentWeight = latestWeightEntry
-    ? latestWeightEntry.weight.toFixed(1)
-    : "--";
-
-  const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
-
-  const comparisonWeight = weightHistory.find(
-    (entry) => new Date(entry.date).getTime() >= thirtyDaysAgo
-  );
-
-  const monthlyChange =
-    latestWeightEntry && comparisonWeight
-      ? latestWeightEntry.weight - comparisonWeight.weight
-      : null;
-
-  const previousWeightEntry =
-    weightHistory.length > 1
-      ? weightHistory[weightHistory.length - 2]
-      : null;
-
-  const dailyChange =
-    latestWeightEntry && previousWeightEntry
-      ? latestWeightEntry.weight - previousWeightEntry.weight
-      : null;
-
-  const previousDate = previousWeightEntry
-    ? new Date(previousWeightEntry.date).toLocaleDateString()
-    : null;
+  const { currentWeight, dailyChange, monthlyChange, previousDate } =
+    computeWeightStats(weightHistory);
 
   const currentPhase = getPhaseNameForWeek(currentWeek);
-
-  const todayIndex = (new Date().getDay() + 6) % 7;
-  const todayName = plannerDays[todayIndex];
-  const snapshot = scheduleSnapshotsByWeek[currentWeek] ?? null;
-  const todayWorkoutPlan = snapshot?.schedule[todayName];
-
-  const phaseColor =
-    currentPhase === "Rebuild"
-      ? "bg-green-100 text-green-700"
-      : currentPhase === "Build"
-      ? "bg-blue-100 text-blue-700"
-      : "bg-purple-100 text-purple-700";
+  const { todayName, snapshot, dailyPlan: todayWorkoutPlan } =
+    getTodayWorkoutPlan(scheduleSnapshotsByWeek, currentWeek);
 
   const planKey = getMealPlanKeyForWeek(currentWeek);
   const plan = mealPlans[planKey];
@@ -120,7 +71,7 @@ export default function Home() {
             </p>
 
             <span
-              className={`text-xs px-2 py-1 rounded-full font-medium ${phaseColor}`}
+              className={`text-xs px-2 py-1 rounded-full font-medium ${getPhaseBadgeClass(currentPhase)}`}
             >
               {currentPhase}
             </span>
@@ -226,8 +177,7 @@ export default function Home() {
                     : "text-gray-500"
                 }`}
               >
-                {dailyChange > 0 ? "+" : ""}
-                {dailyChange.toFixed(1)}
+                {formatWeightDelta(dailyChange)}
                 lbs since {previousDate}
               </p>
             )}
@@ -242,8 +192,7 @@ export default function Home() {
                     : "text-gray-500"
                 }`}
               >
-                {monthlyChange > 0 ? "+" : ""}
-                {monthlyChange.toFixed(1)}
+                {formatWeightDelta(monthlyChange)}
                 lbs (30d)
               </p>
             )}

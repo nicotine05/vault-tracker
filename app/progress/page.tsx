@@ -10,6 +10,10 @@ import {
   parseVaultPRToMeters,
 } from "@/lib/domain/vaultUnits";
 import {
+  computeWeightStats,
+  formatWeightDelta,
+} from "@/lib/domain/weightStats";
+import {
   appendWeightEntry,
   loadWeightHistory,
   subscribeWeightHistory,
@@ -137,64 +141,8 @@ export default function ProgressPage() {
     setShowWeightEditor(false);
   }
 
-  const latestWeightEntry =
-    weightHistory.length > 0
-      ? weightHistory[
-          weightHistory.length - 1
-        ]
-      : null;
-
-  const currentWeight =
-    latestWeightEntry
-      ? latestWeightEntry.weight.toFixed(
-          1
-        )
-      : "--";
-
-  const thirtyDaysAgo =
-    Date.now() -
-    30 *
-      24 *
-      60 *
-      60 *
-      1000;
-
-  const comparisonWeight =
-    weightHistory.find(
-      (entry) =>
-        new Date(
-          entry.date
-        ).getTime() >=
-        thirtyDaysAgo
-    );
-
-  const monthlyChange =
-    latestWeightEntry &&
-    comparisonWeight
-      ? latestWeightEntry.weight -
-        comparisonWeight.weight
-      : null;
-
-  const previousWeightEntry =
-    weightHistory.length > 1
-      ? weightHistory[
-          weightHistory.length - 2
-        ]
-      : null;
-
-  const dailyChange =
-    latestWeightEntry &&
-    previousWeightEntry
-      ? latestWeightEntry.weight -
-        previousWeightEntry.weight
-      : null;
-
-  const previousDate =
-    previousWeightEntry
-      ? new Date(
-          previousWeightEntry.date
-        ).toLocaleDateString()
-      : null;
+  const { currentWeight, dailyChange, monthlyChange, previousDate } =
+    computeWeightStats(weightHistory);
 
   return (
     <main className="max-w-md mx-auto p-4 pb-20">
@@ -226,10 +174,7 @@ export default function ProgressPage() {
                   : "text-gray-500"
               }`}
             >
-              {dailyChange > 0
-                ? "+"
-                : ""}
-              {dailyChange.toFixed(1)}
+              {formatWeightDelta(dailyChange)}
               lbs since {previousDate}
             </p>
           )}

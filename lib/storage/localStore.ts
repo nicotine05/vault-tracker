@@ -1,3 +1,5 @@
+import { SYNC_STORAGE_KEYS } from "@/lib/sync/syncKeys";
+
 export function getItem<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
 
@@ -17,15 +19,36 @@ export function getString(key: string, fallback: string): string {
   return raw ?? fallback;
 }
 
-export function setItem<T>(key: string, value: T): void {
+function shouldSyncKey(key: string): boolean {
+  return (SYNC_STORAGE_KEYS as readonly string[]).includes(key);
+}
+
+function notifySync(key: string): void {
+  if (!shouldSyncKey(key)) {
+    return;
+  }
+
+  void import("@/lib/sync/syncClient").then((module) => {
+    module.scheduleSyncPush();
+  });
+}
+
+export function setItem<T>(
+  key: string,
+  value: T,
+  options?: { skipSync?: boolean }
+): void {
   if (typeof window === "undefined") return;
 
   if (typeof value === "string") {
     localStorage.setItem(key, value);
-    return;
+  } else {
+    localStorage.setItem(key, JSON.stringify(value));
   }
 
-  localStorage.setItem(key, JSON.stringify(value));
+  if (!options?.skipSync) {
+    notifySync(key);
+  }
 }
 
 export function removeItem(key: string): void {

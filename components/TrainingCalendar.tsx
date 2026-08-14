@@ -16,6 +16,7 @@ import {
   MAX_PLAN_AHEAD_WEEKS,
   subscribeProgramState,
 } from "@/lib/storage/programStore";
+import { trainingTypeStyles } from "@/lib/ui/trainingStyles";
 
 type DaySessionView = {
   id: string;
@@ -27,27 +28,6 @@ type DaySessionView = {
   focus?: string;
   jumpVolume?: string;
   weekNumber?: number;
-};
-
-const trainingStyles: Record<
-  TrainingType,
-  { dot: string; ring: string; label: string }
-> = {
-  vault: {
-    dot: "bg-amber-500",
-    ring: "border-amber-500",
-    label: "Vault",
-  },
-  strength: {
-    dot: "bg-sky-500",
-    ring: "border-sky-500",
-    label: "Strength",
-  },
-  speed: {
-    dot: "bg-emerald-500",
-    ring: "border-emerald-500",
-    label: "Speed",
-  },
 };
 
 const dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -283,13 +263,13 @@ export default function TrainingCalendar() {
                     session.status === "completed" ? (
                       <span
                         key={`${dateKey}-${session.id}-done`}
-                        className={`h-2 w-2 rounded-full ${trainingStyles[session.type].dot}`}
+                        className={`h-2 w-2 rounded-full ${trainingTypeStyles[session.type].dot}`}
                         aria-hidden="true"
                       />
                     ) : (
                       <span
                         key={`${dateKey}-${session.id}-plan`}
-                        className={`h-2 w-2 rounded-full border ${trainingStyles[session.type].ring} bg-white`}
+                        className={`h-2 w-2 rounded-full border ${trainingTypeStyles[session.type].ring} bg-white`}
                         aria-hidden="true"
                       />
                     )

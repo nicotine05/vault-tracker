@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import AccountSettings from "@/components/AccountSettings";
 import Card from "@/components/Card";
 import { program } from "@/lib/data";
 import { getPhaseNameForWeek } from "@/lib/domain/programWeek";
@@ -139,6 +140,10 @@ export default function SettingsPage() {
           </p>
         )}
       </Card>
+
+      <div className="mt-4">
+        <AccountSettings />
+      </div>
     </main>
   );
 }
