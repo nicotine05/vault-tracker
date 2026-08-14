@@ -225,21 +225,17 @@ export default function ProgressPage() {
 
   const chartData =
     prHistory
-      .filter(
-        (entry) =>
-          entry[selectedRun] &&
-          !isNaN(
-            parseFloat(
-              entry[selectedRun]
-            )
-          )
-      )
-      .map((entry) => ({
-        date: entry.date,
-        pr: parseFloat(
-          entry[selectedRun]
-        ),
-      }))
+      .filter((entry) => {
+        const value = entry[selectedRun];
+        return value && parseVaultPRToMeters(value) !== null;
+      })
+      .map((entry) => {
+        const value = entry[selectedRun];
+        return {
+          date: entry.date,
+          pr: parseVaultPRToMeters(value) || 0,
+        };
+      })
       .sort(
         (a, b) =>
           new Date(a.date).getTime() -
@@ -253,7 +249,7 @@ export default function ProgressPage() {
             ...chartData.map(
               (d) => d.pr
             )
-          ) - 2
+          ) - 0.3
         )
       : undefined;
 
@@ -264,26 +260,9 @@ export default function ProgressPage() {
             ...chartData.map(
               (d) => d.pr
             )
-          ) + 2
+          ) + 0.3
         )
       : undefined;
-
-  function formatVaultHeight(
-    inches: number
-  ) {
-    const feet = Math.floor(
-      inches / 12
-    );
-
-    const remaining =
-      Math.round(inches % 12);
-
-    if (remaining === 0) {
-      return `${feet}ft`;
-    }
-
-    return `${feet}ft ${remaining}in`;
-  }
 
   return (
     <main className="max-w-md mx-auto p-4 pb-20">
@@ -390,7 +369,7 @@ export default function ProgressPage() {
                     tickFormatter={(
                       value
                     ) =>
-                      formatVaultHeight(
+                      metersToFeetInches(
                         Number(value)
                       )
                     }
@@ -400,7 +379,7 @@ export default function ProgressPage() {
                     formatter={(
                       value
                     ) => [
-                      formatVaultHeight(
+                      metersToFeetInches(
                         Number(value)
                       ),
                       "PR",
