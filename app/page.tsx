@@ -180,10 +180,16 @@ export default function Home() {
   const START_PR = 3.96;
   const GOAL_PR = 4.57;
 
-  const currentPR =
-    parseFloat(
-      latestLog?.vaultPR || ""
-    ) || START_PR;
+  const highestLoggedPR =
+    logs.reduce((max, log) => {
+      const value =
+        parseFloat(log.vaultPR || "");
+      return Number.isFinite(value)
+        ? Math.max(max, value)
+        : max;
+    }, START_PR);
+
+  const currentPR = highestLoggedPR;
 
   const latestWeightEntry =
     weightHistory.length > 0
