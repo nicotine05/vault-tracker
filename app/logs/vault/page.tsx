@@ -48,6 +48,51 @@ type HeightPREntry = {
   sevenL: string;
 };
 
+function normalizeVaultPR(value: string): string {
+  const clean = value
+    .trim()
+    .replace(/,/g, "")
+    .toLowerCase();
+
+  if (!clean) return "";
+
+  const apostropheMatch = clean.match(
+    /(\d+(?:\.\d+)?)\s*['’]\s*(\d+(?:\.\d+)?)?\s*(?:in|inch|")?/i
+  );
+
+  if (apostropheMatch) {
+    const feet = Number(apostropheMatch[1] || "0");
+    const inches = Number(apostropheMatch[2] || "0");
+    const totalInches = feet * 12 + inches;
+    return formatFeetInches(totalInches);
+  }
+
+  const ftMatch = clean.match(
+    /(\d+(?:\.\d+)?)\s*(?:ft|feet)\s*(\d+(?:\.\d+)?)?\s*(?:in|inch)?/i
+  );
+
+  if (ftMatch) {
+    const feet = Number(ftMatch[1] || "0");
+    const inches = Number(ftMatch[2] || "0");
+    const totalInches = feet * 12 + inches;
+    return formatFeetInches(totalInches);
+  }
+
+  const plainNumber = Number(clean.replace(/[^0-9.]/g, ""));
+  if (!Number.isFinite(plainNumber)) return value.trim();
+
+  const totalInches = plainNumber * 12;
+  return formatFeetInches(totalInches);
+}
+
+function formatFeetInches(totalInches: number): string {
+  const feet = Math.floor(totalInches / 12);
+  const inches = Math.round(totalInches - feet * 12);
+
+  if (inches === 0) return `${feet}ft`;
+  return `${feet}ft ${inches}in`;
+}
+
 export default function VaultPage() {
   const [loaded, setLoaded] =
     useState(false);
@@ -388,10 +433,14 @@ export default function VaultPage() {
   ) {
     const today =
       new Date().toLocaleDateString();
+    const normalized =
+      value.trim() === ""
+        ? ""
+        : normalizeVaultPR(value);
 
     setRunPRs((prev) => ({
       ...prev,
-      [key]: value,
+      [key]: normalized,
       [`${String(key)}Date`]:
         today,
     }));
