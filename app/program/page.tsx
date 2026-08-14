@@ -254,12 +254,16 @@ export default function ProgramPage() {
           </div>
 
           {warnings.length > 0 && (
-            <div className="mt-4">
-              <Card title="Warnings">
+            <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 shadow-sm">
+              <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-amber-900">
+                <span aria-hidden="true">⚠</span>
+                <span>Warnings</span>
+              </div>
+              <ul className="space-y-1 text-sm text-amber-900">
                 {warnings.map((w) => (
-                  <p key={w}>⚠ {w}</p>
+                  <li key={w}>• {w}</li>
                 ))}
-              </Card>
+              </ul>
             </div>
           )}
 
