@@ -79,3 +79,62 @@ export function getRecordCalendarDate(
     currentWeek
   );
 }
+
+const programDayNamesList = [
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+  "Sunday",
+] as const;
+
+/** Collect scheduled sessions from current week through plan-ahead weeks for one calendar date. */
+export function getScheduledSessionsForDate(
+  dateKey: string,
+  currentWeek: number,
+  schedulesByWeek: Record<number, Record<string, { sessions: Array<{ id: string; type: string; name: string; load: number; focus?: string; jumpVolume?: string }> }> | undefined>,
+  maxPlanAhead: number = 3
+): Array<{ id: string; type: string; name: string; load: number; focus?: string; jumpVolume?: string; weekNumber: number }> {
+  const results: Array<{
+    id: string;
+    type: string;
+    name: string;
+    load: number;
+    focus?: string;
+    jumpVolume?: string;
+    weekNumber: number;
+  }> = [];
+  const seen = new Set<string>();
+
+  for (
+    let week = currentWeek;
+    week <= Math.min(12, currentWeek + maxPlanAhead);
+    week += 1
+  ) {
+    const schedule = schedulesByWeek[week];
+    if (!schedule) continue;
+
+    for (const dayName of programDayNamesList) {
+      const programDate = getCalendarDateForProgramDay(
+        week,
+        dayName,
+        currentWeek
+      );
+      if (programDate !== dateKey) continue;
+
+      const daily = schedule[dayName];
+      if (!daily?.sessions) continue;
+
+      for (const session of daily.sessions) {
+        const key = `${week}-${session.id}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        results.push({ ...session, weekNumber: week });
+      }
+    }
+  }
+
+  return results;
+}

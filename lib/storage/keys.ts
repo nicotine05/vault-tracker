@@ -1,6 +1,6 @@
 export const STORAGE_KEYS = {
   CURRENT_WEEK: "currentWeek",
-  SELECTED_WEEK: "selectedWeek",
+  PLANNING_WEEK: "planningWeek",
   WEEKLY_PLANNER: "weeklyPlannerByWeek",
   SCHEDULE_SNAPSHOTS: "scheduleSnapshotsByWeek",
   COMPLETED_WORKOUTS: "completedWorkouts",

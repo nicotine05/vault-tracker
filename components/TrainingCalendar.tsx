@@ -3,19 +3,17 @@
 import { useEffect, useMemo, useState } from "react";
 import type { WorkoutExecutionRecord } from "@/lib/domain/types";
 import {
-  getCalendarWeekStart,
-  getDayName,
   getRecordCalendarDate,
-  getWeekDateKeys,
+  getScheduledSessionsForDate,
   toLocalDateKey,
 } from "@/lib/domain/calendarUtils";
 import {
   getCatalogWorkout,
-  type SessionOption,
   type TrainingType,
 } from "@/lib/trainingProgram";
 import {
   loadProgramState,
+  MAX_PLAN_AHEAD_WEEKS,
   subscribeProgramState,
 } from "@/lib/storage/programStore";
 
@@ -28,6 +26,7 @@ type DaySessionView = {
   load?: number;
   focus?: string;
   jumpVolume?: string;
+  weekNumber?: number;
 };
 
 const trainingStyles: Record<
@@ -63,53 +62,52 @@ function getCompletionsForDate(
   });
 }
 
-function sessionToView(
-  session: SessionOption,
-  status: "completed" | "scheduled",
-  completedAt?: string
-): DaySessionView {
-  return {
-    id: session.id,
-    name: session.name,
-    type: session.type,
-    status,
-    completedAt,
-    load: session.load,
-    focus: session.focus,
-    jumpVolume: session.jumpVolume,
-  };
-}
-
 function buildDaySessions(
   dateKey: string,
-  dateKeysThisWeek: Set<string>,
-  currentWeekSchedule: Record<string, { sessions: SessionOption[] }> | undefined,
   executionHistory: Record<string, WorkoutExecutionRecord>,
-  currentWeek: number
+  currentWeek: number,
+  schedulesByWeek: Record<
+    number,
+    Record<string, { sessions: Array<{ id: string; type: string; name: string; load: number; focus?: string; jumpVolume?: string }> }>
+  >
 ): DaySessionView[] {
   const completions = getCompletionsForDate(
     executionHistory,
     dateKey,
     currentWeek
   );
+
   const views: DaySessionView[] = completions.map((record) => ({
     id: record.sessionId,
     name: record.sessionName,
     type: record.sessionType,
     status: "completed",
     completedAt: record.completedAt,
+    weekNumber: record.weekNumber,
   }));
 
   const completedIds = new Set(views.map((view) => view.id));
 
-  if (dateKeysThisWeek.has(dateKey) && currentWeekSchedule) {
-    const dayName = getDayName(new Date(`${dateKey}T00:00:00`));
-    const scheduled = currentWeekSchedule[dayName]?.sessions ?? [];
+  const scheduled = getScheduledSessionsForDate(
+    dateKey,
+    currentWeek,
+    schedulesByWeek,
+    MAX_PLAN_AHEAD_WEEKS
+  );
 
-    for (const session of scheduled) {
-      if (completedIds.has(session.id)) continue;
-      views.push(sessionToView(session, "scheduled"));
-    }
+  for (const session of scheduled) {
+    if (completedIds.has(session.id)) continue;
+
+    views.push({
+      id: session.id,
+      name: session.name,
+      type: session.type as TrainingType,
+      status: "scheduled",
+      load: session.load,
+      focus: session.focus,
+      jumpVolume: session.jumpVolume,
+      weekNumber: session.weekNumber,
+    });
   }
 
   return views;
@@ -133,18 +131,18 @@ export default function TrainingCalendar() {
   const { currentWeek, executionHistory, scheduleSnapshotsByWeek } =
     programState;
 
-  const currentWeekSchedule =
-    scheduleSnapshotsByWeek[currentWeek]?.schedule;
+  const schedulesByWeek = useMemo(() => {
+    const result: Record<
+      number,
+      Record<string, { sessions: Array<{ id: string; type: string; name: string; load: number; focus?: string; jumpVolume?: string }> }>
+    > = {};
 
-  const thisWeekStart = useMemo(
-    () => getCalendarWeekStart(new Date()),
-    []
-  );
+    for (const [weekKey, snapshot] of Object.entries(scheduleSnapshotsByWeek)) {
+      result[Number(weekKey)] = snapshot.schedule;
+    }
 
-  const thisWeekDateKeys = useMemo(
-    () => new Set(getWeekDateKeys(thisWeekStart)),
-    [thisWeekStart]
-  );
+    return result;
+  }, [scheduleSnapshotsByWeek]);
 
   const monthLabel = useMemo(
     () =>
@@ -181,18 +179,11 @@ export default function TrainingCalendar() {
     () =>
       buildDaySessions(
         selectedDate,
-        thisWeekDateKeys,
-        currentWeekSchedule,
         executionHistory,
-        currentWeek
+        currentWeek,
+        schedulesByWeek
       ),
-    [
-      selectedDate,
-      thisWeekDateKeys,
-      currentWeekSchedule,
-      executionHistory,
-      currentWeek,
-    ]
+    [selectedDate, executionHistory, currentWeek, schedulesByWeek]
   );
 
   const selectedDateLabel = new Date(
@@ -268,10 +259,9 @@ export default function TrainingCalendar() {
           const isSelected = dateKey === selectedDate;
           const daySessions = buildDaySessions(
             dateKey,
-            thisWeekDateKeys,
-            currentWeekSchedule,
             executionHistory,
-            currentWeek
+            currentWeek,
+            schedulesByWeek
           );
 
           return (
@@ -345,6 +335,12 @@ export default function TrainingCalendar() {
                     <span className="font-medium">
                       {session.status === "completed" ? "✓ " : "○ "}
                       {session.name}
+                      {session.weekNumber !== undefined &&
+                        session.weekNumber > currentWeek && (
+                          <span className="ml-1 text-[9px] opacity-70">
+                            (W{session.weekNumber})
+                          </span>
+                        )}
                     </span>
                     <span className="text-[10px] opacity-70">
                       {isExpanded ? "▲" : "▼"}
@@ -402,7 +398,7 @@ export default function TrainingCalendar() {
         )}
 
         <p className="mt-2 text-[10px] text-slate-400">
-          Filled dots = done · Rings = scheduled this week
+          Filled dots = done · Rings = scheduled (includes plan-ahead weeks)
         </p>
       </div>
     </div>

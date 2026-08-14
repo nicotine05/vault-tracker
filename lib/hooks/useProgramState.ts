@@ -6,6 +6,7 @@ import { workoutCompletionKey } from "@/lib/trainingProgram";
 import type { WorkoutExecutionRecord } from "@/lib/domain/types";
 import { getCalendarDateForProgramDay } from "@/lib/domain/calendarUtils";
 import {
+  clampPlanningWeek,
   generateScheduleSnapshot,
   getDefaultProgramState,
   loadProgramState,
@@ -47,16 +48,38 @@ export function useProgramState() {
   }, [state, loaded]);
 
   const setCurrentWeek = useCallback((week: number) => {
+    setState((prev) => {
+      const currentWeek = Math.min(12, Math.max(1, week));
+      return {
+        ...prev,
+        currentWeek,
+        planningWeek: clampPlanningWeek(prev.planningWeek, currentWeek),
+      };
+    });
+  }, []);
+
+  const setPlanningWeek = useCallback((week: number) => {
     setState((prev) => ({
       ...prev,
-      currentWeek: Math.min(12, Math.max(1, week)),
+      planningWeek: clampPlanningWeek(week, prev.currentWeek),
     }));
   }, []);
 
-  const setSelectedWeek = useCallback((week: number) => {
+  const advanceToNextWeek = useCallback(() => {
+    setState((prev) => {
+      const nextWeek = Math.min(12, prev.currentWeek + 1);
+      return {
+        ...prev,
+        currentWeek: nextWeek,
+        planningWeek: nextWeek,
+      };
+    });
+  }, []);
+
+  const planAhead = useCallback((week: number) => {
     setState((prev) => ({
       ...prev,
-      selectedWeek: Math.min(12, Math.max(1, week)),
+      planningWeek: clampPlanningWeek(week, prev.currentWeek),
     }));
   }, []);
 
@@ -119,17 +142,6 @@ export function useProgramState() {
     });
   }, []);
 
-  const advanceToNextWeek = useCallback(() => {
-    setState((prev) => {
-      const nextWeek = Math.min(12, prev.currentWeek + 1);
-      return {
-        ...prev,
-        currentWeek: nextWeek,
-        selectedWeek: nextWeek,
-      };
-    });
-  }, []);
-
   const completeWorkout = useCallback((params: WorkoutToggleParams) => {
     const completionKey = workoutCompletionKey(
       params.weekNumber,
@@ -177,7 +189,8 @@ export function useProgramState() {
     ...state,
     loaded,
     setCurrentWeek,
-    setSelectedWeek,
+    setPlanningWeek,
+    planAhead,
     updatePlannerDay,
     generateWeekSchedule,
     resetWeekPlanner,

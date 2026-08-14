@@ -17,9 +17,11 @@ export type WeekScheduleSnapshot = {
   schedule: GeneratedWeekSchedule;
 };
 
+export const MAX_PLAN_AHEAD_WEEKS = 3;
+
 export type ProgramState = {
   currentWeek: number;
-  selectedWeek: number;
+  planningWeek: number;
   plannerByWeek: Record<number, Record<string, PlannerDay>>;
   scheduleSnapshotsByWeek: Record<number, WeekScheduleSnapshot>;
   completedWorkouts: Record<string, boolean>;
@@ -28,7 +30,7 @@ export type ProgramState = {
 
 const DEFAULT_STATE: ProgramState = {
   currentWeek: 1,
-  selectedWeek: 1,
+  planningWeek: 1,
   plannerByWeek: {},
   scheduleSnapshotsByWeek: {},
   completedWorkouts: {},
@@ -37,6 +39,19 @@ const DEFAULT_STATE: ProgramState = {
 
 function clampWeek(week: number): number {
   return Math.min(12, Math.max(1, week));
+}
+
+export function clampPlanningWeek(
+  planningWeek: number,
+  currentWeek: number
+): number {
+  return clampWeek(
+    Math.min(planningWeek, currentWeek + MAX_PLAN_AHEAD_WEEKS)
+  );
+}
+
+export function maxViewableWeek(currentWeek: number): number {
+  return Math.min(12, currentWeek + MAX_PLAN_AHEAD_WEEKS);
 }
 
 function createSnapshot(
@@ -117,15 +132,6 @@ export function loadProgramState(): ProgramState {
     Number(getString(STORAGE_KEYS.CURRENT_WEEK, "1"))
   );
 
-  const selectedWeek = clampWeek(
-    Number(
-      getString(
-        STORAGE_KEYS.SELECTED_WEEK,
-        String(currentWeek)
-      )
-    )
-  );
-
   const rawHistory = getItem<Record<string, WorkoutExecutionRecord>>(
     STORAGE_KEYS.EXECUTION_HISTORY,
     {}
@@ -136,9 +142,14 @@ export function loadProgramState(): ProgramState {
     setItem(STORAGE_KEYS.EXECUTION_HISTORY, executionHistory);
   }
 
+  const legacyPlanning = getString(STORAGE_KEYS.PLANNING_WEEK, "");
+  const legacySelected = getString("selectedWeek", "");
+  const rawPlanning = legacyPlanning || legacySelected || String(currentWeek);
+  const planningWeek = clampPlanningWeek(Number(rawPlanning), currentWeek);
+
   return {
     currentWeek,
-    selectedWeek,
+    planningWeek,
     plannerByWeek: getItem(STORAGE_KEYS.WEEKLY_PLANNER, {}),
     scheduleSnapshotsByWeek: getItem(STORAGE_KEYS.SCHEDULE_SNAPSHOTS, {}),
     completedWorkouts: getItem(STORAGE_KEYS.COMPLETED_WORKOUTS, {}),
@@ -148,7 +159,7 @@ export function loadProgramState(): ProgramState {
 
 export function saveProgramState(state: ProgramState): void {
   setItem(STORAGE_KEYS.CURRENT_WEEK, String(state.currentWeek));
-  setItem(STORAGE_KEYS.SELECTED_WEEK, String(state.selectedWeek));
+  setItem(STORAGE_KEYS.PLANNING_WEEK, String(state.planningWeek));
   setItem(STORAGE_KEYS.WEEKLY_PLANNER, state.plannerByWeek);
   setItem(STORAGE_KEYS.SCHEDULE_SNAPSHOTS, state.scheduleSnapshotsByWeek);
   setItem(STORAGE_KEYS.COMPLETED_WORKOUTS, state.completedWorkouts);

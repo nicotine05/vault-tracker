@@ -156,8 +156,6 @@ weightHistory
 
 currentWeek
 
-selectedWeek
-
 programChecks
 
 completedWorkouts

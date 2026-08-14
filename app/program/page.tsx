@@ -50,7 +50,7 @@ const trafficStyles: Record<TrafficLightLevel, string> = {
 export default function ProgramPage() {
   const {
     currentWeek,
-    selectedWeek,
+    planningWeek,
     plannerByWeek,
     scheduleSnapshotsByWeek,
     completedWorkouts,
@@ -64,9 +64,9 @@ export default function ProgramPage() {
   const [expandedWorkouts, setExpandedWorkouts] = useState<Record<string, boolean>>({});
   const [confirmingKey, setConfirmingKey] = useState<string | null>(null);
 
-  const weekPlanner = plannerByWeek[selectedWeek] || {};
-  const phaseConfig = getPhaseConfig(selectedWeek);
-  const phaseName = getPhaseNameForWeek(selectedWeek);
+  const weekPlanner = plannerByWeek[planningWeek] || {};
+  const phaseConfig = getPhaseConfig(planningWeek);
+  const phaseName = getPhaseNameForWeek(planningWeek);
   const targets = phaseConfig.targets;
 
   const counts = {
@@ -81,10 +81,10 @@ export default function ProgramPage() {
     counts.speed >= targets.speed;
 
   const togglePlanner = (day: string, type: TrainingType) => {
-    updatePlannerDay(selectedWeek, day, type);
+    updatePlannerDay(planningWeek, day, type);
   };
 
-  const warnings = getPlannerWarnings(weekPlanner, selectedWeek);
+  const warnings = getPlannerWarnings(weekPlanner, planningWeek);
 
   if (counts.vault < targets.vault)
     warnings.unshift("Missing Required Vault Session");
@@ -108,15 +108,15 @@ export default function ProgramPage() {
 
   const programState = {
     currentWeek,
-    selectedWeek,
+    planningWeek,
     plannerByWeek,
     scheduleSnapshotsByWeek,
     completedWorkouts,
     executionHistory,
   };
 
-  const generated = isWeekScheduleGenerated(programState, selectedWeek);
-  const snapshot = scheduleSnapshotsByWeek[selectedWeek];
+  const generated = isWeekScheduleGenerated(programState, planningWeek);
+  const snapshot = scheduleSnapshotsByWeek[planningWeek];
   const generatedSchedule = snapshot?.schedule ?? {};
 
   return (
@@ -125,12 +125,12 @@ export default function ProgramPage() {
 
       <Card>
         <div className="text-center">
-          <p className="font-bold">Week {selectedWeek}</p>
+          <p className="font-bold">Week {planningWeek}</p>
           <p className="text-sm text-gray-500">{phaseName}</p>
 
-          {selectedWeek > currentWeek && (
-            <span className="mt-2 inline-block text-xs px-2 py-1 rounded-full bg-purple-100 text-purple-800">
-              NEXT WEEK
+          {planningWeek > currentWeek && (
+            <span className="mt-2 inline-block text-xs px-2 py-1 rounded-full bg-amber-100 text-amber-800">
+              Planning ahead
             </span>
           )}
 
@@ -254,7 +254,7 @@ export default function ProgramPage() {
           {plannerComplete && (
             <div className="mt-4">
               <button
-                onClick={() => generateWeekSchedule(selectedWeek)}
+                onClick={() => generateWeekSchedule(planningWeek)}
                 className="w-full bg-purple-600 text-white rounded-xl p-4 font-bold"
               >
                 Generate Schedule
@@ -262,7 +262,7 @@ export default function ProgramPage() {
 
               <button
                 type="button"
-                onClick={() => resetWeekPlanner(selectedWeek)}
+                onClick={() => resetWeekPlanner(planningWeek)}
                 className="mt-2 w-full border border-gray-300 text-gray-700 rounded-xl p-2 text-sm"
               >
                 Reset
@@ -300,7 +300,7 @@ export default function ProgramPage() {
                   <div className="space-y-2">
                     {dailyPlan.sessions.map((session) => {
                       const completionKey = workoutCompletionKey(
-                        selectedWeek,
+                        planningWeek,
                         day,
                         session.id
                       );
@@ -363,7 +363,7 @@ export default function ProgramPage() {
                               onClick={() => {
                                 if (confirmingKey === completionKey) {
                                   completeWorkout({
-                                    weekNumber: selectedWeek,
+                                    weekNumber: planningWeek,
                                     day,
                                     sessionId: session.id,
                                     sessionName: session.name,
@@ -391,7 +391,7 @@ export default function ProgramPage() {
                               {workout && "primaryLift" in workout && (
                                 <>
                                   {(() => {
-                                    const phase = getPhaseConfig(selectedWeek);
+                                    const phase = getPhaseConfig(planningWeek);
                                     const phaseNameLower =
                                       phase.name.toLowerCase() as
                                         | "rebuild"
@@ -543,7 +543,7 @@ export default function ProgramPage() {
 
           <button
             type="button"
-            onClick={() => resetWeekPlanner(selectedWeek)}
+            onClick={() => resetWeekPlanner(planningWeek)}
             className="mt-3 w-full border border-gray-300 text-gray-700 rounded-xl p-2 text-sm"
           >
             Reset

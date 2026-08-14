@@ -1,16 +1,55 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Card from "@/components/Card";
 import { program } from "@/lib/data";
 import { getPhaseNameForWeek } from "@/lib/domain/programWeek";
 import { useProgramState } from "@/lib/hooks/useProgramState";
+import {
+  MAX_PLAN_AHEAD_WEEKS,
+  maxViewableWeek,
+} from "@/lib/storage/programStore";
 
 export default function SettingsPage() {
-  const { currentWeek, selectedWeek, setCurrentWeek, setSelectedWeek, advanceToNextWeek } =
-    useProgramState();
+  const {
+    currentWeek,
+    planningWeek,
+    advanceToNextWeek,
+    planAhead,
+    setPlanningWeek,
+  } = useProgramState();
 
-  const phaseName = getPhaseNameForWeek(currentWeek);
-  const canAdvance = currentWeek < program.totalWeeks;
+  const [viewingWeek, setViewingWeek] = useState(currentWeek);
+
+  useEffect(() => {
+    setViewingWeek(planningWeek);
+  }, [planningWeek]);
+
+  const viewingPhase = getPhaseNameForWeek(viewingWeek);
+  const maxWeek = maxViewableWeek(currentWeek);
+  const isActiveWeek = viewingWeek === currentWeek;
+  const isFutureWeek = viewingWeek > currentWeek;
+  const canPlanAhead =
+    isFutureWeek && viewingWeek <= currentWeek + MAX_PLAN_AHEAD_WEEKS;
+  const canFinishWeek =
+    isActiveWeek && currentWeek < program.totalWeeks;
+
+  function handlePreviousWeek() {
+    setViewingWeek((prev) => Math.max(1, prev - 1));
+  }
+
+  function handleNextWeek() {
+    setViewingWeek((prev) => Math.min(maxWeek, prev + 1));
+  }
+
+  function handlePlanAhead() {
+    planAhead(viewingWeek);
+  }
+
+  function handleReturnToActiveWeek() {
+    setViewingWeek(currentWeek);
+    setPlanningWeek(currentWeek);
+  }
 
   return (
     <main className="max-w-md mx-auto p-4 pb-20">
@@ -18,36 +57,47 @@ export default function SettingsPage() {
 
       <Card title="Program Week">
         <p className="text-sm text-gray-500 mb-4">
-          This tells the app which week of your 12-week program you&apos;re on.
-          It updates your meal plan, training phase, and home screen.
+          Your active week is Week {currentWeek}. Browse up to{" "}
+          {MAX_PLAN_AHEAD_WEEKS} weeks ahead to plan workouts — they&apos;ll
+          show on your calendar and Program tab.
         </p>
 
         <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-4">
           <button
             type="button"
-            onClick={() => setCurrentWeek(currentWeek - 1)}
-            disabled={currentWeek <= 1}
+            onClick={handlePreviousWeek}
+            disabled={viewingWeek <= 1}
             className="px-3 py-1 border rounded-lg disabled:opacity-40"
           >
             ←
           </button>
 
           <div className="text-center">
-            <p className="text-2xl font-bold">Week {currentWeek}</p>
-            <p className="text-sm text-gray-500">{phaseName} phase</p>
+            <p className="text-2xl font-bold">Week {viewingWeek}</p>
+            <p className="text-sm text-gray-500">{viewingPhase} phase</p>
+            {isActiveWeek && (
+              <span className="mt-1 inline-block text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-800">
+                Active week
+              </span>
+            )}
+            {isFutureWeek && (
+              <span className="mt-1 inline-block text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
+                Future week
+              </span>
+            )}
           </div>
 
           <button
             type="button"
-            onClick={() => setCurrentWeek(currentWeek + 1)}
-            disabled={currentWeek >= program.totalWeeks}
+            onClick={handleNextWeek}
+            disabled={viewingWeek >= maxWeek}
             className="px-3 py-1 border rounded-lg disabled:opacity-40"
           >
             →
           </button>
         </div>
 
-        {canAdvance && (
+        {canFinishWeek && (
           <button
             type="button"
             onClick={advanceToNextWeek}
@@ -57,45 +107,38 @@ export default function SettingsPage() {
           </button>
         )}
 
-        {currentWeek >= program.totalWeeks && (
+        {canPlanAhead && (
+          <button
+            type="button"
+            onClick={handlePlanAhead}
+            className="mt-4 w-full rounded-xl bg-amber-500 p-3 font-semibold text-white"
+          >
+            Plan Ahead — Week {viewingWeek}
+          </button>
+        )}
+
+        {!isActiveWeek && viewingWeek < currentWeek && (
+          <button
+            type="button"
+            onClick={handleReturnToActiveWeek}
+            className="mt-4 w-full rounded-xl border border-slate-300 p-3 text-sm font-medium text-slate-700"
+          >
+            Back to active week (Week {currentWeek})
+          </button>
+        )}
+
+        {planningWeek > currentWeek && isActiveWeek && (
+          <p className="mt-3 text-center text-xs text-amber-700">
+            Program tab is showing planned Week {planningWeek}.
+          </p>
+        )}
+
+        {currentWeek >= program.totalWeeks && isActiveWeek && (
           <p className="mt-4 text-center text-sm text-gray-500">
             You&apos;re on the final week of the program.
           </p>
         )}
       </Card>
-
-      <div className="mt-4">
-        <Card title="Program Tab Week">
-          <p className="text-sm text-gray-500 mb-3">
-            Choose which week you see on the Program tab. You can view your
-            current week or plan one week ahead — change it here only.
-          </p>
-
-          <div className="flex items-center justify-between">
-            <button
-              type="button"
-              onClick={() => setSelectedWeek(selectedWeek - 1)}
-              disabled={selectedWeek <= 1}
-              className="px-3 py-1 border rounded-lg disabled:opacity-40"
-            >
-              ←
-            </button>
-
-            <span className="font-semibold">Viewing Week {selectedWeek}</span>
-
-            <button
-              type="button"
-              onClick={() =>
-                setSelectedWeek(Math.min(currentWeek + 1, selectedWeek + 1))
-              }
-              disabled={selectedWeek >= currentWeek + 1}
-              className="px-3 py-1 border rounded-lg disabled:opacity-40"
-            >
-              →
-            </button>
-          </div>
-        </Card>
-      </div>
     </main>
   );
 }
