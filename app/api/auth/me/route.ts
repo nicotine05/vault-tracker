@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { prepareServerRequest } from "@/lib/server/runtime";
 import {
   readSessionToken,
   verifySessionToken,
@@ -11,9 +12,11 @@ import {
 } from "@/lib/server/users";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   try {
+    await prepareServerRequest();
     const token = readSessionToken(request.headers.get("cookie"));
     if (!token) {
       return NextResponse.json({ user: null });

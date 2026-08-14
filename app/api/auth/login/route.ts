@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { verifyPassword } from "@/lib/server/auth";
+import { prepareServerRequest } from "@/lib/server/runtime";
 import {
   buildSessionCookie,
   createSessionToken,
@@ -7,9 +8,11 @@ import {
 import { findUserByEmail, toPublicUser } from "@/lib/server/users";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
   try {
+    await prepareServerRequest();
     const body = (await request.json()) as {
       email?: string;
       password?: string;

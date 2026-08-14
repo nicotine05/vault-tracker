@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { prepareServerRequest } from "@/lib/server/runtime";
 import {
   readSessionToken,
   verifySessionToken,
@@ -10,6 +11,7 @@ import {
 } from "@/lib/server/users";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 function getRequestedAthleteId(request: Request): string | null {
   const url = new URL(request.url);
@@ -18,6 +20,7 @@ function getRequestedAthleteId(request: Request): string | null {
 
 export async function GET(request: Request) {
   try {
+    await prepareServerRequest();
     const token = readSessionToken(request.headers.get("cookie"));
     const session = token ? verifySessionToken(token) : null;
 
@@ -54,6 +57,7 @@ export async function GET(request: Request) {
 
 export async function PUT(request: Request) {
   try {
+    await prepareServerRequest();
     const token = readSessionToken(request.headers.get("cookie"));
     const session = token ? verifySessionToken(token) : null;
 

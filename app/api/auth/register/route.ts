@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { prepareServerRequest } from "@/lib/server/runtime";
 import {
   buildSessionCookie,
   createSessionToken,
@@ -12,9 +13,11 @@ import {
 import type { UserRole } from "@/lib/server/types";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
   try {
+    await prepareServerRequest();
     const body = (await request.json()) as {
       email?: string;
       password?: string;
