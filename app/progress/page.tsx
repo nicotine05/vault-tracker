@@ -311,12 +311,6 @@ export default function ProgressPage() {
           <p className="font-bold text-xl">
             {maxPRString || "--"}
           </p>
-
-          <p className="text-xs text-gray-500">
-            {maxPRString
-              ? "from Step PRs"
-              : ""}
-          </p>
         </Card>
       </div>
 
