@@ -197,9 +197,10 @@ export default function ProgramPage() {
 
           <button
             onClick={() =>
-              setSelectedWeek((prev) => Math.min(12, prev + 1))
+              setSelectedWeek((prev) => Math.min(currentWeek + 1, prev + 1))
             }
-            className="px-3 py-1 border rounded-lg"
+            disabled={selectedWeek >= currentWeek + 1}
+            className="px-3 py-1 border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
           >
             →
           </button>
