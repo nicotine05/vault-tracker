@@ -7,6 +7,22 @@ import {
 import Card from "@/components/Card";
 import { programData } from "@/lib/programData";
 
+type PlannerDay = {
+  vault: boolean;
+  strength: boolean;
+  speed: boolean;
+};
+
+const plannerDays = [
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+  "Sunday",
+] as const;
+
 export default function ProgramPage() {
   const [selectedWeek, setSelectedWeek] =
     useState(1);
@@ -29,6 +45,14 @@ export default function ProgramPage() {
     Record<string, boolean>
   >({});
 
+  const [planner, setPlanner] =
+    useState<
+      Record<
+        number,
+        Record<string, PlannerDay>
+      >
+    >({});
+
   const [loaded, setLoaded] =
     useState(false);
 
@@ -49,8 +73,8 @@ export default function ProgramPage() {
     const selected =
       Number(
         savedSelectedWeek ||
-        savedCurrentWeek ||
-        "1"
+          savedCurrentWeek ||
+          "1"
       );
 
     setCurrentWeek(current);
@@ -79,6 +103,17 @@ export default function ProgramPage() {
       );
     }
 
+    const savedPlanner =
+      localStorage.getItem(
+        "weeklyPlannerByWeek"
+      );
+
+    if (savedPlanner) {
+      setPlanner(
+        JSON.parse(savedPlanner)
+      );
+    }
+
     setLoaded(true);
   }, []);
 
@@ -89,7 +124,7 @@ export default function ProgramPage() {
       "selectedWeek",
       selectedWeek.toString()
     );
-  }, [selectedWeek]);
+  }, [selectedWeek, loaded]);
 
   useEffect(() => {
     if (!loaded) return;
@@ -115,6 +150,15 @@ export default function ProgramPage() {
     completedWorkouts,
     loaded,
   ]);
+
+  useEffect(() => {
+    if (!loaded) return;
+
+    localStorage.setItem(
+      "weeklyPlannerByWeek",
+      JSON.stringify(planner)
+    );
+  }, [planner, loaded]);
 
   const toggleCheck = (
     key: string
@@ -201,6 +245,101 @@ export default function ProgramPage() {
       selectedWeek as keyof typeof programData
     ];
 
+  const weekPlanner =
+    planner[selectedWeek] || {};
+
+  const targets = {
+    vault: Object.values(
+      week.days
+    ).filter((d: any) => d.vault)
+      .length,
+    strength: Object.values(
+      week.days
+    ).filter(
+      (d: any) => d.lifts?.length
+    ).length,
+    speed: Object.values(
+      week.days
+    ).filter((d: any) => d.sprint)
+      .length,
+  };
+
+  const counts = {
+    vault: plannerDays.filter(
+      (d) =>
+        weekPlanner[d]?.vault
+    ).length,
+    strength:
+      plannerDays.filter(
+        (d) =>
+          weekPlanner[d]
+            ?.strength
+      ).length,
+    speed: plannerDays.filter(
+      (d) =>
+        weekPlanner[d]?.speed
+    ).length,
+  };
+
+  const togglePlanner = (
+    day: string,
+    type:
+      | "vault"
+      | "strength"
+      | "speed"
+  ) => {
+    setPlanner((prev) => ({
+      ...prev,
+      [selectedWeek]: {
+        ...prev[selectedWeek],
+        [day]: {
+          vault:
+            prev[selectedWeek]?.[day]
+              ?.vault || false,
+          strength:
+            prev[selectedWeek]?.[day]
+              ?.strength || false,
+          speed:
+            prev[selectedWeek]?.[day]
+              ?.speed || false,
+          [type]:
+            !prev[selectedWeek]?.[day]
+              ?.[type],
+        },
+      },
+    }));
+  };
+
+  const plannerComplete =
+    counts.vault ===
+      targets.vault &&
+    counts.strength ===
+      targets.strength &&
+    counts.speed === targets.speed;
+
+  const warnings: string[] =
+    [];
+
+  if (
+    counts.vault < targets.vault
+  )
+    warnings.push(
+      "Missing Required Vault Session"
+    );
+  if (
+    counts.strength <
+    targets.strength
+  )
+    warnings.push(
+      "Missing Required Strength Session"
+    );
+  if (
+    counts.speed < targets.speed
+  )
+    warnings.push(
+      "Missing Required Speed Session"
+    );
+
   const weekWorkoutKeys =
     Object.keys(
       week?.days || {}
@@ -250,25 +389,12 @@ export default function ProgramPage() {
               {week?.phase}
             </p>
 
-            <div className="mt-1 flex items-center justify-center gap-2">
-              <span
-                className={`text-xs px-2 py-1 rounded-full font-medium ${
-                  week?.phase === "Rebuild"
-                    ? "bg-yellow-100 text-yellow-800"
-                    : week?.phase === "Build"
-                    ? "bg-blue-100 text-blue-800"
-                    : "bg-purple-100 text-purple-800"
-                }`}
-              >
-                {week?.phase}
+            {selectedWeek >
+              currentWeek && (
+              <span className="text-xs px-2 py-1 rounded-full bg-purple-100 text-purple-800">
+                EXAMPLE WEEK
               </span>
-
-              {isLockedWeek && (
-                <span className="text-xs px-2 py-1 rounded-full font-medium bg-gray-200 text-gray-700">
-                  🔒 Locked
-                </span>
-              )}
-            </div>
+            )}
           </div>
 
           <button
@@ -287,267 +413,130 @@ export default function ProgramPage() {
         </div>
       </Card>
 
-      <div className="mt-4 space-y-4">
-        {Object.entries(
-          week?.days || {}
-        ).map(([day, rawData]) => {
-          const data: any = rawData;
+      <div className="mt-4">
+        <Card title="Weekly Planner">
+          <div className="space-y-3">
+            {plannerDays.map(
+              (day) => (
+                <div
+                  key={day}
+                  className="border rounded-xl p-3"
+                >
+                  <p className="font-semibold mb-2">
+                    {day}
+                  </p>
 
-          const itemKeys: string[] =
-            [];
-
-          if (data.sprint) {
-            itemKeys.push(
-              `${selectedWeek}-${day}-sprint`
-            );
-          }
-
-          if (data.vault) {
-            itemKeys.push(
-              `${selectedWeek}-${day}-vault`
-            );
-          }
-
-          if (data.lifts) {
-            data.lifts.forEach(
-              (lift: any) => {
-                itemKeys.push(
-                  `${selectedWeek}-${day}-${lift.name}`
-                );
-              }
-            );
-          }
-
-          const allChecked =
-            itemKeys.length > 0 &&
-            itemKeys.every(
-              (key) =>
-                checkedItems[key]
-            );
-
-          const workoutKey =
-            `${selectedWeek}-${day}`;
-
-          const isCompleted =
-            completedWorkouts[
-              workoutKey
-            ];
-
-          return (
-            <Card
-              key={day}
-              className={
-                isCompleted
-                  ? "opacity-60"
-                  : ""
-              }
-            >
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="font-bold capitalize">
-                  {day}
-
-                  {isCompleted && (
-                    <span className="ml-2 text-green-600">
-                      ✓ Complete
-                    </span>
-                  )}
-                </h2>
-
-               {!isCompleted &&
-  !isLockedWeek && (
-  <button
-    onClick={() =>
-      resetWorkout(
-        workoutKey,
-        itemKeys
-      )
-    }
-    className="text-xs text-red-500 border border-red-300 px-2 py-1 rounded-lg"
-  >
-    Reset
-  </button>
-)}
-              </div>
-
-              {data.sprint && (
-                <div className="mb-4 border rounded-xl p-3">
-                  <div
-                    onClick={() =>
-                      !isCompleted &&
-                      !isLockedWeek &&
-                      toggleCheck(
-                        `${selectedWeek}-${day}-sprint`
-                      )
-                    }
-                    className="flex items-start gap-3 cursor-pointer"
-                  >
-                    <div
-                      className={`w-7 h-7 rounded-full border-2 flex items-center justify-center shrink-0 mt-1 ${
-                        checkedItems[
-                          `${selectedWeek}-${day}-sprint`
-                        ]
-                          ? "bg-green-500 border-green-500 text-white"
-                          : "border-gray-400"
-                      }`}
-                    >
-                      {checkedItems[
-                        `${selectedWeek}-${day}-sprint`
-                      ] && "✓"}
-                    </div>
-
-                    <div>
-                      <p className="font-semibold">
-                        Sprint
-                      </p>
-
-                      <p>
-                        Distance:{" "}
-                        {
-                          data.sprint
-                            .distance
-                        }
-                      </p>
-
-                      <p>
-                        Rest:{" "}
-                        {
-                          data.sprint
-                            .rest
-                        }
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {data.vault && (
-                <div className="mb-4 border rounded-xl p-3">
-                  <div
-                    onClick={() =>
-                      !isCompleted &&
-                      !isLockedWeek &&
-                      toggleCheck(
-                        `${selectedWeek}-${day}-vault`
-                      )
-                    }
-                    className="flex items-start gap-3 cursor-pointer"
-                  >
-                    <div
-                      className={`w-7 h-7 rounded-full border-2 flex items-center justify-center shrink-0 mt-1 ${
-                        checkedItems[
-                          `${selectedWeek}-${day}-vault`
-                        ]
-                          ? "bg-green-500 border-green-500 text-white"
-                          : "border-gray-400"
-                      }`}
-                    >
-                      {checkedItems[
-                        `${selectedWeek}-${day}-vault`
-                      ] && "✓"}
-                    </div>
-
-                    <div>
-                      <p className="font-semibold">
-                        Vault
-                      </p>
-
-                      <p>
-                        Jumps:{" "}
-                        {
-                          data.vault
-                            .jumpVolume
-                        }
-                      </p>
-
-                      <p>
-                        Focus:{" "}
-                        {
-                          data.vault
-                            .jumpFocus
-                        }
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {data.lifts?.length > 0 && (
-                <div className="space-y-2">
-                  {data.lifts.map(
-                    (lift: any) => (
-                      <div
-                        key={lift.name}
-                        className="border rounded-xl p-3"
-                      >
-                        <div
+                  <div className="flex gap-2 flex-wrap">
+                    {(
+                      [
+                        "vault",
+                        "strength",
+                        "speed",
+                      ] as const
+                    ).map(
+                      (type) => (
+                        <button
+                          key={type}
                           onClick={() =>
-                            !isCompleted &&
-                            !isLockedWeek &&
-                            toggleCheck(
-                              `${selectedWeek}-${day}-${lift.name}`
+                            togglePlanner(
+                              day,
+                              type
                             )
                           }
-                          className="flex items-start gap-3 cursor-pointer"
+                          className={`px-3 py-1 rounded-lg border ${
+                            weekPlanner[
+                              day
+                            ]?.[type]
+                              ? "bg-purple-600 text-white"
+                              : ""
+                          }`}
                         >
-                          <div
-                            className={`w-7 h-7 rounded-full border-2 flex items-center justify-center shrink-0 mt-1 ${
-                              checkedItems[
-                                `${selectedWeek}-${day}-${lift.name}`
-                              ]
-                                ? "bg-green-500 border-green-500 text-white"
-                                : "border-gray-400"
-                            }`}
-                          >
-                            {checkedItems[
-                              `${selectedWeek}-${day}-${lift.name}`
-                            ] && "✓"}
-                          </div>
-
-                          <div>
-                            <p className="font-medium">
-                              {lift.name}
-                            </p>
-
-                            <p className="text-sm text-gray-600">
-                              {lift.sets} ×{" "}
-                              {lift.reps}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  )}
-                </div>
-              )}
-
-              {!isCompleted &&
-                !isLockedWeek &&
-                allChecked && (
-                  <button
-                    onClick={() =>
-                      completeWorkout(
-                        workoutKey
+                          {type}
+                        </button>
                       )
-                    }
-                    className="mt-4 w-full bg-green-600 text-white rounded-xl p-3 font-semibold"
-                  >
-                    Complete Workout
-                  </button>
-                )}
-            </Card>
-          );
-        })}
+                    )}
+                  </div>
+                </div>
+              )
+            )}
+          </div>
+        </Card>
       </div>
 
-      {weekComplete &&
-        !isLockedWeek && (
-        <button
-          onClick={completeWeek}
-          className="mt-6 w-full bg-blue-600 text-white rounded-xl p-4 font-bold"
-        >
-          Complete Week →
-        </button>
+      <div className="mt-4">
+        <Card title="Planner Health">
+          <p>
+            Vault {counts.vault}/
+            {targets.vault}
+          </p>
+          <p>
+            Strength{" "}
+            {counts.strength}/
+            {targets.strength}
+          </p>
+          <p>
+            Speed {counts.speed}/
+            {targets.speed}
+          </p>
+        </Card>
+      </div>
+
+      {warnings.length > 0 && (
+        <div className="mt-4">
+          <Card title="Warnings">
+            {warnings.map((w) => (
+              <p key={w}>
+                ⚠ {w}
+              </p>
+            ))}
+          </Card>
+        </div>
       )}
+
+      <div className="mt-4">
+        <Card title="Generated Schedule">
+          {!plannerComplete ? (
+            <p>
+              Complete planner to
+              generate schedule.
+            </p>
+          ) : (
+            plannerDays.map((day) => {
+              const d =
+                weekPlanner[day];
+
+              if (!d) return null;
+
+              return (
+                <div
+                  key={day}
+                  className="mb-2"
+                >
+                  <p className="font-semibold">
+                    {day}
+                  </p>
+                  {d.vault && (
+                    <p>
+                      Vault Session
+                    </p>
+                  )}
+                  {d.strength && (
+                    <p>
+                      Strength
+                      Session
+                    </p>
+                  )}
+                  {d.speed && (
+                    <p>
+                      Speed Session
+                    </p>
+                  )}
+                </div>
+              );
+            })
+          )}
+        </Card>
+      </div>
     </main>
   );
 }
