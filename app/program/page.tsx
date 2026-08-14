@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import Card from "@/components/Card";
 import { useProgramState } from "@/lib/hooks/useProgramState";
 import { getPhaseNameForWeek } from "@/lib/domain/programWeek";
@@ -54,7 +55,6 @@ export default function ProgramPage() {
     scheduleSnapshotsByWeek,
     completedWorkouts,
     executionHistory,
-    setSelectedWeek,
     updatePlannerDay,
     generateWeekSchedule,
     resetWeekPlanner,
@@ -123,34 +123,22 @@ export default function ProgramPage() {
       <h1 className="text-3xl font-bold mb-4">Program</h1>
 
       <Card>
-        <div className="flex items-center justify-between">
-          <button
-            onClick={() => setSelectedWeek(Math.max(1, selectedWeek - 1))}
-            className="px-3 py-1 border rounded-lg"
+        <div className="text-center">
+          <p className="font-bold">Week {selectedWeek}</p>
+          <p className="text-sm text-gray-500">{phaseName}</p>
+
+          {selectedWeek > currentWeek && (
+            <span className="mt-2 inline-block text-xs px-2 py-1 rounded-full bg-purple-100 text-purple-800">
+              NEXT WEEK
+            </span>
+          )}
+
+          <Link
+            href="/settings"
+            className="mt-3 block text-xs text-blue-500"
           >
-            ←
-          </button>
-
-          <div className="text-center">
-            <p className="font-bold">Week {selectedWeek}</p>
-            <p className="text-sm text-gray-500">{phaseName}</p>
-
-            {selectedWeek > currentWeek && (
-              <span className="text-xs px-2 py-1 rounded-full bg-purple-100 text-purple-800">
-                NEXT WEEK
-              </span>
-            )}
-          </div>
-
-          <button
-            onClick={() =>
-              setSelectedWeek(Math.min(currentWeek + 1, selectedWeek + 1))
-            }
-            disabled={selectedWeek >= currentWeek + 1}
-            className="px-3 py-1 border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            →
-          </button>
+            Change week in Settings →
+          </Link>
         </div>
       </Card>
 

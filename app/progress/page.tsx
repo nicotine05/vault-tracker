@@ -21,10 +21,6 @@ import {
   subscribeVaultRunPRs,
 } from "@/lib/storage/logStore";
 import {
-  loadProgramState,
-  subscribeProgramState,
-} from "@/lib/storage/programStore";
-import {
   LineChart,
   Line,
   XAxis,
@@ -39,7 +35,6 @@ const GOAL_PR_METERS = 4.57;
 export default function ProgressPage() {
   const [vaultRunPRs, setVaultRunPRs] = useState<RunPRs>(loadVaultRunPRs);
   const [prHistory, setPrHistory] = useState<HeightPREntry[]>([]);
-  const [programState, setProgramState] = useState(loadProgramState);
   const [selectedRun, setSelectedRun] = useState<
     "threeL" | "fourL" | "fiveL" | "sixL" | "sevenL"
   >("sevenL");
@@ -52,19 +47,16 @@ export default function ProgressPage() {
       setVaultRunPRs(loadVaultRunPRs());
       setPrHistory(loadVaultPRHistory());
       setWeightHistory(loadWeightHistory());
-      setProgramState(loadProgramState());
     };
 
     refresh();
 
     const unsubPRs = subscribeVaultRunPRs(refresh);
     const unsubWeights = subscribeWeightHistory(refresh);
-    const unsubProgram = subscribeProgramState(refresh);
 
     return () => {
       unsubPRs();
       unsubWeights();
-      unsubProgram();
     };
   }, []);
 
@@ -135,14 +127,6 @@ export default function ProgressPage() {
           ) + 0.3
         )
       : undefined;
-
-  const recentCompletions = Object.values(programState.executionHistory)
-    .sort(
-      (a, b) =>
-        new Date(b.completedAt).getTime() -
-        new Date(a.completedAt).getTime()
-    )
-    .slice(0, 5);
 
   function saveWeight() {
     const parsed = parseFloat(newWeight);
@@ -425,34 +409,6 @@ export default function ProgressPage() {
                 </LineChart>
               </ResponsiveContainer>
             </div>
-          )}
-        </Card>
-      </div>
-
-      <div className="mt-4">
-        <Card title="Recent Workouts Completed">
-          {recentCompletions.length === 0 ? (
-            <p className="text-sm text-gray-500">
-              When you check off workouts on the Program page, they&apos;ll show
-              up here with the date you finished them.
-            </p>
-          ) : (
-            <ul className="space-y-2">
-              {recentCompletions.map((record) => (
-                <li
-                  key={record.completionKey}
-                  className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm"
-                >
-                  <p className="font-medium text-slate-800">
-                    {record.sessionName}
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    Week {record.weekNumber} · {record.day} ·{" "}
-                    {new Date(record.completedAt).toLocaleDateString()}
-                  </p>
-                </li>
-              ))}
-            </ul>
           )}
         </Card>
       </div>

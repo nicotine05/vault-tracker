@@ -65,10 +65,10 @@ export default function SettingsPage() {
       </Card>
 
       <div className="mt-4">
-        <Card title="Program Page Week">
+        <Card title="Program Tab Week">
           <p className="text-sm text-gray-500 mb-3">
-            The Program tab can show a different week while you plan ahead.
-            This only changes what you see on that page.
+            Choose which week you see on the Program tab. You can view your
+            current week or plan one week ahead — change it here only.
           </p>
 
           <div className="flex items-center justify-between">

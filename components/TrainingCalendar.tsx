@@ -1,54 +1,111 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import type { WorkoutExecutionRecord } from "@/lib/domain/types";
+import {
+  getCalendarWeekStart,
+  getDayName,
+  getWeekDateKeys,
+  toLocalDateKey,
+} from "@/lib/domain/calendarUtils";
+import {
+  getCatalogWorkout,
+  type SessionOption,
+  type TrainingType,
+} from "@/lib/trainingProgram";
 import {
   loadProgramState,
   subscribeProgramState,
 } from "@/lib/storage/programStore";
 
-type TrainingType = "vault" | "strength" | "speed";
+type DaySessionView = {
+  id: string;
+  name: string;
+  type: TrainingType;
+  status: "completed" | "scheduled";
+  completedAt?: string;
+  load?: number;
+  focus?: string;
+  jumpVolume?: string;
+};
 
 const trainingStyles: Record<
   TrainingType,
-  {
-    dot: string;
-    label: string;
-  }
+  { dot: string; ring: string; label: string }
 > = {
   vault: {
     dot: "bg-amber-500",
+    ring: "border-amber-500",
     label: "Vault",
   },
   strength: {
     dot: "bg-sky-500",
+    ring: "border-sky-500",
     label: "Strength",
   },
   speed: {
     dot: "bg-emerald-500",
+    ring: "border-emerald-500",
     label: "Speed",
   },
 };
 
 const dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-function toLocalDateKey(date: Date) {
-  const year = date.getFullYear();
-  const month = `${date.getMonth() + 1}`.padStart(2, "0");
-  const day = `${date.getDate()}`.padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
+function getCompletionsForDate(
+  history: Record<string, WorkoutExecutionRecord>,
+  dateKey: string
+): WorkoutExecutionRecord[] {
+  return Object.values(history).filter((record) => {
+    return toLocalDateKey(new Date(record.completedAt)) === dateKey;
+  });
 }
 
-function getDayName(date: Date) {
-  const weekday = date.getDay();
+function sessionToView(
+  session: SessionOption,
+  status: "completed" | "scheduled",
+  completedAt?: string
+): DaySessionView {
+  return {
+    id: session.id,
+    name: session.name,
+    type: session.type,
+    status,
+    completedAt,
+    load: session.load,
+    focus: session.focus,
+    jumpVolume: session.jumpVolume,
+  };
+}
 
-  if (weekday === 0) return "Sunday";
-  if (weekday === 1) return "Monday";
-  if (weekday === 2) return "Tuesday";
-  if (weekday === 3) return "Wednesday";
-  if (weekday === 4) return "Thursday";
-  if (weekday === 5) return "Friday";
-  return "Saturday";
+function buildDaySessions(
+  dateKey: string,
+  dateKeysThisWeek: Set<string>,
+  currentWeekSchedule: Record<string, { sessions: SessionOption[] }> | undefined,
+  executionHistory: Record<string, WorkoutExecutionRecord>
+): DaySessionView[] {
+  const completions = getCompletionsForDate(executionHistory, dateKey);
+  const views: DaySessionView[] = completions.map((record) => ({
+    id: record.sessionId,
+    name: record.sessionName,
+    type: record.sessionType,
+    status: "completed",
+    completedAt: record.completedAt,
+  }));
+
+  const completedIds = new Set(views.map((view) => view.id));
+
+  if (dateKeysThisWeek.has(dateKey) && currentWeekSchedule) {
+    const dayName = getDayName(new Date(`${dateKey}T00:00:00`));
+    const scheduled = currentWeekSchedule[dayName]?.sessions ?? [];
+
+    for (const session of scheduled) {
+      if (completedIds.has(session.id)) continue;
+      views.push(sessionToView(session, "scheduled"));
+    }
+  }
+
+  return views;
 }
 
 export default function TrainingCalendar() {
@@ -57,6 +114,7 @@ export default function TrainingCalendar() {
     () => new Date(new Date().getFullYear(), new Date().getMonth(), 1)
   );
   const [selectedDate, setSelectedDate] = useState(() => toLocalDateKey(new Date()));
+  const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
 
   useEffect(() => {
     setProgramState(loadProgramState());
@@ -65,32 +123,20 @@ export default function TrainingCalendar() {
     });
   }, []);
 
-  const selectedWeek = programState.selectedWeek;
-  const snapshot = programState.scheduleSnapshotsByWeek[selectedWeek];
-  const schedule = snapshot?.schedule ?? {};
+  const { currentWeek, executionHistory, scheduleSnapshotsByWeek } =
+    programState;
 
-  const weekStart = useMemo(() => {
-    const today = new Date();
-    const start = new Date(today);
-    const dayOffset = (today.getDay() + 6) % 7;
-    start.setDate(today.getDate() - dayOffset);
-    start.setHours(0, 0, 0, 0);
-    return start;
-  }, []);
+  const currentWeekSchedule =
+    scheduleSnapshotsByWeek[currentWeek]?.schedule;
 
-  const activeWeekDates = useMemo(
-    () =>
-      Array.from({ length: 7 }, (_, index) => {
-        const date = new Date(weekStart);
-        date.setDate(weekStart.getDate() + index);
-        return date;
-      }),
-    [weekStart]
+  const thisWeekStart = useMemo(
+    () => getCalendarWeekStart(new Date()),
+    []
   );
 
-  const activeWeekKeys = useMemo(
-    () => new Set(activeWeekDates.map((date) => toLocalDateKey(date))),
-    [activeWeekDates]
+  const thisWeekDateKeys = useMemo(
+    () => new Set(getWeekDateKeys(thisWeekStart)),
+    [thisWeekStart]
   );
 
   const monthLabel = useMemo(
@@ -105,10 +151,8 @@ export default function TrainingCalendar() {
   const monthDays = useMemo(() => {
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
-    const firstOfMonth = new Date(year, month, 1);
-    const lastOfMonth = new Date(year, month + 1, 0);
-    const firstWeekday = (firstOfMonth.getDay() + 6) % 7;
-    const totalDays = lastOfMonth.getDate();
+    const firstWeekday = (new Date(year, month, 1).getDay() + 6) % 7;
+    const totalDays = new Date(year, month + 1, 0).getDate();
     const days: Array<Date | null> = [];
 
     for (let i = 0; i < firstWeekday; i += 1) {
@@ -126,15 +170,38 @@ export default function TrainingCalendar() {
     return days;
   }, [currentMonth]);
 
-  const selectedDayName = useMemo(() => {
-    const date = new Date(`${selectedDate}T00:00:00`);
-    return getDayName(date);
-  }, [selectedDate]);
-
-  const selectedSessions = schedule[selectedDayName]?.sessions ?? [];
-  const selectedTrainingTypes = selectedSessions.map(
-    (session) => session.type
+  const selectedDaySessions = useMemo(
+    () =>
+      buildDaySessions(
+        selectedDate,
+        thisWeekDateKeys,
+        currentWeekSchedule,
+        executionHistory
+      ),
+    [
+      selectedDate,
+      thisWeekDateKeys,
+      currentWeekSchedule,
+      executionHistory,
+    ]
   );
+
+  const selectedDateLabel = new Date(
+    `${selectedDate}T00:00:00`
+  ).toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+
+  function handleSelectDate(dateKey: string) {
+    setSelectedDate(dateKey);
+    setExpandedSessionId(null);
+  }
+
+  function handleToggleSession(sessionId: string) {
+    setExpandedSessionId((prev) => (prev === sessionId ? null : sessionId));
+  }
 
   return (
     <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
@@ -150,6 +217,7 @@ export default function TrainingCalendar() {
               )
             }
             className="h-7 w-7 rounded-lg border border-slate-200 bg-slate-50 text-sm"
+            aria-label="Previous month"
           >
             ←
           </button>
@@ -166,15 +234,12 @@ export default function TrainingCalendar() {
               )
             }
             className="h-7 w-7 rounded-lg border border-slate-200 bg-slate-50 text-sm"
+            aria-label="Next month"
           >
             →
           </button>
         </div>
       </div>
-
-      <p className="mb-2 text-[11px] text-slate-500">
-        Week {selectedWeek} generated schedule
-      </p>
 
       <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-semibold uppercase tracking-wide text-slate-500">
         {dayNames.map((day) => (
@@ -185,23 +250,25 @@ export default function TrainingCalendar() {
       <div className="mt-2 grid grid-cols-7 gap-1">
         {monthDays.map((date, index) => {
           if (!date) {
-            return <div key={`empty-${index}`} className="h-12 rounded-lg bg-slate-50" />;
+            return (
+              <div key={`empty-${index}`} className="h-12 rounded-lg bg-slate-50" />
+            );
           }
 
           const dateKey = toLocalDateKey(date);
           const isSelected = dateKey === selectedDate;
-          const dayName = getDayName(date);
-          const isInActiveWeek = activeWeekKeys.has(dateKey);
-          const sessions = isInActiveWeek
-            ? schedule[dayName]?.sessions ?? []
-            : [];
-          const trainingTypes = sessions.map((session) => session.type);
+          const daySessions = buildDaySessions(
+            dateKey,
+            thisWeekDateKeys,
+            currentWeekSchedule,
+            executionHistory
+          );
 
           return (
             <button
               key={dateKey}
               type="button"
-              onClick={() => setSelectedDate(dateKey)}
+              onClick={() => handleSelectDate(dateKey)}
               className={`flex h-12 flex-col items-center justify-center rounded-lg border text-[10px] transition ${
                 isSelected
                   ? "border-violet-400 bg-violet-50"
@@ -210,17 +277,28 @@ export default function TrainingCalendar() {
             >
               <span className="text-slate-700">{date.getDate()}</span>
 
-              <div className="mt-1 flex items-center justify-center gap-1">
-                {trainingTypes.length > 0 ? (
-                  trainingTypes.map((type, typeIndex) => (
-                    <span
-                      key={`${dateKey}-${type}-${typeIndex}`}
-                      className={`h-2 w-2 rounded-full ${trainingStyles[type].dot}`}
-                      aria-label={`${trainingStyles[type].label} scheduled`}
-                    />
-                  ))
+              <div className="mt-1 flex items-center justify-center gap-0.5">
+                {daySessions.length > 0 ? (
+                  daySessions.slice(0, 3).map((session) =>
+                    session.status === "completed" ? (
+                      <span
+                        key={`${dateKey}-${session.id}-done`}
+                        className={`h-2 w-2 rounded-full ${trainingStyles[session.type].dot}`}
+                        aria-hidden="true"
+                      />
+                    ) : (
+                      <span
+                        key={`${dateKey}-${session.id}-plan`}
+                        className={`h-2 w-2 rounded-full border ${trainingStyles[session.type].ring} bg-white`}
+                        aria-hidden="true"
+                      />
+                    )
+                  )
                 ) : (
-                  <span className="h-2 w-2 rounded-full bg-slate-200" aria-hidden="true" />
+                  <span
+                    className="h-2 w-2 rounded-full bg-slate-200"
+                    aria-hidden="true"
+                  />
                 )}
               </div>
             </button>
@@ -230,32 +308,92 @@ export default function TrainingCalendar() {
 
       <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-2">
         <p className="text-[11px] font-semibold text-slate-600">
-          {new Date(`${selectedDate}T00:00:00`).toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-          })}
+          {selectedDateLabel}
         </p>
 
-        {selectedTrainingTypes.length > 0 ? (
-          <div className="mt-2 space-y-1">
-            {selectedSessions.map((session) => (
-              <div
-                key={session.id}
-                className={`inline-flex w-full items-center rounded-full border px-2 py-0.5 text-[10px] font-medium ${
-                  session.type === "vault"
-                    ? "border-amber-200 bg-amber-50 text-amber-900"
-                    : session.type === "strength"
-                    ? "border-sky-200 bg-sky-50 text-sky-900"
-                    : "border-emerald-200 bg-emerald-50 text-emerald-900"
-                }`}
-              >
-                {session.name}
-              </div>
-            ))}
-          </div>
+        {selectedDaySessions.length === 0 ? (
+          <p className="mt-2 text-[11px] text-slate-500">No training this day</p>
         ) : (
-          <p className="mt-2 text-[11px] text-slate-500">No scheduled session</p>
+          <ul className="mt-2 space-y-1">
+            {selectedDaySessions.map((session) => {
+              const isExpanded = expandedSessionId === session.id;
+              const catalog = getCatalogWorkout(session.id);
+
+              return (
+                <li key={`${selectedDate}-${session.id}`}>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleSession(session.id)}
+                    className={`flex w-full items-center justify-between rounded-lg border px-2 py-1.5 text-left text-[11px] ${
+                      session.type === "vault"
+                        ? "border-amber-200 bg-amber-50 text-amber-900"
+                        : session.type === "strength"
+                        ? "border-sky-200 bg-sky-50 text-sky-900"
+                        : "border-emerald-200 bg-emerald-50 text-emerald-900"
+                    }`}
+                  >
+                    <span className="font-medium">
+                      {session.status === "completed" ? "✓ " : "○ "}
+                      {session.name}
+                    </span>
+                    <span className="text-[10px] opacity-70">
+                      {isExpanded ? "▲" : "▼"}
+                    </span>
+                  </button>
+
+                  {isExpanded && (
+                    <div className="mt-1 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-[10px] text-slate-600">
+                      <p>
+                        <span className="font-semibold">Status:</span>{" "}
+                        {session.status === "completed"
+                          ? `Completed ${new Date(
+                              session.completedAt!
+                            ).toLocaleTimeString([], {
+                              hour: "numeric",
+                              minute: "2-digit",
+                            })}`
+                          : "Scheduled (not checked off yet)"}
+                      </p>
+
+                      {session.load !== undefined && (
+                        <p className="mt-1">
+                          <span className="font-semibold">Load:</span>{" "}
+                          {session.load}
+                        </p>
+                      )}
+
+                      {session.focus && (
+                        <p className="mt-1">
+                          <span className="font-semibold">Focus:</span>{" "}
+                          {session.focus}
+                        </p>
+                      )}
+
+                      {session.jumpVolume && (
+                        <p className="mt-1">
+                          <span className="font-semibold">Jumps:</span>{" "}
+                          {session.jumpVolume}
+                        </p>
+                      )}
+
+                      {catalog && "description" in catalog && (
+                        <p className="mt-1">{catalog.description}</p>
+                      )}
+
+                      {catalog && "purpose" in catalog && (
+                        <p className="mt-1">{catalog.purpose}</p>
+                      )}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
         )}
+
+        <p className="mt-2 text-[10px] text-slate-400">
+          Filled dots = done · Rings = scheduled this week
+        </p>
       </div>
     </div>
   );
