@@ -1,16 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  loadProgramState,
+  subscribeProgramState,
+} from "@/lib/storage/programStore";
 
 type TrainingType = "vault" | "strength" | "speed";
-
-type PlannerEntry = {
-  vault: boolean;
-  strength: boolean;
-  speed: boolean;
-};
-
-type PlannerMap = Record<number, Record<string, PlannerEntry>>;
 
 const trainingStyles: Record<
   TrainingType,
@@ -43,21 +39,6 @@ function toLocalDateKey(date: Date) {
   return `${year}-${month}-${day}`;
 }
 
-function getPlannerForCurrentWeek() {
-  if (typeof window === "undefined") return {} as Record<string, PlannerEntry>;
-
-  const savedPlanner = localStorage.getItem("weeklyPlannerByWeek") || "{}";
-  const selectedWeek = Number(
-    localStorage.getItem("selectedWeek") || localStorage.getItem("currentWeek") || "1"
-  );
-
-  try {
-    return JSON.parse(savedPlanner)?.[selectedWeek] || {};
-  } catch {
-    return {};
-  }
-}
-
 function getDayName(date: Date) {
   const weekday = date.getDay();
 
@@ -71,12 +52,22 @@ function getDayName(date: Date) {
 }
 
 export default function TrainingCalendar() {
+  const [programState, setProgramState] = useState(loadProgramState);
   const [currentMonth, setCurrentMonth] = useState(
     () => new Date(new Date().getFullYear(), new Date().getMonth(), 1)
   );
   const [selectedDate, setSelectedDate] = useState(() => toLocalDateKey(new Date()));
 
-  const planner = getPlannerForCurrentWeek();
+  useEffect(() => {
+    setProgramState(loadProgramState());
+    return subscribeProgramState(() => {
+      setProgramState(loadProgramState());
+    });
+  }, []);
+
+  const selectedWeek = programState.selectedWeek;
+  const snapshot = programState.scheduleSnapshotsByWeek[selectedWeek];
+  const schedule = snapshot?.schedule ?? {};
 
   const weekStart = useMemo(() => {
     const today = new Date();
@@ -135,14 +126,14 @@ export default function TrainingCalendar() {
     return days;
   }, [currentMonth]);
 
-  const selectedPlan = useMemo(() => {
+  const selectedDayName = useMemo(() => {
     const date = new Date(`${selectedDate}T00:00:00`);
-    const dayName = getDayName(date);
-    return planner[dayName] || { vault: false, strength: false, speed: false };
-  }, [planner, selectedDate]);
+    return getDayName(date);
+  }, [selectedDate]);
 
-  const selectedTrainingTypes = (Object.keys(trainingStyles) as TrainingType[]).filter(
-    (type) => selectedPlan[type]
+  const selectedSessions = schedule[selectedDayName]?.sessions ?? [];
+  const selectedTrainingTypes = selectedSessions.map(
+    (session) => session.type
   );
 
   return (
@@ -181,6 +172,10 @@ export default function TrainingCalendar() {
         </div>
       </div>
 
+      <p className="mb-2 text-[11px] text-slate-500">
+        Week {selectedWeek} generated schedule
+      </p>
+
       <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-semibold uppercase tracking-wide text-slate-500">
         {dayNames.map((day) => (
           <div key={day}>{day}</div>
@@ -197,10 +192,10 @@ export default function TrainingCalendar() {
           const isSelected = dateKey === selectedDate;
           const dayName = getDayName(date);
           const isInActiveWeek = activeWeekKeys.has(dateKey);
-          const entry = isInActiveWeek ? planner[dayName] || { vault: false, strength: false, speed: false } : { vault: false, strength: false, speed: false };
-          const trainingTypes = (Object.keys(trainingStyles) as TrainingType[]).filter(
-            (type) => entry[type]
-          );
+          const sessions = isInActiveWeek
+            ? schedule[dayName]?.sessions ?? []
+            : [];
+          const trainingTypes = sessions.map((session) => session.type);
 
           return (
             <button
@@ -217,11 +212,11 @@ export default function TrainingCalendar() {
 
               <div className="mt-1 flex items-center justify-center gap-1">
                 {trainingTypes.length > 0 ? (
-                  trainingTypes.map((type) => (
+                  trainingTypes.map((type, typeIndex) => (
                     <span
-                      key={`${dateKey}-${type}`}
+                      key={`${dateKey}-${type}-${typeIndex}`}
                       className={`h-2 w-2 rounded-full ${trainingStyles[type].dot}`}
-                      aria-label={`${trainingStyles[type].label} planned`}
+                      aria-label={`${trainingStyles[type].label} scheduled`}
                     />
                   ))
                 ) : (
@@ -242,24 +237,24 @@ export default function TrainingCalendar() {
         </p>
 
         {selectedTrainingTypes.length > 0 ? (
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {selectedTrainingTypes.map((type) => (
-              <span
-                key={type}
-                className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium ${
-                  type === "vault"
+          <div className="mt-2 space-y-1">
+            {selectedSessions.map((session) => (
+              <div
+                key={session.id}
+                className={`inline-flex w-full items-center rounded-full border px-2 py-0.5 text-[10px] font-medium ${
+                  session.type === "vault"
                     ? "border-amber-200 bg-amber-50 text-amber-900"
-                    : type === "strength"
+                    : session.type === "strength"
                     ? "border-sky-200 bg-sky-50 text-sky-900"
                     : "border-emerald-200 bg-emerald-50 text-emerald-900"
                 }`}
               >
-                {trainingStyles[type].label}
-              </span>
+                {session.name}
+              </div>
             ))}
           </div>
         ) : (
-          <p className="mt-2 text-[11px] text-slate-500">No planned session</p>
+          <p className="mt-2 text-[11px] text-slate-500">No scheduled session</p>
         )}
       </div>
     </div>

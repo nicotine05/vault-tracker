@@ -2,115 +2,56 @@
 
 import { useEffect, useState } from "react";
 import Card from "@/components/Card";
-
-type SprintPRs = {
-  tenMeterPR: string;
-  tenMeterDate: string;
-
-  twentyMeterPR: string;
-  twentyMeterDate: string;
-
-  thirtyMeterPR: string;
-  thirtyMeterDate: string;
-};
+import type { SprintPRs } from "@/lib/domain/types";
+import {
+  EMPTY_SPRINT_PRS,
+  loadSprintPRs,
+  saveSprintPRs,
+} from "@/lib/storage/logStore";
 
 export default function SprintPage() {
-  const [prs, setPrs] =
-    useState<SprintPRs>({
-      tenMeterPR: "",
-      tenMeterDate: "",
-
-      twentyMeterPR: "",
-      twentyMeterDate: "",
-
-      thirtyMeterPR: "",
-      thirtyMeterDate: "",
-    });
-
-  const [tenMeter, setTenMeter] =
-    useState("");
-
-  const [twentyMeter, setTwentyMeter] =
-    useState("");
-
-  const [thirtyMeter, setThirtyMeter] =
-    useState("");
+  const [prs, setPrs] = useState<SprintPRs>(EMPTY_SPRINT_PRS);
+  const [tenMeter, setTenMeter] = useState("");
+  const [twentyMeter, setTwentyMeter] = useState("");
+  const [thirtyMeter, setThirtyMeter] = useState("");
 
   useEffect(() => {
-    try {
-      const saved =
-        localStorage.getItem(
-          "sprintPRs"
-        );
-
-      if (saved) {
-        setPrs(JSON.parse(saved));
-      }
-    } catch (error) {
-      console.error(
-        "Failed to load sprint PRs",
-        error
-      );
-    }
+    setPrs(loadSprintPRs());
   }, []);
 
   function handleSave() {
-    const today =
-      new Date().toLocaleDateString();
-
+    const today = new Date().toLocaleDateString();
     const updated = { ...prs };
 
     if (
       tenMeter &&
       (!updated.tenMeterPR ||
-        Number(tenMeter) <
-          Number(
-            updated.tenMeterPR
-          ))
+        Number(tenMeter) < Number(updated.tenMeterPR))
     ) {
-      updated.tenMeterPR =
-        tenMeter;
-
-      updated.tenMeterDate =
-        today;
+      updated.tenMeterPR = tenMeter;
+      updated.tenMeterDate = today;
     }
 
     if (
       twentyMeter &&
       (!updated.twentyMeterPR ||
-        Number(twentyMeter) <
-          Number(
-            updated.twentyMeterPR
-          ))
+        Number(twentyMeter) < Number(updated.twentyMeterPR))
     ) {
-      updated.twentyMeterPR =
-        twentyMeter;
-
-      updated.twentyMeterDate =
-        today;
+      updated.twentyMeterPR = twentyMeter;
+      updated.twentyMeterDate = today;
     }
 
     if (
       thirtyMeter &&
       (!updated.thirtyMeterPR ||
-        Number(thirtyMeter) <
-          Number(
-            updated.thirtyMeterPR
-          ))
+        Number(thirtyMeter) < Number(updated.thirtyMeterPR))
     ) {
-      updated.thirtyMeterPR =
-        thirtyMeter;
-
-      updated.thirtyMeterDate =
-        today;
+      updated.thirtyMeterPR = thirtyMeter;
+      updated.thirtyMeterDate = today;
     }
 
     setPrs(updated);
-
-    localStorage.setItem(
-      "sprintPRs",
-      JSON.stringify(updated)
-    );
+    saveSprintPRs(updated);
 
     setTenMeter("");
     setTwentyMeter("");
@@ -118,39 +59,16 @@ export default function SprintPage() {
   }
 
   function clearPRs() {
-    if (
-      !confirm(
-        "Delete all sprint PRs?"
-      )
-    ) {
-      return;
-    }
+    if (!confirm("Delete all sprint PRs?")) return;
 
-    const empty: SprintPRs = {
-      tenMeterPR: "",
-      tenMeterDate: "",
-
-      twentyMeterPR: "",
-      twentyMeterDate: "",
-
-      thirtyMeterPR: "",
-      thirtyMeterDate: "",
-    };
-
-    setPrs(empty);
-
-    localStorage.setItem(
-      "sprintPRs",
-      JSON.stringify(empty)
-    );
+    setPrs(EMPTY_SPRINT_PRS);
+    saveSprintPRs(EMPTY_SPRINT_PRS);
   }
 
   return (
     <main className="max-w-md mx-auto p-4 pb-20">
       <div className="flex justify-between items-center mb-4">
-        <h1 className="text-3xl font-bold">
-          Sprint PRs
-        </h1>
+        <h1 className="text-3xl font-bold">Sprint PRs</h1>
 
         <button
           onClick={clearPRs}
@@ -163,57 +81,36 @@ export default function SprintPage() {
       <Card>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-1">
-              10m PR
-            </label>
-
+            <label className="block text-sm font-medium mb-1">10m PR</label>
             <input
               type="number"
               step="0.01"
               value={tenMeter}
-              onChange={(e) =>
-                setTenMeter(
-                  e.target.value
-                )
-              }
+              onChange={(e) => setTenMeter(e.target.value)}
               placeholder="1.72"
               className="w-full border rounded-xl p-3"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">
-              20m PR
-            </label>
-
+            <label className="block text-sm font-medium mb-1">20m PR</label>
             <input
               type="number"
               step="0.01"
               value={twentyMeter}
-              onChange={(e) =>
-                setTwentyMeter(
-                  e.target.value
-                )
-              }
+              onChange={(e) => setTwentyMeter(e.target.value)}
               placeholder="3.04"
               className="w-full border rounded-xl p-3"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">
-              30m PR
-            </label>
-
+            <label className="block text-sm font-medium mb-1">30m PR</label>
             <input
               type="number"
               step="0.01"
               value={thirtyMeter}
-              onChange={(e) =>
-                setThirtyMeter(
-                  e.target.value
-                )
-              }
+              onChange={(e) => setThirtyMeter(e.target.value)}
               placeholder="4.21"
               className="w-full border rounded-xl p-3"
             />
@@ -231,23 +128,12 @@ export default function SprintPage() {
       <div className="mt-6 space-y-4">
         <Card>
           <div className="text-center py-2">
-            <p className="text-3xl mb-2">
-              🏆
-            </p>
-
-            <p className="text-sm text-gray-500">
-              10 Meter PR
-            </p>
-
+            <p className="text-3xl mb-2">🏆</p>
+            <p className="text-sm text-gray-500">10 Meter PR</p>
             <p className="text-5xl font-bold text-green-500">
-              {prs.tenMeterPR ||
-                "--"}
+              {prs.tenMeterPR || "--"}
             </p>
-
-            <p className="text-sm text-gray-500 mt-1">
-              seconds
-            </p>
-
+            <p className="text-sm text-gray-500 mt-1">seconds</p>
             <p className="text-xs text-gray-500 mt-2">
               {prs.tenMeterDate
                 ? `Set ${prs.tenMeterDate}`
@@ -258,23 +144,12 @@ export default function SprintPage() {
 
         <Card>
           <div className="text-center py-2">
-            <p className="text-3xl mb-2">
-              🏆
-            </p>
-
-            <p className="text-sm text-gray-500">
-              20 Meter PR
-            </p>
-
+            <p className="text-3xl mb-2">🏆</p>
+            <p className="text-sm text-gray-500">20 Meter PR</p>
             <p className="text-5xl font-bold text-blue-500">
-              {prs.twentyMeterPR ||
-                "--"}
+              {prs.twentyMeterPR || "--"}
             </p>
-
-            <p className="text-sm text-gray-500 mt-1">
-              seconds
-            </p>
-
+            <p className="text-sm text-gray-500 mt-1">seconds</p>
             <p className="text-xs text-gray-500 mt-2">
               {prs.twentyMeterDate
                 ? `Set ${prs.twentyMeterDate}`
@@ -285,23 +160,12 @@ export default function SprintPage() {
 
         <Card>
           <div className="text-center py-2">
-            <p className="text-3xl mb-2">
-              🏆
-            </p>
-
-            <p className="text-sm text-gray-500">
-              30 Meter PR
-            </p>
-
+            <p className="text-3xl mb-2">🏆</p>
+            <p className="text-sm text-gray-500">30 Meter PR</p>
             <p className="text-5xl font-bold text-purple-500">
-              {prs.thirtyMeterPR ||
-                "--"}
+              {prs.thirtyMeterPR || "--"}
             </p>
-
-            <p className="text-sm text-gray-500 mt-1">
-              seconds
-            </p>
-
+            <p className="text-sm text-gray-500 mt-1">seconds</p>
             <p className="text-xs text-gray-500 mt-2">
               {prs.thirtyMeterDate
                 ? `Set ${prs.thirtyMeterDate}`

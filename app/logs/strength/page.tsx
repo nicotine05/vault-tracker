@@ -2,71 +2,30 @@
 
 import { useEffect, useState } from "react";
 import Card from "@/components/Card";
-
-type StrengthPRs = {
-  benchPR: string;
-  benchDate: string;
-
-  squatPR: string;
-  squatDate: string;
-
-  pullupPR: string;
-  pullupDate: string;
-};
+import type { StrengthPRs } from "@/lib/domain/types";
+import {
+  EMPTY_STRENGTH_PRS,
+  loadStrengthPRs,
+  saveStrengthPRs,
+} from "@/lib/storage/logStore";
 
 export default function StrengthPage() {
-  const [prs, setPrs] =
-    useState<StrengthPRs>({
-      benchPR: "",
-      benchDate: "",
-
-      squatPR: "",
-      squatDate: "",
-
-      pullupPR: "",
-      pullupDate: "",
-    });
-
-  const [benchPR, setBenchPR] =
-    useState("");
-
-  const [squatPR, setSquatPR] =
-    useState("");
-
-  const [pullupPR, setPullupPR] =
-    useState("");
+  const [prs, setPrs] = useState<StrengthPRs>(EMPTY_STRENGTH_PRS);
+  const [benchPR, setBenchPR] = useState("");
+  const [squatPR, setSquatPR] = useState("");
+  const [pullupPR, setPullupPR] = useState("");
 
   useEffect(() => {
-    try {
-      const saved =
-        localStorage.getItem(
-          "strengthPRs"
-        );
-
-      if (saved) {
-        setPrs(JSON.parse(saved));
-      }
-    } catch (error) {
-      console.error(
-        "Failed to load strength PRs",
-        error
-      );
-    }
+    setPrs(loadStrengthPRs());
   }, []);
 
   function handleSave() {
-    const today =
-      new Date().toLocaleDateString();
-
+    const today = new Date().toLocaleDateString();
     const updated = { ...prs };
 
     if (
       benchPR &&
-      (!updated.benchPR ||
-        Number(benchPR) >
-          Number(
-            updated.benchPR
-          ))
+      (!updated.benchPR || Number(benchPR) > Number(updated.benchPR))
     ) {
       updated.benchPR = benchPR;
       updated.benchDate = today;
@@ -74,11 +33,7 @@ export default function StrengthPage() {
 
     if (
       squatPR &&
-      (!updated.squatPR ||
-        Number(squatPR) >
-          Number(
-            updated.squatPR
-          ))
+      (!updated.squatPR || Number(squatPR) > Number(updated.squatPR))
     ) {
       updated.squatPR = squatPR;
       updated.squatDate = today;
@@ -86,25 +41,14 @@ export default function StrengthPage() {
 
     if (
       pullupPR &&
-      (!updated.pullupPR ||
-        Number(pullupPR) >
-          Number(
-            updated.pullupPR
-          ))
+      (!updated.pullupPR || Number(pullupPR) > Number(updated.pullupPR))
     ) {
-      updated.pullupPR =
-        pullupPR;
-
-      updated.pullupDate =
-        today;
+      updated.pullupPR = pullupPR;
+      updated.pullupDate = today;
     }
 
     setPrs(updated);
-
-    localStorage.setItem(
-      "strengthPRs",
-      JSON.stringify(updated)
-    );
+    saveStrengthPRs(updated);
 
     setBenchPR("");
     setSquatPR("");
@@ -112,39 +56,16 @@ export default function StrengthPage() {
   }
 
   function clearPRs() {
-    if (
-      !confirm(
-        "Delete all strength PRs?"
-      )
-    ) {
-      return;
-    }
+    if (!confirm("Delete all strength PRs?")) return;
 
-    const empty = {
-      benchPR: "",
-      benchDate: "",
-
-      squatPR: "",
-      squatDate: "",
-
-      pullupPR: "",
-      pullupDate: "",
-    };
-
-    setPrs(empty);
-
-    localStorage.setItem(
-      "strengthPRs",
-      JSON.stringify(empty)
-    );
+    setPrs(EMPTY_STRENGTH_PRS);
+    saveStrengthPRs(EMPTY_STRENGTH_PRS);
   }
 
   return (
     <main className="max-w-md mx-auto p-4 pb-20">
       <div className="flex justify-between items-center mb-4">
-        <h1 className="text-3xl font-bold">
-          Strength PRs
-        </h1>
+        <h1 className="text-3xl font-bold">Strength PRs</h1>
 
         <button
           onClick={clearPRs}
@@ -156,56 +77,34 @@ export default function StrengthPage() {
 
       <Card>
         <div className="space-y-4">
-
           <div>
-            <label className="block text-sm font-medium mb-1">
-              Bench PR
-            </label>
-
+            <label className="block text-sm font-medium mb-1">Bench PR</label>
             <input
               type="number"
               value={benchPR}
-              onChange={(e) =>
-                setBenchPR(
-                  e.target.value
-                )
-              }
+              onChange={(e) => setBenchPR(e.target.value)}
               placeholder="245"
               className="w-full border rounded-xl p-3"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">
-              Squat PR
-            </label>
-
+            <label className="block text-sm font-medium mb-1">Squat PR</label>
             <input
               type="number"
               value={squatPR}
-              onChange={(e) =>
-                setSquatPR(
-                  e.target.value
-                )
-              }
+              onChange={(e) => setSquatPR(e.target.value)}
               placeholder="365"
               className="w-full border rounded-xl p-3"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">
-              Pullup PR
-            </label>
-
+            <label className="block text-sm font-medium mb-1">Pullup PR</label>
             <input
               type="number"
               value={pullupPR}
-              onChange={(e) =>
-                setPullupPR(
-                  e.target.value
-                )
-              }
+              onChange={(e) => setPullupPR(e.target.value)}
               placeholder="18"
               className="w-full border rounded-xl p-3"
             />
@@ -217,81 +116,48 @@ export default function StrengthPage() {
           >
             Update PRs
           </button>
-
         </div>
       </Card>
 
       <div className="mt-6 space-y-4">
-
         <Card>
           <div className="text-center py-2">
-            <p className="text-3xl mb-2">
-              🏆
-            </p>
-
-            <p className="text-sm text-gray-500">
-              Bench Press PR
-            </p>
-
+            <p className="text-3xl mb-2">🏆</p>
+            <p className="text-sm text-gray-500">Bench Press PR</p>
             <p className="text-5xl font-bold text-red-500">
-              {prs.benchPR ||
-                "--"}
+              {prs.benchPR || "--"}
             </p>
-
             <p className="text-xs text-gray-500 mt-2">
-              {prs.benchDate
-                ? `Set ${prs.benchDate}`
-                : "No PR recorded"}
+              {prs.benchDate ? `Set ${prs.benchDate}` : "No PR recorded"}
             </p>
           </div>
         </Card>
 
         <Card>
           <div className="text-center py-2">
-            <p className="text-3xl mb-2">
-              🏆
-            </p>
-
-            <p className="text-sm text-gray-500">
-              Squat PR
-            </p>
-
+            <p className="text-3xl mb-2">🏆</p>
+            <p className="text-sm text-gray-500">Squat PR</p>
             <p className="text-5xl font-bold text-blue-500">
-              {prs.squatPR ||
-                "--"}
+              {prs.squatPR || "--"}
             </p>
-
             <p className="text-xs text-gray-500 mt-2">
-              {prs.squatDate
-                ? `Set ${prs.squatDate}`
-                : "No PR recorded"}
+              {prs.squatDate ? `Set ${prs.squatDate}` : "No PR recorded"}
             </p>
           </div>
         </Card>
 
         <Card>
           <div className="text-center py-2">
-            <p className="text-3xl mb-2">
-              🏆
-            </p>
-
-            <p className="text-sm text-gray-500">
-              Pullup PR
-            </p>
-
+            <p className="text-3xl mb-2">🏆</p>
+            <p className="text-sm text-gray-500">Pullup PR</p>
             <p className="text-5xl font-bold text-green-500">
-              {prs.pullupPR ||
-                "--"}
+              {prs.pullupPR || "--"}
             </p>
-
             <p className="text-xs text-gray-500 mt-2">
-              {prs.pullupDate
-                ? `Set ${prs.pullupDate}`
-                : "No PR recorded"}
+              {prs.pullupDate ? `Set ${prs.pullupDate}` : "No PR recorded"}
             </p>
           </div>
         </Card>
-
       </div>
     </main>
   );

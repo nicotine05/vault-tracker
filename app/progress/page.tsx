@@ -3,6 +3,27 @@
 import { useEffect, useState } from "react";
 import Card from "@/components/Card";
 import TrainingCalendar from "@/components/TrainingCalendar";
+import type { HeightPREntry, RunPRs, WeightEntry } from "@/lib/domain/types";
+import {
+  highestVaultPRMeters,
+  metersToFeetInches,
+  parseVaultPRToMeters,
+} from "@/lib/domain/vaultUnits";
+import {
+  appendWeightEntry,
+  loadWeightHistory,
+  subscribeWeightHistory,
+} from "@/lib/storage/weightStore";
+import {
+  getVaultHeightPRValues,
+  loadVaultPRHistory,
+  loadVaultRunPRs,
+  subscribeVaultRunPRs,
+} from "@/lib/storage/logStore";
+import {
+  loadProgramState,
+  subscribeProgramState,
+} from "@/lib/storage/programStore";
 import {
   LineChart,
   Line,
@@ -12,246 +33,51 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-type LogEntry = {
-  date: string;
-  bodyWeight: string;
-  sleepHours: string;
-  readiness: string;
-  rpe: string;
-  vaultPR: string;
-  sprintDone: boolean;
-  liftDone: boolean;
-  vaultDone: boolean;
-  notes: string;
-};
-
-type HeightPREntry = {
-  date: string;
-  threeL: string;
-  fourL: string;
-  fiveL: string;
-  sixL: string;
-  sevenL: string;
-};
-
-type WeightEntry = {
-  weight: number;
-  date: string;
-};
-
-function parseVaultPRToMeters(
-  value: string | undefined | null
-): number | null {
-  if (!value) return null;
-
-  const clean = value
-    .toString()
-    .trim()
-    .toLowerCase();
-
-  if (!clean) return null;
-
-  const match = clean.match(
-    /(\d+(?:\.\d+)?)ft\s*(\d+(?:\.\d+)?)in/i
-  );
-
-  if (match) {
-    const feet = Number(match[1] || "0");
-    const inches = Number(match[2] || "0");
-    return ((feet * 12) + inches) * 0.0254;
-  }
-
-  const ftOnlyMatch = clean.match(
-    /(\d+(?:\.\d+)?)ft/i
-  );
-
-  if (ftOnlyMatch) {
-    const feet = Number(ftOnlyMatch[1] || "0");
-    return feet * 0.3048;
-  }
-
-  return null;
-}
-
-function metersToFeetInches(
-  meters: number
-) {
-  const totalInches =
-    meters * 39.3701;
-
-  const feet = Math.floor(
-    totalInches / 12
-  );
-
-  const inches =
-    Math.round(
-      totalInches - feet * 12
-    );
-
-  if (inches === 0) {
-    return `${feet}ft`;
-  }
-
-  return `${feet}ft ${inches}in`;
-}
+const START_PR_METERS = 3.6576;
+const GOAL_PR_METERS = 4.57;
 
 export default function ProgressPage() {
-  const [logs, setLogs] = useState<
-    LogEntry[]
-  >([]);
-
-  const [vaultRunPRs, setVaultRunPRs] =
-    useState<Record<string, string>>({});
-
-  const [
-    trainingHistory,
-    setTrainingHistory,
-  ] = useState<string[]>([]);
-
-  const [
-    prHistory,
-    setPrHistory,
-  ] = useState<HeightPREntry[]>([]);
-
-  const [
-    selectedRun,
-    setSelectedRun,
-  ] = useState<
-    "threeL" |
-    "fourL" |
-    "fiveL" |
-    "sixL" |
-    "sevenL"
+  const [vaultRunPRs, setVaultRunPRs] = useState<RunPRs>(loadVaultRunPRs);
+  const [prHistory, setPrHistory] = useState<HeightPREntry[]>([]);
+  const [programState, setProgramState] = useState(loadProgramState);
+  const [selectedRun, setSelectedRun] = useState<
+    "threeL" | "fourL" | "fiveL" | "sixL" | "sevenL"
   >("sevenL");
-
-  const [weightHistory, setWeightHistory] =
-    useState<WeightEntry[]>([]);
-
-  const [showWeightEditor, setShowWeightEditor] =
-    useState(false);
-
-  const [newWeight, setNewWeight] =
-    useState("");
+  const [weightHistory, setWeightHistory] = useState<WeightEntry[]>([]);
+  const [showWeightEditor, setShowWeightEditor] = useState(false);
+  const [newWeight, setNewWeight] = useState("");
 
   useEffect(() => {
-    const savedLogs =
-      localStorage.getItem("logs");
-
-    if (savedLogs) {
-      setLogs(JSON.parse(savedLogs));
-    }
-
-    const loadVaultRunPRs = () => {
-      const savedVaultRunPRs =
-        localStorage.getItem(
-          "vaultRunPRs"
-        );
-
-      if (savedVaultRunPRs) {
-        setVaultRunPRs(
-          JSON.parse(savedVaultRunPRs)
-        );
-      }
+    const refresh = () => {
+      setVaultRunPRs(loadVaultRunPRs());
+      setPrHistory(loadVaultPRHistory());
+      setWeightHistory(loadWeightHistory());
+      setProgramState(loadProgramState());
     };
 
-    loadVaultRunPRs();
+    refresh();
 
-    const savedHistory =
-      localStorage.getItem(
-        "trainingHistory"
-      );
-
-    if (savedHistory) {
-      setTrainingHistory(
-        JSON.parse(savedHistory)
-      );
-    }
-
-    const savedPRHistory =
-      localStorage.getItem(
-        "vaultPRHistory"
-      );
-
-    if (savedPRHistory) {
-      setPrHistory(
-        JSON.parse(savedPRHistory)
-      );
-    }
-
-    const savedWeights =
-      localStorage.getItem(
-        "weightHistory"
-      );
-
-    if (savedWeights) {
-      setWeightHistory(
-        JSON.parse(savedWeights)
-      );
-    }
-
-    const syncVaultRunPRs = () => {
-      loadVaultRunPRs();
-    };
-
-    const syncWeights = () => {
-      const updated =
-        localStorage.getItem(
-          "weightHistory"
-        );
-      if (updated) {
-        setWeightHistory(
-          JSON.parse(updated)
-        );
-      }
-    };
-
-    window.addEventListener(
-      "vaultRunPRsChanged",
-      syncVaultRunPRs
-    );
-    window.addEventListener(
-      "weightChanged",
-      syncWeights
-    );
+    const unsubPRs = subscribeVaultRunPRs(refresh);
+    const unsubWeights = subscribeWeightHistory(refresh);
+    const unsubProgram = subscribeProgramState(refresh);
 
     return () => {
-      window.removeEventListener(
-        "vaultRunPRsChanged",
-        syncVaultRunPRs
-      );
-      window.removeEventListener(
-        "weightChanged",
-        syncWeights
-      );
+      unsubPRs();
+      unsubWeights();
+      unsubProgram();
     };
   }, []);
 
-  const latestLog =
-    logs.length > 0 ? logs[0] : null;
-
-  const START_PR_METERS = 3.6576;
-  const GOAL_PR_METERS = 4.57;
-
-  const currentPRMeters =
-    Object.values(vaultRunPRs).reduce(
-      (max, value) => {
-        const parsed =
-          parseVaultPRToMeters(value);
-        return parsed === null
-          ? max
-          : Math.max(max, parsed);
-      },
-      START_PR_METERS
-    );
+  const currentPRMeters = highestVaultPRMeters(
+    getVaultHeightPRValues(vaultRunPRs),
+    START_PR_METERS
+  );
 
   const maxPRString =
-    Object.values(vaultRunPRs)
-      .filter((v) => v.trim() !== "")
+    getVaultHeightPRValues(vaultRunPRs)
       .sort((a, b) => {
-        const aMeters =
-          parseVaultPRToMeters(a) || 0;
-        const bMeters =
-          parseVaultPRToMeters(b) || 0;
+        const aMeters = parseVaultPRToMeters(a) || 0;
+        const bMeters = parseVaultPRToMeters(b) || 0;
         return bMeters - aMeters;
       })[0] || "";
 
@@ -310,32 +136,19 @@ export default function ProgressPage() {
         )
       : undefined;
 
-  function saveWeight() {
-    const parsed =
-      parseFloat(newWeight);
+  const recentCompletions = Object.values(programState.executionHistory)
+    .sort(
+      (a, b) =>
+        new Date(b.completedAt).getTime() -
+        new Date(a.completedAt).getTime()
+    )
+    .slice(0, 5);
 
+  function saveWeight() {
+    const parsed = parseFloat(newWeight);
     if (isNaN(parsed)) return;
 
-    const updated = [
-      ...weightHistory,
-      {
-        weight: parsed,
-        date:
-          new Date().toISOString(),
-      },
-    ];
-
-    setWeightHistory(updated);
-
-    localStorage.setItem(
-      "weightHistory",
-      JSON.stringify(updated)
-    );
-
-    window.dispatchEvent(
-      new Event("weightChanged")
-    );
-
+    setWeightHistory(appendWeightEntry(parsed));
     setNewWeight("");
     setShowWeightEditor(false);
   }
@@ -612,6 +425,34 @@ export default function ProgressPage() {
                 </LineChart>
               </ResponsiveContainer>
             </div>
+          )}
+        </Card>
+      </div>
+
+      <div className="mt-4">
+        <Card title="Recent Workouts Completed">
+          {recentCompletions.length === 0 ? (
+            <p className="text-sm text-gray-500">
+              When you check off workouts on the Program page, they&apos;ll show
+              up here with the date you finished them.
+            </p>
+          ) : (
+            <ul className="space-y-2">
+              {recentCompletions.map((record) => (
+                <li
+                  key={record.completionKey}
+                  className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm"
+                >
+                  <p className="font-medium text-slate-800">
+                    {record.sessionName}
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    Week {record.weekNumber} · {record.day} ·{" "}
+                    {new Date(record.completedAt).toLocaleDateString()}
+                  </p>
+                </li>
+              ))}
+            </ul>
           )}
         </Card>
       </div>

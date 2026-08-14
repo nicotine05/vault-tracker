@@ -5,6 +5,16 @@ import { vaultCatalog, type VaultWorkout } from "./catalogs/vaultCatalog";
 export type TrainingType = "vault" | "strength" | "speed";
 export type TrafficLightLevel = "Green" | "Yellow" | "Orange" | "Red" | "Black";
 
+export type DailySchedule = {
+  sessions: SessionOption[];
+  load: number;
+  level: TrafficLightLevel;
+};
+
+export type GeneratedWeekSchedule = Record<string, DailySchedule>;
+
+export const ENGINE_VERSION = 1;
+
 export type PlannerDay = {
   vault: boolean;
   strength: boolean;
@@ -252,7 +262,7 @@ function getPhasePool(phase: PhaseDefinition, type: TrainingType) {
 export function generateScheduleForWeek(
   plannerWeek: Partial<Record<string, PlannerDay>>,
   weekNumber: number
-): Record<string, { sessions: SessionOption[]; load: number; level: TrafficLightLevel }> {
+): GeneratedWeekSchedule {
   const phase = getPhaseConfig(weekNumber);
 
   return plannerDays.reduce((acc, day, dayIndex) => {
@@ -283,7 +293,15 @@ export function generateScheduleForWeek(
     };
 
     return acc;
-  }, {} as Record<string, { sessions: SessionOption[]; load: number; level: TrafficLightLevel }>);
+  }, {} as GeneratedWeekSchedule);
+}
+
+export function workoutCompletionKey(
+  weekNumber: number,
+  day: string,
+  sessionId: string
+): string {
+  return `${weekNumber}-${day}-${sessionId}`;
 }
 
 export function getPlannerWarnings(

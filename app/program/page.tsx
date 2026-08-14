@@ -1,26 +1,21 @@
 "use client";
 
-import {
-  useState,
-  useEffect,
-} from "react";
+import { useState } from "react";
 import Card from "@/components/Card";
-import { programData } from "@/lib/programData";
+import { useProgramState } from "@/lib/hooks/useProgramState";
+import { getPhaseNameForWeek } from "@/lib/domain/programWeek";
 import {
   plannerDays,
   getPhaseConfig,
   getPlannerWarnings,
-  generateScheduleForWeek,
   getTrafficLightSymbol,
   getDailyRecommendation,
   getCatalogWorkout,
-  type PlannerDay,
+  workoutCompletionKey,
   type TrainingType,
   type TrafficLightLevel,
 } from "@/lib/trainingProgram";
-import type { StrengthWorkout } from "@/lib/catalogs/strengthCatalog";
-import type { SprintWorkout } from "@/lib/catalogs/sprintCatalog";
-import type { VaultWorkout } from "@/lib/catalogs/vaultCatalog";
+import { isWeekScheduleGenerated } from "@/lib/storage/programStore";
 
 const trainingTypeStyles = {
   vault: {
@@ -52,65 +47,25 @@ const trafficStyles: Record<TrafficLightLevel, string> = {
 };
 
 export default function ProgramPage() {
-  const [selectedWeek, setSelectedWeek] = useState(1);
-  const [unlockedWeek, setUnlockedWeek] = useState(1);
-  const [currentWeek, setCurrentWeek] = useState(1);
-  const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
-  const [completedWorkouts, setCompletedWorkouts] = useState<Record<string, boolean>>({});
-  const [planner, setPlanner] = useState<Record<number, Record<string, PlannerDay>>>({});
-  const [scheduleGenerated, setScheduleGenerated] = useState<Record<number, boolean>>({});
-  const [expandedWorkouts, setExpandedWorkouts] = useState<Record<string, boolean>>({});
-  const [loaded, setLoaded] = useState(false);
-
-  useEffect(() => {
-    const savedCurrentWeek = localStorage.getItem("currentWeek");
-    const savedSelectedWeek = localStorage.getItem("selectedWeek");
-
-    const current = Number(savedCurrentWeek || "1");
-    const selected = Number(savedSelectedWeek || savedCurrentWeek || "1");
-
-    setCurrentWeek(current);
-    setUnlockedWeek(current);
-    setSelectedWeek(selected);
-
-    const savedChecks = localStorage.getItem("programChecks");
-    if (savedChecks) setCheckedItems(JSON.parse(savedChecks));
-
-    const savedCompleted = localStorage.getItem("completedWorkouts");
-    if (savedCompleted) setCompletedWorkouts(JSON.parse(savedCompleted));
-
-    const savedPlanner = localStorage.getItem("weeklyPlannerByWeek");
-    if (savedPlanner) setPlanner(JSON.parse(savedPlanner));
-
-    const savedGenerated = localStorage.getItem("generatedSchedules");
-    if (savedGenerated) setScheduleGenerated(JSON.parse(savedGenerated));
-
-    setLoaded(true);
-  }, []);
-
-  useEffect(() => {
-    if (!loaded) return;
-
-    localStorage.setItem("selectedWeek", selectedWeek.toString());
-    localStorage.setItem("programChecks", JSON.stringify(checkedItems));
-    localStorage.setItem("completedWorkouts", JSON.stringify(completedWorkouts));
-    localStorage.setItem("weeklyPlannerByWeek", JSON.stringify(planner));
-    localStorage.setItem("generatedSchedules", JSON.stringify(scheduleGenerated));
-  }, [
+  const {
+    currentWeek,
     selectedWeek,
-    checkedItems,
+    plannerByWeek,
+    scheduleSnapshotsByWeek,
     completedWorkouts,
-    planner,
-    scheduleGenerated,
-    loaded,
-  ]);
+    executionHistory,
+    setSelectedWeek,
+    updatePlannerDay,
+    generateWeekSchedule,
+    resetWeekPlanner,
+    toggleWorkoutComplete,
+  } = useProgramState();
 
-  const week =
-    programData[selectedWeek as keyof typeof programData];
+  const [expandedWorkouts, setExpandedWorkouts] = useState<Record<string, boolean>>({});
 
-  const weekPlanner = planner[selectedWeek] || {};
+  const weekPlanner = plannerByWeek[selectedWeek] || {};
   const phaseConfig = getPhaseConfig(selectedWeek);
-
+  const phaseName = getPhaseNameForWeek(selectedWeek);
   const targets = phaseConfig.targets;
 
   const counts = {
@@ -124,22 +79,8 @@ export default function ProgramPage() {
     counts.strength >= targets.strength &&
     counts.speed >= targets.speed;
 
-  const togglePlanner = (
-    day: string,
-    type: "vault" | "strength" | "speed"
-  ) => {
-    setPlanner((prev) => ({
-      ...prev,
-      [selectedWeek]: {
-        ...prev[selectedWeek],
-        [day]: {
-          vault: prev[selectedWeek]?.[day]?.vault || false,
-          strength: prev[selectedWeek]?.[day]?.strength || false,
-          speed: prev[selectedWeek]?.[day]?.speed || false,
-          [type]: !prev[selectedWeek]?.[day]?.[type],
-        },
-      },
-    }));
+  const togglePlanner = (day: string, type: TrainingType) => {
+    updatePlannerDay(selectedWeek, day, type);
   };
 
   const warnings = getPlannerWarnings(weekPlanner, selectedWeek);
@@ -164,34 +105,27 @@ export default function ProgramPage() {
     (warning) => !warning.startsWith("Missing Required ")
   );
 
-  const resetPlanner = () => {
-    setPlanner((prev) => ({
-      ...prev,
-      [selectedWeek]: {},
-    }));
-    setScheduleGenerated((prev) => ({
-      ...prev,
-      [selectedWeek]: false,
-    }));
+  const programState = {
+    currentWeek,
+    selectedWeek,
+    plannerByWeek,
+    scheduleSnapshotsByWeek,
+    completedWorkouts,
+    executionHistory,
   };
 
-  const generated = scheduleGenerated[selectedWeek];
-  const generatedSchedule = generated
-    ? generateScheduleForWeek(weekPlanner, selectedWeek)
-    : {};
+  const generated = isWeekScheduleGenerated(programState, selectedWeek);
+  const snapshot = scheduleSnapshotsByWeek[selectedWeek];
+  const generatedSchedule = snapshot?.schedule ?? {};
 
   return (
     <main className="max-w-md mx-auto p-4 pb-20">
-      <h1 className="text-3xl font-bold mb-4">
-        Program
-      </h1>
+      <h1 className="text-3xl font-bold mb-4">Program</h1>
 
       <Card>
         <div className="flex items-center justify-between">
           <button
-            onClick={() =>
-              setSelectedWeek((prev) => Math.max(1, prev - 1))
-            }
+            onClick={() => setSelectedWeek(Math.max(1, selectedWeek - 1))}
             className="px-3 py-1 border rounded-lg"
           >
             ←
@@ -199,7 +133,7 @@ export default function ProgramPage() {
 
           <div className="text-center">
             <p className="font-bold">Week {selectedWeek}</p>
-            <p className="text-sm text-gray-500">{week?.phase}</p>
+            <p className="text-sm text-gray-500">{phaseName}</p>
 
             {selectedWeek > currentWeek && (
               <span className="text-xs px-2 py-1 rounded-full bg-purple-100 text-purple-800">
@@ -210,7 +144,7 @@ export default function ProgramPage() {
 
           <button
             onClick={() =>
-              setSelectedWeek((prev) => Math.min(currentWeek + 1, prev + 1))
+              setSelectedWeek(Math.min(currentWeek + 1, selectedWeek + 1))
             }
             disabled={selectedWeek >= currentWeek + 1}
             className="px-3 py-1 border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
@@ -274,7 +208,12 @@ export default function ProgramPage() {
             {healthWarnings.length > 0 && (
               <div className="mt-3 text-xs font-medium text-red-700">
                 {healthWarnings.map((warning) => (
-                  <div key={warning}>• {warning.replace("Missing Required ", "").replace(" Session", "")}</div>
+                  <div key={warning}>
+                    •{" "}
+                    {warning
+                      .replace("Missing Required ", "")
+                      .replace(" Session", "")}
+                  </div>
                 ))}
               </div>
             )}
@@ -284,9 +223,9 @@ export default function ProgramPage() {
             <Card title="Weekly Planner">
               <div className="space-y-3">
                 {plannerDays.map((day) => {
-                  const activeType = (["vault", "strength", "speed"] as const).find(
-                    (type) => weekPlanner[day]?.[type]
-                  );
+                  const activeType = (
+                    ["vault", "strength", "speed"] as const
+                  ).find((type) => weekPlanner[day]?.[type]);
 
                   return (
                     <div
@@ -304,9 +243,7 @@ export default function ProgramPage() {
                           (type) => (
                             <button
                               key={type}
-                              onClick={() =>
-                                togglePlanner(day, type)
-                              }
+                              onClick={() => togglePlanner(day, type)}
                               className={`px-3 py-1 rounded-lg border capitalize ${
                                 weekPlanner[day]?.[type]
                                   ? trainingTypeStyles[type].selected
@@ -328,12 +265,7 @@ export default function ProgramPage() {
           {plannerComplete && (
             <div className="mt-4">
               <button
-                onClick={() =>
-                  setScheduleGenerated((prev) => ({
-                    ...prev,
-                    [selectedWeek]: true,
-                  }))
-                }
+                onClick={() => generateWeekSchedule(selectedWeek)}
                 className="w-full bg-purple-600 text-white rounded-xl p-4 font-bold"
               >
                 Generate Schedule
@@ -341,7 +273,7 @@ export default function ProgramPage() {
 
               <button
                 type="button"
-                onClick={resetPlanner}
+                onClick={() => resetWeekPlanner(selectedWeek)}
                 className="mt-2 w-full border border-gray-300 text-gray-700 rounded-xl p-2 text-sm"
               >
                 Reset
@@ -367,7 +299,7 @@ export default function ProgramPage() {
                   key={day}
                   className="mb-3 rounded-xl border border-slate-200 bg-slate-50 p-3"
                 >
-                      <div className="mb-2 flex items-center justify-between gap-3">
+                  <div className="mb-2 flex items-center justify-between gap-3">
                     <p className="font-semibold text-slate-800">{day}</p>
                     <span
                       className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-xs font-semibold ${trafficStyles[loadLabel]}`}
@@ -378,53 +310,91 @@ export default function ProgramPage() {
 
                   <div className="space-y-2">
                     {dailyPlan.sessions.map((session) => {
-                      const isExpanded = expandedWorkouts[`${day}-${session.id}`];
+                      const completionKey = workoutCompletionKey(
+                        selectedWeek,
+                        day,
+                        session.id
+                      );
+                      const isComplete = Boolean(
+                        completedWorkouts[completionKey]
+                      );
+                      const isExpanded =
+                        expandedWorkouts[`${day}-${session.id}`];
                       const workout = getCatalogWorkout(session.id);
 
                       return (
                         <div key={session.id}>
-                          <button
-                            onClick={() =>
-                              setExpandedWorkouts((prev) => ({
-                                ...prev,
-                                [`${day}-${session.id}`]: !isExpanded,
-                              }))
-                            }
-                            className={`w-full rounded-lg border px-3 py-2 text-left text-sm transition-all ${
-                              session.type === "vault"
-                                ? "border-amber-200 bg-amber-50 text-amber-900 hover:bg-amber-100"
-                                : session.type === "strength"
-                                ? "border-sky-200 bg-sky-50 text-sky-900 hover:bg-sky-100"
-                                : "border-emerald-200 bg-emerald-50 text-emerald-900 hover:bg-emerald-100"
-                            }`}
-                          >
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="flex-1">
-                                <div className="font-medium">{session.name}</div>
-                                {session.focus && (
-                                  <div className="mt-1 text-[11px] opacity-80">{session.focus}</div>
-                                )}
-                                {session.jumpVolume && (
-                                  <div className="mt-1 text-[10px] uppercase tracking-wide opacity-70">
-                                    Jump volume: {session.jumpVolume}
-                                  </div>
-                                )}
+                          <div className="flex items-start gap-2">
+                            <input
+                              type="checkbox"
+                              checked={isComplete}
+                              onChange={() =>
+                                toggleWorkoutComplete({
+                                  weekNumber: selectedWeek,
+                                  day,
+                                  sessionId: session.id,
+                                  sessionName: session.name,
+                                  sessionType: session.type,
+                                })
+                              }
+                              className="mt-3 h-4 w-4 shrink-0"
+                              aria-label={`Mark ${session.name} complete`}
+                            />
+
+                            <button
+                              onClick={() =>
+                                setExpandedWorkouts((prev) => ({
+                                  ...prev,
+                                  [`${day}-${session.id}`]: !isExpanded,
+                                }))
+                              }
+                              className={`flex-1 rounded-lg border px-3 py-2 text-left text-sm transition-all ${
+                                session.type === "vault"
+                                  ? "border-amber-200 bg-amber-50 text-amber-900 hover:bg-amber-100"
+                                  : session.type === "strength"
+                                  ? "border-sky-200 bg-sky-50 text-sky-900 hover:bg-sky-100"
+                                  : "border-emerald-200 bg-emerald-50 text-emerald-900 hover:bg-emerald-100"
+                              } ${isComplete ? "opacity-60" : ""}`}
+                            >
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="flex-1">
+                                  <div className="font-medium">{session.name}</div>
+                                  {session.focus && (
+                                    <div className="mt-1 text-[11px] opacity-80">
+                                      {session.focus}
+                                    </div>
+                                  )}
+                                  {session.jumpVolume && (
+                                    <div className="mt-1 text-[10px] uppercase tracking-wide opacity-70">
+                                      Jump volume: {session.jumpVolume}
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-semibold">
+                                    {session.load}
+                                  </span>
+                                  <span className="text-xs">
+                                    {isExpanded ? "▼" : "▶"}
+                                  </span>
+                                </div>
                               </div>
-                              <div className="flex items-center gap-2">
-                                <span className="font-semibold">{session.load}</span>
-                                <span className="text-xs">{isExpanded ? "▼" : "▶"}</span>
-                              </div>
-                            </div>
-                          </button>
+                            </button>
+                          </div>
 
                           {isExpanded && workout && (
-                            <div className="mt-1 rounded-lg border border-slate-200 bg-white p-3 text-xs space-y-2">
+                            <div className="mt-1 ml-6 rounded-lg border border-slate-200 bg-white p-3 text-xs space-y-2">
                               {workout && "primaryLift" in workout && (
                                 <>
                                   {(() => {
                                     const phase = getPhaseConfig(selectedWeek);
-                                    const phaseName = phase.name.toLowerCase() as "rebuild" | "build" | "specific";
-                                    const prescriptions = workout.phaseModifications[phaseName];
+                                    const phaseNameLower =
+                                      phase.name.toLowerCase() as
+                                        | "rebuild"
+                                        | "build"
+                                        | "specific";
+                                    const prescriptions =
+                                      workout.phaseModifications[phaseNameLower];
 
                                     return (
                                       <>
@@ -434,44 +404,63 @@ export default function ProgramPage() {
 
                                         <div className="space-y-1 pt-2">
                                           <div>
-                                            <span className="font-semibold text-sky-700">Primary</span>
+                                            <span className="font-semibold text-sky-700">
+                                              Primary
+                                            </span>
                                             <div className="text-slate-700">
-                                              {workout.primaryLift} — {prescriptions.primary}
+                                              {workout.primaryLift} —{" "}
+                                              {prescriptions.primary}
                                             </div>
                                           </div>
                                           <div>
-                                            <span className="font-semibold text-sky-700">Secondary</span>
+                                            <span className="font-semibold text-sky-700">
+                                              Secondary
+                                            </span>
                                             <div className="text-slate-700">
-                                              {workout.secondaryLift} — {prescriptions.secondary}
+                                              {workout.secondaryLift} —{" "}
+                                              {prescriptions.secondary}
                                             </div>
                                           </div>
 
                                           <div className="pt-1">
-                                            <span className="font-semibold text-sky-700">Superset A</span>
+                                            <span className="font-semibold text-sky-700">
+                                              Superset A
+                                            </span>
                                             <div className="space-y-1 text-slate-700">
-                                              {workout.supersetA.map((exercise, i) => (
-                                                <div key={i}>
-                                                  {exercise} — {prescriptions.supersetA[i]}
-                                                </div>
-                                              ))}
+                                              {workout.supersetA.map(
+                                                (exercise, i) => (
+                                                  <div key={i}>
+                                                    {exercise} —{" "}
+                                                    {prescriptions.supersetA[i]}
+                                                  </div>
+                                                )
+                                              )}
                                             </div>
                                           </div>
 
                                           <div className="pt-1">
-                                            <span className="font-semibold text-sky-700">Superset B</span>
+                                            <span className="font-semibold text-sky-700">
+                                              Superset B
+                                            </span>
                                             <div className="space-y-1 text-slate-700">
-                                              {workout.supersetB.map((exercise, i) => (
-                                                <div key={i}>
-                                                  {exercise} — {prescriptions.supersetB[i]}
-                                                </div>
-                                              ))}
+                                              {workout.supersetB.map(
+                                                (exercise, i) => (
+                                                  <div key={i}>
+                                                    {exercise} —{" "}
+                                                    {prescriptions.supersetB[i]}
+                                                  </div>
+                                                )
+                                              )}
                                             </div>
                                           </div>
 
                                           <div className="pt-1">
-                                            <span className="font-semibold text-sky-700">Finisher</span>
+                                            <span className="font-semibold text-sky-700">
+                                              Finisher
+                                            </span>
                                             <div className="text-slate-700">
-                                              {workout.finisher} — {prescriptions.finisher}
+                                              {workout.finisher} —{" "}
+                                              {prescriptions.finisher}
                                             </div>
                                           </div>
                                         </div>
@@ -483,10 +472,15 @@ export default function ProgramPage() {
                               {workout && "workout" in workout && (
                                 <>
                                   <div>
-                                    <span className="font-semibold">Category:</span> {workout.category}
+                                    <span className="font-semibold">
+                                      Category:
+                                    </span>{" "}
+                                    {workout.category}
                                   </div>
                                   <div>
-                                    <span className="font-semibold">Workout:</span>
+                                    <span className="font-semibold">
+                                      Workout:
+                                    </span>
                                     <ul className="list-inside list-disc mt-1">
                                       {workout.workout.map((w, i) => (
                                         <li key={i}>{w}</li>
@@ -494,23 +488,36 @@ export default function ProgramPage() {
                                     </ul>
                                   </div>
                                   <div>
-                                    <span className="font-semibold">Rest:</span> {workout.rest}
+                                    <span className="font-semibold">Rest:</span>{" "}
+                                    {workout.rest}
                                   </div>
                                   <div>
-                                    <span className="font-semibold">Purpose:</span> {workout.purpose}
+                                    <span className="font-semibold">
+                                      Purpose:
+                                    </span>{" "}
+                                    {workout.purpose}
                                   </div>
                                 </>
                               )}
                               {workout && "runLength" in workout && (
                                 <>
                                   <div>
-                                    <span className="font-semibold">Run Length:</span> {workout.runLength}
+                                    <span className="font-semibold">
+                                      Run Length:
+                                    </span>{" "}
+                                    {workout.runLength}
                                   </div>
                                   <div>
-                                    <span className="font-semibold">Jump Volume:</span> {workout.jumpVolume}
+                                    <span className="font-semibold">
+                                      Jump Volume:
+                                    </span>{" "}
+                                    {workout.jumpVolume}
                                   </div>
                                   <div>
-                                    <span className="font-semibold">Description:</span> {workout.description}
+                                    <span className="font-semibold">
+                                      Description:
+                                    </span>{" "}
+                                    {workout.description}
                                   </div>
                                 </>
                               )}
@@ -532,7 +539,7 @@ export default function ProgramPage() {
 
           <button
             type="button"
-            onClick={resetPlanner}
+            onClick={() => resetWeekPlanner(selectedWeek)}
             className="mt-3 w-full border border-gray-300 text-gray-700 rounded-xl p-2 text-sm"
           >
             Reset

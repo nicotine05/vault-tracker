@@ -10,92 +10,30 @@ vNext Layout Update - LEFT COLUMN SESSIONS VERSION
 import { useEffect, useState } from "react";
 import Card from "@/components/Card";
 
-type Jump = {
-  id: string;
-  run: string;
-  grip: string;
-  takeoff: string;
-  grade: "green" | "yellow" | "red";
-  comment: string;
-};
-
-type VaultSession = {
-  id: string;
-  date: string;
-  keys: string[];
-  jumps: Jump[];
-};
-
-type RunPRs = {
-  threeL: string;
-  threeLDate: string;
-  fourL: string;
-  fourLDate: string;
-  fiveL: string;
-  fiveLDate: string;
-  sixL: string;
-  sixLDate: string;
-  sevenL: string;
-  sevenLDate: string;
-};
-
-type HeightPREntry = {
-  date: string;
-  threeL: string;
-  fourL: string;
-  fiveL: string;
-  sixL: string;
-  sevenL: string;
-};
-
-function parseVaultHeight(value: string): { feet: number; inches: number } | null {
-  const clean = value
-    .trim()
-    .replace(/,/g, "")
-    .toLowerCase();
-
-  if (!clean) return null;
-
-  const match = clean.match(
-    /(\d+(?:\.\d+)?)ft\s*(\d+(?:\.\d+)?)in/i
-  );
-
-  if (match) {
-    return {
-      feet: Number(match[1] || "0"),
-      inches: Number(match[2] || "0"),
-    };
-  }
-
-  const ftOnlyMatch = clean.match(
-    /(\d+(?:\.\d+)?)ft/i
-  );
-
-  if (ftOnlyMatch) {
-    return {
-      feet: Number(ftOnlyMatch[1] || "0"),
-      inches: 0,
-    };
-  }
-
-  return null;
-}
-
-function normalizeVaultPR(value: string): string {
-  const parsed = parseVaultHeight(value);
-  if (!parsed) return value.trim();
-
-  const totalInches = parsed.feet * 12 + parsed.inches;
-  return formatFeetInches(totalInches);
-}
-
-function formatFeetInches(totalInches: number): string {
-  const feet = Math.floor(totalInches / 12);
-  const inches = Math.round(totalInches - feet * 12);
-
-  if (inches === 0) return `${feet}ft`;
-  return `${feet}ft ${inches}in`;
-}
+import type {
+  HeightPREntry,
+  Jump,
+  RunPRs,
+  VaultSession,
+  VaultStepReferences,
+} from "@/lib/domain/types";
+import {
+  formatFeetInches,
+  normalizeVaultPR,
+  parseVaultHeight,
+} from "@/lib/domain/vaultUnits";
+import {
+  EMPTY_RUN_PRS,
+  EMPTY_STEP_REFS,
+  loadVaultPRHistory,
+  loadVaultRunPRs,
+  loadVaultSessions,
+  loadVaultStepReferences,
+  saveVaultPRHistory,
+  saveVaultRunPRs,
+  saveVaultSessions,
+  saveVaultStepReferences,
+} from "@/lib/storage/logStore";
 
 export default function VaultPage() {
   const [loaded, setLoaded] =
@@ -117,30 +55,13 @@ export default function VaultPage() {
     useState(false);
 
   const [stepRefs, setStepRefs] =
-    useState({
-      threeL: "",
-      fourL: "",
-      fiveL: "",
-      sixL: "",
-      sevenL: "",
-    });
+    useState<VaultStepReferences>(EMPTY_STEP_REFS);
 
   const [showPRMenu, setShowPRMenu] =
     useState(false);
 
   const [runPRs, setRunPRs] =
-    useState<RunPRs>({
-      threeL: "",
-      threeLDate: "",
-      fourL: "",
-      fourLDate: "",
-      fiveL: "",
-      fiveLDate: "",
-      sixL: "",
-      sixLDate: "",
-      sevenL: "",
-      sevenLDate: "",
-    });
+    useState<RunPRs>(EMPTY_RUN_PRS);
 
   const [prHistory, setPrHistory] =
     useState<HeightPREntry[]>([]);
@@ -167,54 +88,12 @@ export default function VaultPage() {
 
   useEffect(() => {
     try {
-      const saved =
-        localStorage.getItem(
-          "vaultLogs"
-        );
-
-      if (saved) {
-        setSessions(
-          JSON.parse(saved)
-        );
-      }
-
-      const savedRefs =
-        localStorage.getItem(
-          "vaultStepReferences"
-        );
-
-      if (savedRefs) {
-        setStepRefs(
-          JSON.parse(savedRefs)
-        );
-      }
-
-      const savedPRs =
-        localStorage.getItem(
-          "vaultRunPRs"
-        );
-
-      if (savedPRs) {
-        setRunPRs(
-          JSON.parse(savedPRs)
-        );
-      }
-
-      const savedHistory =
-        localStorage.getItem(
-          "vaultPRHistory"
-        );
-
-      if (savedHistory) {
-        setPrHistory(
-          JSON.parse(savedHistory)
-        );
-      }
+      setSessions(loadVaultSessions());
+      setStepRefs(loadVaultStepReferences());
+      setRunPRs(loadVaultRunPRs());
+      setPrHistory(loadVaultPRHistory());
     } catch (error) {
-      console.error(
-        "Failed to load vault logs",
-        error
-      );
+      console.error("Failed to load vault logs", error);
     }
 
     setLoaded(true);
@@ -222,41 +101,22 @@ export default function VaultPage() {
 
   useEffect(() => {
     if (!loaded) return;
-
-    localStorage.setItem(
-      "vaultLogs",
-      JSON.stringify(sessions)
-    );
+    saveVaultSessions(sessions);
   }, [sessions, loaded]);
 
   useEffect(() => {
     if (!loaded) return;
-
-    localStorage.setItem(
-      "vaultStepReferences",
-      JSON.stringify(stepRefs)
-    );
+    saveVaultStepReferences(stepRefs);
   }, [stepRefs, loaded]);
 
   useEffect(() => {
     if (!loaded) return;
-
-    localStorage.setItem(
-      "vaultRunPRs",
-      JSON.stringify(runPRs)
-    );
-    window.dispatchEvent(
-      new Event("vaultRunPRsChanged")
-    );
+    saveVaultRunPRs(runPRs);
   }, [runPRs, loaded]);
 
   useEffect(() => {
     if (!loaded) return;
-
-    localStorage.setItem(
-      "vaultPRHistory",
-      JSON.stringify(prHistory)
-    );
+    saveVaultPRHistory(prHistory);
   }, [prHistory, loaded]);
 
   function getRunReference(
