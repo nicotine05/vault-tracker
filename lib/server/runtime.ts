@@ -7,19 +7,24 @@ type RequestContext = {
 
 const requestContext = new AsyncLocalStorage<RequestContext>();
 
-/** Avoid static `process.env.SESSION_SECRET` so Next.js cannot bake in an empty build value. */
-function readRuntimeEnv(name: string): string | undefined {
-  const env = globalThis.process?.env;
-  if (!env) {
-    return undefined;
+const SESSION_SECRET_KEY = ["SESSION", "_SECRET"].join("");
+
+/**
+ * Bundlers replace process.env.SESSION_SECRET at build time with undefined
+ * when Vercel "Sensitive" vars are hidden during build. This lookup cannot
+ * be statically analyzed, so the real runtime value is preserved.
+ */
+function readSessionSecretFromProcessEnv(): string | undefined {
+  try {
+    const runtimeLookup = new Function(
+      "key",
+      "return process.env[key]"
+    ) as (key: string) => string | undefined;
+
+    return runtimeLookup(SESSION_SECRET_KEY);
+  } catch {
+    return process.env[SESSION_SECRET_KEY];
   }
-
-  return env[name];
-}
-
-function resolveSessionSecret(): string | undefined {
-  const key = ["SESSION", "_SECRET"].join("");
-  return readRuntimeEnv(key) ?? readRuntimeEnv("VT_SESSION_SECRET");
 }
 
 /** Call at the start of API routes so env vars are read at runtime on Vercel. */
@@ -27,13 +32,14 @@ export async function prepareServerRequest(): Promise<void> {
   await connection();
 
   requestContext.enterWith({
-    sessionSecret: resolveSessionSecret(),
+    sessionSecret: readSessionSecretFromProcessEnv(),
   });
 }
 
 export function getSessionSecret(): string {
   const secret =
-    requestContext.getStore()?.sessionSecret ?? resolveSessionSecret();
+    requestContext.getStore()?.sessionSecret ??
+    readSessionSecretFromProcessEnv();
 
   if (!secret) {
     throw new Error("SESSION_SECRET is not configured");

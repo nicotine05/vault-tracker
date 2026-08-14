@@ -5,18 +5,7 @@ import type { SessionPayload, UserRole } from "@/lib/server/types";
 const SESSION_COOKIE = "vt_session";
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
-function signPayload(encodedPayload: string, secret: string): string {
-  return createHmac("sha256", secret)
-    .update(encodedPayload)
-    .digest("base64url");
-}
-
-export function createSessionToken(
-  userId: string,
-  role: UserRole,
-  secret?: string
-): string {
-  const sessionSecret = secret ?? getSessionSecret();
+export function createSessionToken(userId: string, role: UserRole): string {
   const payload: SessionPayload = {
     userId,
     role,
@@ -26,22 +15,23 @@ export function createSessionToken(
   const encodedPayload = Buffer.from(JSON.stringify(payload)).toString(
     "base64url"
   );
-  const signature = signPayload(encodedPayload, sessionSecret);
+  const signature = createHmac("sha256", getSessionSecret())
+    .update(encodedPayload)
+    .digest("base64url");
 
   return `${encodedPayload}.${signature}`;
 }
 
-export function verifySessionToken(
-  token: string,
-  secret?: string
-): SessionPayload | null {
-  const sessionSecret = secret ?? getSessionSecret();
+export function verifySessionToken(token: string): SessionPayload | null {
   const [encodedPayload, signature] = token.split(".");
   if (!encodedPayload || !signature) {
     return null;
   }
 
-  const expectedSignature = signPayload(encodedPayload, sessionSecret);
+  const expectedSignature = createHmac("sha256", getSessionSecret())
+    .update(encodedPayload)
+    .digest("base64url");
+
   const signatureBuffer = Buffer.from(signature);
   const expectedBuffer = Buffer.from(expectedSignature);
 

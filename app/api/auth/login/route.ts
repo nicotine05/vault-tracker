@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { verifyPassword } from "@/lib/server/auth";
-import { prepareServerRequest, getSessionSecret } from "@/lib/server/runtime";
+import { prepareServerRequest } from "@/lib/server/runtime";
 import {
   buildSessionCookie,
   createSessionToken,
@@ -33,8 +33,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const secret = getSessionSecret();
-    const token = createSessionToken(user.id, user.role, secret);
+    const token = createSessionToken(user.id, user.role);
     const response = NextResponse.json({ user: toPublicUser(user) });
     response.headers.set("Set-Cookie", buildSessionCookie(token));
 
