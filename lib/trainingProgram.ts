@@ -45,7 +45,7 @@ export const trafficLightThresholds = {
   green: 4,
   yellow: 8,
   orange: 12,
-  red: 16,
+  red: 17,
 };
 
 export const vaultCatalog: SessionOption[] = [
@@ -75,7 +75,7 @@ export const vaultCatalog: SessionOption[] = [
     id: "VD3",
     type: "vault",
     name: "Short Run Day",
-    load: 5,
+    load: 6,
     tags: ["technical", "run-up"],
     jumpVolume: "10-16",
     focus: "Short approach vaulting",
@@ -86,7 +86,7 @@ export const vaultCatalog: SessionOption[] = [
     id: "VD4",
     type: "vault",
     name: "Competition Day",
-    load: 7,
+    load: 10,
     tags: ["competition"],
     jumpVolume: "6-10",
     focus: "Competition model vaulting",
@@ -97,7 +97,7 @@ export const vaultCatalog: SessionOption[] = [
     id: "VD5",
     type: "vault",
     name: "Long Run Day",
-    load: 6,
+    load: 8,
     tags: ["long-run", "competition"],
     jumpVolume: "12-18",
     focus: "Long approach and rhythm work",
@@ -111,7 +111,7 @@ export const strengthCatalog: SessionOption[] = [
     id: "ST1",
     type: "strength",
     name: "Heavy Lower",
-    load: 6,
+    load: 8,
     tags: ["heavy", "lower"],
     exercises: ["Romanian Deadlift", "Front Squat", "Split Squat", "Core Circuit"],
     phase: "Rebuild",
@@ -121,7 +121,7 @@ export const strengthCatalog: SessionOption[] = [
     id: "ST2",
     type: "strength",
     name: "Heavy Squat",
-    load: 6,
+    load: 8,
     tags: ["heavy", "squat"],
     exercises: ["Back Squat", "Front Squat", "Walking Lunge", "Ab Wheel"],
     phase: "Build",
@@ -131,7 +131,7 @@ export const strengthCatalog: SessionOption[] = [
     id: "ST3",
     type: "strength",
     name: "Strength-Speed",
-    load: 4,
+    load: 5,
     tags: ["speed-strength"],
     exercises: ["Box Jump", "Push Press", "Trap Bar", "Med Ball Throws"],
     phase: "Build",
@@ -141,7 +141,7 @@ export const strengthCatalog: SessionOption[] = [
     id: "ST4",
     type: "strength",
     name: "Dynamic Strength",
-    load: 4,
+    load: 5,
     tags: ["dynamic"],
     exercises: ["Jump Squat", "Bench Press", "Single-Leg RDL", "Pull-Up"],
     phase: "Build",
@@ -285,10 +285,10 @@ export function getPhaseConfig(weekNumber: number): PhaseDefinition {
 }
 
 export function getTrafficLight(load: number): TrafficLightLevel {
-  if (load <= trafficLightThresholds.green) return "Green";
-  if (load <= trafficLightThresholds.yellow) return "Yellow";
-  if (load <= trafficLightThresholds.orange) return "Orange";
-  if (load <= trafficLightThresholds.red) return "Red";
+  if (load <= 4) return "Green";
+  if (load <= 8) return "Yellow";
+  if (load <= 12) return "Orange";
+  if (load <= 17) return "Red";
   return "Black";
 }
 
