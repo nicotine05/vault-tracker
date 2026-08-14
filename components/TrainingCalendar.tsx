@@ -78,6 +78,30 @@ export default function TrainingCalendar() {
 
   const planner = getPlannerForCurrentWeek();
 
+  const weekStart = useMemo(() => {
+    const today = new Date();
+    const start = new Date(today);
+    const dayOffset = (today.getDay() + 6) % 7;
+    start.setDate(today.getDate() - dayOffset);
+    start.setHours(0, 0, 0, 0);
+    return start;
+  }, []);
+
+  const activeWeekDates = useMemo(
+    () =>
+      Array.from({ length: 7 }, (_, index) => {
+        const date = new Date(weekStart);
+        date.setDate(weekStart.getDate() + index);
+        return date;
+      }),
+    [weekStart]
+  );
+
+  const activeWeekKeys = useMemo(
+    () => new Set(activeWeekDates.map((date) => toLocalDateKey(date))),
+    [activeWeekDates]
+  );
+
   const monthLabel = useMemo(
     () =>
       currentMonth.toLocaleDateString("en-US", {
@@ -172,7 +196,8 @@ export default function TrainingCalendar() {
           const dateKey = toLocalDateKey(date);
           const isSelected = dateKey === selectedDate;
           const dayName = getDayName(date);
-          const entry = planner[dayName] || { vault: false, strength: false, speed: false };
+          const isInActiveWeek = activeWeekKeys.has(dateKey);
+          const entry = isInActiveWeek ? planner[dayName] || { vault: false, strength: false, speed: false } : { vault: false, strength: false, speed: false };
           const trainingTypes = (Object.keys(trainingStyles) as TrainingType[]).filter(
             (type) => entry[type]
           );
