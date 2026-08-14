@@ -336,17 +336,6 @@ export default function ProgressPage() {
       </div>
 
       <div className="mt-4">
-        <Card>
-          <p className="font-semibold mb-4">
-            Monthly Training Calendar
-          </p>
-
-          <TrainingCalendar
-            trainingHistory={
-              trainingHistory
-            }
-          />
-        </Card>
       </div>
     </main>
   );
