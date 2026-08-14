@@ -151,6 +151,19 @@ export default function ProgramPage() {
   if (counts.speed < targets.speed)
     warnings.unshift("Missing Required Speed Session");
 
+  const healthMetrics = [
+    { label: "Vault", current: counts.vault, required: targets.vault },
+    { label: "Strength", current: counts.strength, required: targets.strength },
+    { label: "Speed", current: counts.speed, required: targets.speed },
+  ];
+
+  const healthWarnings = warnings.filter((warning) =>
+    warning.startsWith("Missing Required ")
+  );
+  const otherWarnings = warnings.filter(
+    (warning) => !warning.startsWith("Missing Required ")
+  );
+
   const resetPlanner = () => {
     setPlanner((prev) => ({
       ...prev,
@@ -190,7 +203,7 @@ export default function ProgramPage() {
 
             {selectedWeek > currentWeek && (
               <span className="text-xs px-2 py-1 rounded-full bg-purple-100 text-purple-800">
-                EXAMPLE WEEK
+                NEXT WEEK
               </span>
             )}
           </div>
@@ -209,19 +222,63 @@ export default function ProgramPage() {
 
       {!generated && (
         <>
-          {warnings.length > 0 && (
-            <div className="sticky top-0 z-20 mt-4 rounded-xl border border-amber-200 bg-amber-50/95 px-3 py-2 shadow-sm backdrop-blur-sm">
-              <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-amber-900">
-                <span aria-hidden="true">⚠</span>
-                <span>Warnings</span>
-              </div>
-              <ul className="space-y-1 text-sm text-amber-900">
-                {warnings.map((w) => (
-                  <li key={w}>• {w}</li>
+          <div className="sticky top-0 z-20 mt-4 rounded-xl border border-amber-200 bg-amber-50/95 px-3 py-2 shadow-sm backdrop-blur-sm">
+            <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-amber-900">
+              <span aria-hidden="true">⚠</span>
+              <span>Planner Health</span>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2 text-sm text-slate-800">
+              {healthMetrics.map(({ label, current, required }) => {
+                const isWarning = current < required;
+
+                return (
+                  <div
+                    key={label}
+                    className={`rounded-lg border p-2 text-center ${
+                      isWarning
+                        ? "border-red-200 bg-red-50 text-red-900"
+                        : "border-slate-200 bg-white text-slate-800"
+                    }`}
+                  >
+                    <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                      {label}
+                    </div>
+                    <div className="mt-1 font-bold">
+                      {isWarning ? (
+                        <>
+                          <span className="inline-flex rounded bg-red-200 px-1 text-red-900">
+                            {current}
+                          </span>
+                          <span className="text-slate-500">/{required}</span>
+                        </>
+                      ) : (
+                        <>
+                          {current}/{required}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {otherWarnings.length > 0 && (
+              <ul className="mt-3 space-y-1 text-sm text-amber-900">
+                {otherWarnings.map((warning) => (
+                  <li key={warning}>• {warning}</li>
                 ))}
               </ul>
-            </div>
-          )}
+            )}
+
+            {healthWarnings.length > 0 && (
+              <div className="mt-3 text-xs font-medium text-red-700">
+                {healthWarnings.map((warning) => (
+                  <div key={warning}>• {warning.replace("Missing Required ", "").replace(" Session", "")}</div>
+                ))}
+              </div>
+            )}
+          </div>
 
           <div className="mt-4">
             <Card title="Weekly Planner">
@@ -265,20 +322,6 @@ export default function ProgramPage() {
                   );
                 })}
               </div>
-            </Card>
-          </div>
-
-          <div className="mt-4">
-            <Card title="Planner Health">
-              <p>
-                Vault {counts.vault}/{targets.vault}
-              </p>
-              <p>
-                Strength {counts.strength}/{targets.strength}
-              </p>
-              <p>
-                Speed {counts.speed}/{targets.speed}
-              </p>
             </Card>
           </div>
 
