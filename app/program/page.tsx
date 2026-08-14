@@ -125,6 +125,17 @@ export default function ProgramPage() {
   if (counts.speed < targets.speed)
     warnings.push("Missing Required Speed Session");
 
+  const resetPlanner = () => {
+    setPlanner((prev) => ({
+      ...prev,
+      [selectedWeek]: {},
+    }));
+    setScheduleGenerated((prev) => ({
+      ...prev,
+      [selectedWeek]: false,
+    }));
+  };
+
   const generated = scheduleGenerated[selectedWeek];
 
   return (
@@ -219,17 +230,27 @@ export default function ProgramPage() {
           )}
 
           {plannerComplete && (
-            <button
-              onClick={() =>
-                setScheduleGenerated((prev) => ({
-                  ...prev,
-                  [selectedWeek]: true,
-                }))
-              }
-              className="mt-4 w-full bg-purple-600 text-white rounded-xl p-4 font-bold"
-            >
-              Generate Schedule
-            </button>
+            <div className="mt-4">
+              <button
+                onClick={() =>
+                  setScheduleGenerated((prev) => ({
+                    ...prev,
+                    [selectedWeek]: true,
+                  }))
+                }
+                className="w-full bg-purple-600 text-white rounded-xl p-4 font-bold"
+              >
+                Generate Schedule
+              </button>
+
+              <button
+                type="button"
+                onClick={resetPlanner}
+                className="mt-2 w-full border border-gray-300 text-gray-700 rounded-xl p-2 text-sm"
+              >
+                Reset
+              </button>
+            </div>
           )}
         </>
       )}
@@ -257,6 +278,14 @@ export default function ProgramPage() {
               );
             })}
           </Card>
+
+          <button
+            type="button"
+            onClick={resetPlanner}
+            className="mt-3 w-full border border-gray-300 text-gray-700 rounded-xl p-2 text-sm"
+          >
+            Reset
+          </button>
         </div>
       )}
     </main>
