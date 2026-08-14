@@ -6,6 +6,12 @@ import Card from "@/components/Card";
 import { program } from "@/lib/data";
 import { programData } from "@/lib/programData";
 import { mealPlans } from "@/lib/mealPlans";
+import {
+  plannerDays,
+  generateScheduleForWeek,
+  getTrafficLightSymbol,
+  type TrafficLightLevel,
+} from "@/lib/trainingProgram";
 
 type LogEntry = {
   date: string;
@@ -51,6 +57,17 @@ export default function Home() {
   const [currentWeek, setCurrentWeek] =
     useState(1);
 
+  const [plannerByWeek, setPlannerByWeek] =
+    useState<
+      Record<
+        number,
+        Record<string, { vault: boolean; strength: boolean; speed: boolean }>
+      >
+    >({});
+
+  const [generatedSchedules, setGeneratedSchedules] =
+    useState<Record<number, boolean>>({});
+
   const [
     completedWorkouts,
     setCompletedWorkouts,
@@ -94,6 +111,28 @@ export default function Home() {
     if (savedCompleted) {
       setCompletedWorkouts(
         JSON.parse(savedCompleted)
+      );
+    }
+
+    const savedPlanner =
+      localStorage.getItem(
+        "weeklyPlannerByWeek"
+      );
+
+    if (savedPlanner) {
+      const parsedPlanner =
+        JSON.parse(savedPlanner);
+      setPlannerByWeek(parsedPlanner);
+    }
+
+    const savedGenerated =
+      localStorage.getItem(
+        "generatedSchedules"
+      );
+
+    if (savedGenerated) {
+      setGeneratedSchedules(
+        JSON.parse(savedGenerated)
       );
     }
 
@@ -227,6 +266,37 @@ export default function Home() {
         currentWeek <=
           phase.endWeek
     )?.name || "Unknown";
+
+  const todayIndex =
+    (new Date().getDay() + 6) % 7;
+  const todayName = plannerDays[todayIndex];
+  const currentWeekPlanner =
+    plannerByWeek[currentWeek] || {};
+  const currentWeekSchedule =
+    generatedSchedules[currentWeek] &&
+    Object.keys(currentWeekPlanner).length > 0
+      ? generateScheduleForWeek(
+          currentWeekPlanner,
+          currentWeek
+        )
+      : null;
+  const todayWorkoutPlan =
+    currentWeekSchedule?.[todayName];
+
+  const trafficStyles: Record<
+    TrafficLightLevel,
+    string
+  > = {
+    Green:
+      "border-emerald-200 bg-emerald-50 text-emerald-900",
+    Yellow:
+      "border-yellow-200 bg-yellow-50 text-yellow-900",
+    Orange:
+      "border-orange-200 bg-orange-50 text-orange-900",
+    Red: "border-red-200 bg-red-50 text-red-900",
+    Black:
+      "border-slate-300 bg-slate-800 text-white",
+  };
 
   const phaseColor =
     currentPhase === "Rebuild"
@@ -454,18 +524,49 @@ export default function Home() {
         <Link href="/program">
           <Card className="cursor-pointer hover:shadow-md transition h-full">
             <p className="text-sm text-gray-500">
-              Next Workout
+              Today&apos;s Training
             </p>
 
-            <p className="font-bold text-lg">
-              {nextWorkoutDay}
-            </p>
+            {currentWeekSchedule && todayWorkoutPlan && todayWorkoutPlan.sessions.length > 0 ? (
+              <>
+                <div className="mt-2 flex items-center justify-between gap-2">
+                  <p className="font-bold text-base leading-tight">
+                    {todayName}
+                  </p>
 
-            <p className="text-xs text-gray-500 mt-1">
-              {nextWorkoutSummary}
-            </p>
+                  <span
+                    className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-semibold ${trafficStyles[todayWorkoutPlan.level]}`}
+                  >
+                    {getTrafficLightSymbol(todayWorkoutPlan.level)} {todayWorkoutPlan.level}
+                  </span>
+                </div>
 
-            <p className="text-xs text-blue-500 mt-2">
+                <p className="mt-2 text-xs text-gray-600">
+                  {todayWorkoutPlan.sessions
+                    .slice(0, 2)
+                    .map((session) => session.name)
+                    .join(" • ")}
+                  {todayWorkoutPlan.sessions.length > 2 ? " • + more" : ""}
+                </p>
+              </>
+            ) : currentWeekSchedule && todayWorkoutPlan && todayWorkoutPlan.sessions.length === 0 ? (
+              <>
+                <p className="mt-2 font-bold text-base text-slate-800">
+                  Recovery Day.
+                </p>
+                <p className="mt-1 text-xs text-gray-500">
+                  No training scheduled.
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="mt-2 font-bold text-base text-slate-800">
+                  Complete your weekly planner.
+                </p>
+              </>
+            )}
+
+            <p className="text-xs text-blue-500 mt-3">
               Tap to open →
             </p>
           </Card>
