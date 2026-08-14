@@ -336,6 +336,7 @@ export default function ProgressPage() {
       </div>
 
       <div className="mt-4">
+        <TrainingCalendar />
       </div>
     </main>
   );
