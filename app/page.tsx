@@ -413,13 +413,6 @@ export default function Home() {
       ? "bg-blue-100 text-blue-700"
       : "bg-purple-100 text-purple-700";
 
-  const programPercent =
-    Math.round(
-      (currentWeek /
-        program.totalWeeks) *
-        100
-    );
-
   const planKey =
     currentWeek % 3 === 1
       ? "A"
@@ -520,26 +513,6 @@ export default function Home() {
         >
           ⚙️
         </Link>
-      </div>
-
-      <div className="mb-4">
-        <Card title="Program Progress">
-          <p>
-            Current Week:{" "}
-            {currentWeek} /{" "}
-            {program.totalWeeks}
-          </p>
-
-          <p>
-            Phase:{" "}
-            {currentPhase}
-          </p>
-
-          <p>
-            Program Completion:{" "}
-            {programPercent}%
-          </p>
-        </Card>
       </div>
 
       <div className="mb-4">
