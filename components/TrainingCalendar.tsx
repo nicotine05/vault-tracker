@@ -1,6 +1,60 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
+type DayPlan = {
+  vault: boolean;
+  strength: boolean;
+  speed: boolean;
+};
+
+type WeekPlan = {
+  Monday: DayPlan;
+  Tuesday: DayPlan;
+  Wednesday: DayPlan;
+  Thursday: DayPlan;
+  Friday: DayPlan;
+  Saturday: DayPlan;
+  Sunday: DayPlan;
+};
+
+const defaultPlan: WeekPlan = {
+  Monday: {
+    vault: false,
+    strength: false,
+    speed: false,
+  },
+  Tuesday: {
+    vault: false,
+    strength: false,
+    speed: false,
+  },
+  Wednesday: {
+    vault: false,
+    strength: false,
+    speed: false,
+  },
+  Thursday: {
+    vault: false,
+    strength: false,
+    speed: false,
+  },
+  Friday: {
+    vault: false,
+    strength: false,
+    speed: false,
+  },
+  Saturday: {
+    vault: false,
+    strength: false,
+    speed: false,
+  },
+  Sunday: {
+    vault: false,
+    strength: false,
+    speed: false,
+  },
+};
 
 type Props = {
   trainingHistory: string[];
@@ -9,158 +63,215 @@ type Props = {
 export default function TrainingCalendar({
   trainingHistory,
 }: Props) {
-  const [currentMonth, setCurrentMonth] =
-    useState(new Date());
+  const [weekPlan, setWeekPlan] =
+    useState<WeekPlan>(defaultPlan);
 
-  const year =
-    currentMonth.getFullYear();
+  useEffect(() => {
+    const saved =
+      localStorage.getItem(
+        "weeklyTrainingPlan"
+      );
 
-  const month =
-    currentMonth.getMonth();
-
-  const firstDay =
-    new Date(year, month, 1);
-
-  const lastDay =
-    new Date(year, month + 1, 0);
-
-  const daysInMonth =
-    lastDay.getDate();
-
-  const startDay =
-    firstDay.getDay();
-
-  const monthName =
-    currentMonth.toLocaleString(
-      "default",
-      {
-        month: "long",
+    if (saved) {
+      try {
+        setWeekPlan(
+          JSON.parse(saved)
+        );
+      } catch {
+        console.error(
+          "Failed to load weekly plan"
+        );
       }
-    );
+    }
+  }, []);
 
-  const trainingDates =
-    new Set(trainingHistory);
-
-  const today = new Date();
-
-  const calendarDays = [];
-
-  for (
-    let i = 0;
-    i < startDay;
-    i++
+  function toggleWorkout(
+    day: keyof WeekPlan,
+    type: keyof DayPlan
   ) {
-    calendarDays.push(
-      <div key={`empty-${i}`} />
+    const updated = {
+      ...weekPlan,
+      [day]: {
+        ...weekPlan[day],
+        [type]:
+          !weekPlan[day][type],
+      },
+    };
+
+    setWeekPlan(updated);
+
+    localStorage.setItem(
+      "weeklyTrainingPlan",
+      JSON.stringify(updated)
     );
   }
 
-  for (
-    let day = 1;
-    day <= daysInMonth;
-    day++
-  ) {
-    const dateString = `${year}-${String(
-      month + 1
-    ).padStart(2, "0")}-${String(
-      day
-    ).padStart(2, "0")}`;
-
-    const isTrainingDay =
-      trainingDates.has(dateString);
-
-    const isToday =
-      today.getFullYear() === year &&
-      today.getMonth() === month &&
-      today.getDate() === day;
-
-    calendarDays.push(
-      <div
-        key={day}
-        className={`h-10 rounded-lg flex items-center justify-center text-sm border
-          ${
-            isTrainingDay
-              ? "bg-blue-500 text-white font-bold"
-              : ""
-          }
-          ${
-            isToday
-              ? "border-2 border-green-500"
-              : "border-gray-200"
-          }
-        `}
-      >
-        {day}
-      </div>
-    );
-  }
-
-  const monthlyTrainingCount =
-    trainingHistory.filter(
-      (date) =>
-        date.startsWith(
-          `${year}-${String(
-            month + 1
-          ).padStart(2, "0")}`
-        )
+  const vaultCount =
+    Object.values(weekPlan).filter(
+      (day) => day.vault
     ).length;
 
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-4">
-        <button
-          onClick={() =>
-            setCurrentMonth(
-              new Date(
-                year,
-                month - 1,
-                1
-              )
-            )
-          }
-          className="px-3 py-1 border rounded-lg"
-        >
-          ←
-        </button>
+  const strengthCount =
+    Object.values(weekPlan).filter(
+      (day) => day.strength
+    ).length;
 
-        <h2 className="font-bold text-lg">
-          {monthName} {year}
+  const speedCount =
+    Object.values(weekPlan).filter(
+      (day) => day.speed
+    ).length;
+
+  const days = Object.keys(
+    weekPlan
+  ) as (keyof WeekPlan)[];
+
+  return (
+    <div className="space-y-4">
+
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-bold">
+          Weekly Planner
         </h2>
 
         <button
-          onClick={() =>
-            setCurrentMonth(
-              new Date(
-                year,
-                month + 1,
-                1
+          onClick={() => {
+            setWeekPlan(defaultPlan);
+
+            localStorage.setItem(
+              "weeklyTrainingPlan",
+              JSON.stringify(
+                defaultPlan
               )
-            )
-          }
-          className="px-3 py-1 border rounded-lg"
+            );
+          }}
+          className="text-sm px-3 py-1 border rounded-lg text-red-500"
         >
-          →
+          Reset
         </button>
       </div>
 
-      <div className="grid grid-cols-7 gap-2 text-center text-xs font-medium mb-2">
-        <div>Su</div>
-        <div>Mo</div>
-        <div>Tu</div>
-        <div>We</div>
-        <div>Th</div>
-        <div>Fr</div>
-        <div>Sa</div>
+      {days.map((day) => (
+        <div
+          key={day}
+          className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm"
+        >
+          <h3 className="font-bold text-lg mb-3">
+            {day}
+          </h3>
+
+          <div className="grid grid-cols-3 gap-2">
+
+            <button
+              onClick={() =>
+                toggleWorkout(
+                  day,
+                  "vault"
+                )
+              }
+              className={`rounded-xl py-2 text-sm font-medium ${
+                weekPlan[day].vault
+                  ? "bg-purple-600 text-white"
+                  : "bg-gray-100"
+              }`}
+            >
+              Vault
+            </button>
+
+            <button
+              onClick={() =>
+                toggleWorkout(
+                  day,
+                  "strength"
+                )
+              }
+              className={`rounded-xl py-2 text-sm font-medium ${
+                weekPlan[day]
+                  .strength
+                  ? "bg-green-600 text-white"
+                  : "bg-gray-100"
+              }`}
+            >
+              Strength
+            </button>
+
+            <button
+              onClick={() =>
+                toggleWorkout(
+                  day,
+                  "speed"
+                )
+              }
+              className={`rounded-xl py-2 text-sm font-medium ${
+                weekPlan[day].speed
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-100"
+              }`}
+            >
+              Speed
+            </button>
+
+          </div>
+        </div>
+      ))}
+
+      <div className="bg-violet-50 border border-violet-300 rounded-2xl p-4">
+        <h3 className="font-bold text-lg mb-3">
+          Week Health
+        </h3>
+
+        <div className="space-y-2">
+
+          <div className="flex justify-between">
+            <span>Vault</span>
+
+            <span>
+              {vaultCount}/2{" "}
+              {vaultCount >= 2
+                ? "🟢"
+                : "🟡"}
+            </span>
+          </div>
+
+          <div className="flex justify-between">
+            <span>Strength</span>
+
+            <span>
+              {strengthCount}/3{" "}
+              {strengthCount >= 3
+                ? "🟢"
+                : "🟡"}
+            </span>
+          </div>
+
+          <div className="flex justify-between">
+            <span>Speed</span>
+
+            <span>
+              {speedCount}/2{" "}
+              {speedCount >= 2
+                ? "🟢"
+                : "🟡"}
+            </span>
+          </div>
+
+        </div>
+
+        <div className="mt-4 text-sm text-gray-600">
+          Recommended Weekly Targets:
+          <ul className="list-disc ml-5 mt-1">
+            <li>
+              Vault: 1–2 sessions
+            </li>
+            <li>
+              Strength: 2–3 sessions
+            </li>
+            <li>
+              Speed: 1–2 sessions
+            </li>
+          </ul>
+        </div>
       </div>
 
-      <div className="grid grid-cols-7 gap-2">
-        {calendarDays}
-      </div>
-
-      <p className="mt-4 text-sm text-gray-500">
-        Training Days This Month:{" "}
-        {monthlyTrainingCount}
-      </p>
     </div>
   );
 }
