@@ -183,7 +183,10 @@ export default function ProgressPage() {
   const latestLog =
     logs.length > 0 ? logs[0] : null;
 
-  const currentPR =
+  const START_PR_METERS = 3.6576;
+  const GOAL_PR_METERS = 4.57;
+
+  const currentPRMeters =
     Object.values(vaultRunPRs).reduce(
       (max, value) => {
         const parsed =
@@ -192,21 +195,29 @@ export default function ProgressPage() {
           ? max
           : Math.max(max, parsed);
       },
-      3.6576
+      START_PR_METERS
     );
 
-  const START_PR = 3.6576;
-  const GOAL_PR = 4.57;
+  const maxPRString =
+    Object.values(vaultRunPRs)
+      .filter((v) => v.trim() !== "")
+      .sort((a, b) => {
+        const aMeters =
+          parseVaultPRToMeters(a) || 0;
+        const bMeters =
+          parseVaultPRToMeters(b) || 0;
+        return bMeters - aMeters;
+      })[0] || "";
 
   const goalProgress = Math.max(
     0,
     Math.min(
       100,
       Math.round(
-        ((currentPR -
-          START_PR) /
-          (GOAL_PR -
-            START_PR)) *
+        ((currentPRMeters -
+          START_PR_METERS) /
+          (GOAL_PR_METERS -
+            START_PR_METERS)) *
           100
       )
     )
@@ -298,13 +309,13 @@ export default function ProgressPage() {
           </p>
 
           <p className="font-bold text-xl">
-            {metersToFeetInches(currentPR)}
+            {maxPRString || "--"}
           </p>
 
           <p className="text-xs text-gray-500">
-            {metersToFeetInches(
-              currentPR
-            )}
+            {maxPRString
+              ? "from Step PRs"
+              : ""}
           </p>
         </Card>
       </div>
