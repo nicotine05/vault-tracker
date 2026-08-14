@@ -211,6 +211,18 @@ export default function Home() {
       }
     };
 
+    const syncWeights = () => {
+      const updated =
+        localStorage.getItem(
+          "weightHistory"
+        );
+      if (updated) {
+        setWeightHistory(
+          JSON.parse(updated)
+        );
+      }
+    };
+
     window.addEventListener(
       "storage",
       syncRunPRs
@@ -218,6 +230,10 @@ export default function Home() {
     window.addEventListener(
       "vaultRunPRsChanged",
       syncRunPRs
+    );
+    window.addEventListener(
+      "weightChanged",
+      syncWeights
     );
 
     return () => {
@@ -228,6 +244,10 @@ export default function Home() {
       window.removeEventListener(
         "vaultRunPRsChanged",
         syncRunPRs
+      );
+      window.removeEventListener(
+        "weightChanged",
+        syncWeights
       );
     };
   }, []);
@@ -252,6 +272,10 @@ export default function Home() {
     localStorage.setItem(
       "weightHistory",
       JSON.stringify(updated)
+    );
+
+    window.dispatchEvent(
+      new Event("weightChanged")
     );
 
     setNewWeight("");

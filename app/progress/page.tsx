@@ -34,6 +34,11 @@ type HeightPREntry = {
   sevenL: string;
 };
 
+type WeightEntry = {
+  weight: number;
+  date: string;
+};
+
 function parseVaultPRToMeters(
   value: string | undefined | null
 ): number | null {
@@ -119,6 +124,15 @@ export default function ProgressPage() {
     "sevenL"
   >("sevenL");
 
+  const [weightHistory, setWeightHistory] =
+    useState<WeightEntry[]>([]);
+
+  const [showWeightEditor, setShowWeightEditor] =
+    useState(false);
+
+  const [newWeight, setNewWeight] =
+    useState("");
+
   useEffect(() => {
     const savedLogs =
       localStorage.getItem("logs");
@@ -164,20 +178,52 @@ export default function ProgressPage() {
       );
     }
 
+    const savedWeights =
+      localStorage.getItem(
+        "weightHistory"
+      );
+
+    if (savedWeights) {
+      setWeightHistory(
+        JSON.parse(savedWeights)
+      );
+    }
+
     const syncVaultRunPRs = () => {
       loadVaultRunPRs();
+    };
+
+    const syncWeights = () => {
+      const updated =
+        localStorage.getItem(
+          "weightHistory"
+        );
+      if (updated) {
+        setWeightHistory(
+          JSON.parse(updated)
+        );
+      }
     };
 
     window.addEventListener(
       "vaultRunPRsChanged",
       syncVaultRunPRs
     );
+    window.addEventListener(
+      "weightChanged",
+      syncWeights
+    );
 
-    return () =>
+    return () => {
       window.removeEventListener(
         "vaultRunPRsChanged",
         syncVaultRunPRs
       );
+      window.removeEventListener(
+        "weightChanged",
+        syncWeights
+      );
+    };
   }, []);
 
   const latestLog =
@@ -264,24 +310,193 @@ export default function ProgressPage() {
         )
       : undefined;
 
+  function saveWeight() {
+    const parsed =
+      parseFloat(newWeight);
+
+    if (isNaN(parsed)) return;
+
+    const updated = [
+      ...weightHistory,
+      {
+        weight: parsed,
+        date:
+          new Date().toISOString(),
+      },
+    ];
+
+    setWeightHistory(updated);
+
+    localStorage.setItem(
+      "weightHistory",
+      JSON.stringify(updated)
+    );
+
+    window.dispatchEvent(
+      new Event("weightChanged")
+    );
+
+    setNewWeight("");
+    setShowWeightEditor(false);
+  }
+
+  const latestWeightEntry =
+    weightHistory.length > 0
+      ? weightHistory[
+          weightHistory.length - 1
+        ]
+      : null;
+
+  const currentWeight =
+    latestWeightEntry
+      ? latestWeightEntry.weight.toFixed(
+          1
+        )
+      : "--";
+
+  const thirtyDaysAgo =
+    Date.now() -
+    30 *
+      24 *
+      60 *
+      60 *
+      1000;
+
+  const comparisonWeight =
+    weightHistory.find(
+      (entry) =>
+        new Date(
+          entry.date
+        ).getTime() >=
+        thirtyDaysAgo
+    );
+
+  const monthlyChange =
+    latestWeightEntry &&
+    comparisonWeight
+      ? latestWeightEntry.weight -
+        comparisonWeight.weight
+      : null;
+
+  const previousWeightEntry =
+    weightHistory.length > 1
+      ? weightHistory[
+          weightHistory.length - 2
+        ]
+      : null;
+
+  const dailyChange =
+    latestWeightEntry &&
+    previousWeightEntry
+      ? latestWeightEntry.weight -
+        previousWeightEntry.weight
+      : null;
+
+  const previousDate =
+    previousWeightEntry
+      ? new Date(
+          previousWeightEntry.date
+        ).toLocaleDateString()
+      : null;
+
   return (
     <main className="max-w-md mx-auto p-4 pb-20">
       <h1 className="text-3xl font-bold mb-4">
         Progress
       </h1>
 
+      <Card className="mb-4">
+        <p className="text-sm text-gray-500">
+          Current Weight
+        </p>
+
+        <p className="text-3xl font-bold">
+          {currentWeight}
+          {currentWeight !== "--"
+            ? " lbs"
+            : ""}
+        </p>
+
+        <div className="mt-1 space-y-1">
+
+          {dailyChange !== null && (
+            <p
+              className={`text-sm font-medium ${
+                dailyChange > 0
+                  ? "text-green-600"
+                  : dailyChange < 0
+                  ? "text-red-600"
+                  : "text-gray-500"
+              }`}
+            >
+              {dailyChange > 0
+                ? "+"
+                : ""}
+              {dailyChange.toFixed(1)}
+              lbs since {previousDate}
+            </p>
+          )}
+
+          {monthlyChange !== null && (
+            <p
+              className={`text-sm font-medium ${
+                monthlyChange > 0
+                  ? "text-green-600"
+                  : monthlyChange < 0
+                  ? "text-red-600"
+                  : "text-gray-500"
+              }`}
+            >
+              {monthlyChange > 0
+                ? "+"
+                : ""}
+              {monthlyChange.toFixed(1)}
+              lbs (30d)
+            </p>
+          )}
+
+        </div>
+
+        <button
+          onClick={() =>
+            setShowWeightEditor(
+              !showWeightEditor
+            )
+          }
+          className="mt-3 w-full bg-blue-500 text-white rounded-xl py-2 text-sm font-medium"
+        >
+          Update Weight
+        </button>
+
+        {showWeightEditor && (
+          <div className="mt-3 space-y-2">
+            <input
+              type="number"
+              step="0.1"
+              value={newWeight}
+              onChange={(e) =>
+                setNewWeight(
+                  e.target.value
+                )
+              }
+              placeholder="182.4"
+              className="w-full border rounded-xl p-2"
+            />
+
+            <button
+              onClick={saveWeight}
+              className="w-full bg-green-500 text-white rounded-xl py-2"
+            >
+              Save
+            </button>
+          </div>
+        )}
+      </Card>
+
       <div className="grid grid-cols-2 gap-4 mb-4">
-        <Card>
-          <p className="text-sm text-gray-500">
-            Current Weight
-          </p>
+      </div>
 
-          <p className="text-3xl font-bold">
-            {latestLog?.bodyWeight ||
-              "--"}
-          </p>
-        </Card>
-
+      <div className="mb-4">
         <Card>
           <p className="text-sm text-gray-500">
             Current PR
