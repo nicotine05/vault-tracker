@@ -32,3 +32,50 @@ export function getWeekDateKeys(weekStart: Date): string[] {
     return toLocalDateKey(date);
   });
 }
+
+const programDayNames = [
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+  "Sunday",
+] as const;
+
+/** Maps a program week + day (e.g. Week 3, Tuesday) to a real calendar date. */
+export function getCalendarDateForProgramDay(
+  weekNumber: number,
+  dayName: string,
+  currentWeek: number,
+  anchorDate: Date = new Date()
+): string {
+  const weekStart = getCalendarWeekStart(anchorDate);
+  const weekOffset = weekNumber - currentWeek;
+  const dayIndex = programDayNames.indexOf(
+    dayName as (typeof programDayNames)[number]
+  );
+
+  if (dayIndex === -1) {
+    return toLocalDateKey(anchorDate);
+  }
+
+  const date = new Date(weekStart);
+  date.setDate(weekStart.getDate() + weekOffset * 7 + dayIndex);
+  return toLocalDateKey(date);
+}
+
+export function getRecordCalendarDate(
+  record: { scheduledDate?: string; weekNumber: number; day: string; completedAt: string },
+  currentWeek: number
+): string {
+  if (record.scheduledDate) {
+    return record.scheduledDate;
+  }
+
+  return getCalendarDateForProgramDay(
+    record.weekNumber,
+    record.day,
+    currentWeek
+  );
+}

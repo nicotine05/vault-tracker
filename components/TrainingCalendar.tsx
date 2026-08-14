@@ -5,6 +5,7 @@ import type { WorkoutExecutionRecord } from "@/lib/domain/types";
 import {
   getCalendarWeekStart,
   getDayName,
+  getRecordCalendarDate,
   getWeekDateKeys,
   toLocalDateKey,
 } from "@/lib/domain/calendarUtils";
@@ -54,10 +55,11 @@ const dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 function getCompletionsForDate(
   history: Record<string, WorkoutExecutionRecord>,
-  dateKey: string
+  dateKey: string,
+  currentWeek: number
 ): WorkoutExecutionRecord[] {
   return Object.values(history).filter((record) => {
-    return toLocalDateKey(new Date(record.completedAt)) === dateKey;
+    return getRecordCalendarDate(record, currentWeek) === dateKey;
   });
 }
 
@@ -82,9 +84,14 @@ function buildDaySessions(
   dateKey: string,
   dateKeysThisWeek: Set<string>,
   currentWeekSchedule: Record<string, { sessions: SessionOption[] }> | undefined,
-  executionHistory: Record<string, WorkoutExecutionRecord>
+  executionHistory: Record<string, WorkoutExecutionRecord>,
+  currentWeek: number
 ): DaySessionView[] {
-  const completions = getCompletionsForDate(executionHistory, dateKey);
+  const completions = getCompletionsForDate(
+    executionHistory,
+    dateKey,
+    currentWeek
+  );
   const views: DaySessionView[] = completions.map((record) => ({
     id: record.sessionId,
     name: record.sessionName,
@@ -176,13 +183,15 @@ export default function TrainingCalendar() {
         selectedDate,
         thisWeekDateKeys,
         currentWeekSchedule,
-        executionHistory
+        executionHistory,
+        currentWeek
       ),
     [
       selectedDate,
       thisWeekDateKeys,
       currentWeekSchedule,
       executionHistory,
+      currentWeek,
     ]
   );
 
@@ -261,7 +270,8 @@ export default function TrainingCalendar() {
             dateKey,
             thisWeekDateKeys,
             currentWeekSchedule,
-            executionHistory
+            executionHistory,
+            currentWeek
           );
 
           return (

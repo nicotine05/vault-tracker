@@ -5,6 +5,7 @@ import {
   type PlannerDay,
 } from "@/lib/trainingProgram";
 import type { WorkoutExecutionRecord } from "@/lib/domain/types";
+import { getCalendarDateForProgramDay } from "@/lib/domain/calendarUtils";
 import { getItem, getString, setItem } from "@/lib/storage/localStore";
 import { STORAGE_EVENTS, STORAGE_KEYS } from "@/lib/storage/keys";
 
@@ -85,6 +86,30 @@ function migrateLegacyProgramData(): void {
   setItem(STORAGE_KEYS.MIGRATION_V1, true);
 }
 
+function backfillScheduledDates(
+  history: Record<string, WorkoutExecutionRecord>,
+  currentWeek: number
+): Record<string, WorkoutExecutionRecord> {
+  let changed = false;
+  const next = { ...history };
+
+  for (const [key, record] of Object.entries(next)) {
+    if (record.scheduledDate) continue;
+
+    next[key] = {
+      ...record,
+      scheduledDate: getCalendarDateForProgramDay(
+        record.weekNumber,
+        record.day,
+        currentWeek
+      ),
+    };
+    changed = true;
+  }
+
+  return changed ? next : history;
+}
+
 export function loadProgramState(): ProgramState {
   migrateLegacyProgramData();
 
@@ -101,13 +126,23 @@ export function loadProgramState(): ProgramState {
     )
   );
 
+  const rawHistory = getItem<Record<string, WorkoutExecutionRecord>>(
+    STORAGE_KEYS.EXECUTION_HISTORY,
+    {}
+  );
+  const executionHistory = backfillScheduledDates(rawHistory, currentWeek);
+
+  if (executionHistory !== rawHistory) {
+    setItem(STORAGE_KEYS.EXECUTION_HISTORY, executionHistory);
+  }
+
   return {
     currentWeek,
     selectedWeek,
     plannerByWeek: getItem(STORAGE_KEYS.WEEKLY_PLANNER, {}),
     scheduleSnapshotsByWeek: getItem(STORAGE_KEYS.SCHEDULE_SNAPSHOTS, {}),
     completedWorkouts: getItem(STORAGE_KEYS.COMPLETED_WORKOUTS, {}),
-    executionHistory: getItem(STORAGE_KEYS.EXECUTION_HISTORY, {}),
+    executionHistory,
   };
 }
 

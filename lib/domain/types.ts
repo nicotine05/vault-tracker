@@ -90,4 +90,5 @@ export type WorkoutExecutionRecord = {
   sessionName: string;
   sessionType: "vault" | "strength" | "speed";
   completedAt: string;
+  scheduledDate: string;
 };

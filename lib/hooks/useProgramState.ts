@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { PlannerDay, TrainingType } from "@/lib/trainingProgram";
 import { workoutCompletionKey } from "@/lib/trainingProgram";
 import type { WorkoutExecutionRecord } from "@/lib/domain/types";
+import { getCalendarDateForProgramDay } from "@/lib/domain/calendarUtils";
 import {
   generateScheduleSnapshot,
   getDefaultProgramState,
@@ -129,7 +130,7 @@ export function useProgramState() {
     });
   }, []);
 
-  const toggleWorkoutComplete = useCallback((params: WorkoutToggleParams) => {
+  const completeWorkout = useCallback((params: WorkoutToggleParams) => {
     const completionKey = workoutCompletionKey(
       params.weekNumber,
       params.day,
@@ -137,33 +138,37 @@ export function useProgramState() {
     );
 
     setState((prev) => {
-      const wasComplete = Boolean(prev.completedWorkouts[completionKey]);
-      const nextCompleted = {
-        ...prev.completedWorkouts,
-        [completionKey]: !wasComplete,
-      };
-
-      const nextHistory = { ...prev.executionHistory };
-
-      if (wasComplete) {
-        delete nextHistory[completionKey];
-      } else {
-        const record: WorkoutExecutionRecord = {
-          completionKey,
-          weekNumber: params.weekNumber,
-          day: params.day,
-          sessionId: params.sessionId,
-          sessionName: params.sessionName,
-          sessionType: params.sessionType,
-          completedAt: new Date().toISOString(),
-        };
-        nextHistory[completionKey] = record;
+      if (prev.completedWorkouts[completionKey]) {
+        return prev;
       }
+
+      const scheduledDate = getCalendarDateForProgramDay(
+        params.weekNumber,
+        params.day,
+        prev.currentWeek
+      );
+
+      const record: WorkoutExecutionRecord = {
+        completionKey,
+        weekNumber: params.weekNumber,
+        day: params.day,
+        sessionId: params.sessionId,
+        sessionName: params.sessionName,
+        sessionType: params.sessionType,
+        completedAt: new Date().toISOString(),
+        scheduledDate,
+      };
 
       return {
         ...prev,
-        completedWorkouts: nextCompleted,
-        executionHistory: nextHistory,
+        completedWorkouts: {
+          ...prev.completedWorkouts,
+          [completionKey]: true,
+        },
+        executionHistory: {
+          ...prev.executionHistory,
+          [completionKey]: record,
+        },
       };
     });
   }, []);
@@ -177,6 +182,6 @@ export function useProgramState() {
     generateWeekSchedule,
     resetWeekPlanner,
     advanceToNextWeek,
-    toggleWorkoutComplete,
+    completeWorkout,
   };
 }
