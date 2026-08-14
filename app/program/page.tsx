@@ -12,8 +12,10 @@ import {
   getPlannerWarnings,
   generateScheduleForWeek,
   getTrafficLightSymbol,
+  getDailyRecommendation,
   type PlannerDay,
   type TrainingType,
+  type TrafficLightLevel,
 } from "@/lib/trainingProgram";
 
 const trainingTypeStyles = {
@@ -36,6 +38,14 @@ const trainingTypeStyles = {
     badge: "border-emerald-200 bg-emerald-100 text-emerald-800",
   },
 } as const;
+
+const trafficStyles: Record<TrafficLightLevel, string> = {
+  Green: "border-emerald-200 bg-emerald-50 text-emerald-900",
+  Yellow: "border-yellow-200 bg-yellow-50 text-yellow-900",
+  Orange: "border-orange-200 bg-orange-50 text-orange-900",
+  Red: "border-red-200 bg-red-50 text-red-900",
+  Black: "border-slate-300 bg-slate-800 text-white",
+};
 
 export default function ProgramPage() {
   const [selectedWeek, setSelectedWeek] = useState(1);
@@ -308,9 +318,11 @@ export default function ProgramPage() {
                   key={day}
                   className="mb-3 rounded-xl border border-slate-200 bg-slate-50 p-3"
                 >
-                  <div className="mb-2 flex items-center justify-between">
+                      <div className="mb-2 flex items-center justify-between gap-3">
                     <p className="font-semibold text-slate-800">{day}</p>
-                    <span className="text-sm font-medium text-slate-700">
+                    <span
+                      className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-xs font-semibold ${trafficStyles[loadLabel]}`}
+                    >
                       {getTrafficLightSymbol(loadLabel)} {loadLabel}
                     </span>
                   </div>
@@ -319,7 +331,7 @@ export default function ProgramPage() {
                     {dailyPlan.sessions.map((session) => (
                       <div
                         key={session.id}
-                        className={`rounded-lg border px-2 py-1 text-sm ${
+                        className={`rounded-lg border px-2 py-2 text-sm ${
                           session.type === "vault"
                             ? "border-amber-200 bg-amber-50 text-amber-900"
                             : session.type === "strength"
@@ -327,17 +339,28 @@ export default function ProgramPage() {
                             : "border-emerald-200 bg-emerald-50 text-emerald-900"
                         }`}
                       >
-                        <div className="flex justify-between gap-2">
-                          <span>{session.label}</span>
-                          <span className="font-medium">{session.load}</span>
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <div className="font-medium">{session.name}</div>
+                            {session.focus && (
+                              <div className="mt-1 text-[11px] opacity-80">{session.focus}</div>
+                            )}
+                            {session.jumpVolume && (
+                              <div className="mt-1 text-[10px] uppercase tracking-wide opacity-70">
+                                Jump volume: {session.jumpVolume}
+                              </div>
+                            )}
+                          </div>
+                          <span className="font-semibold">{session.load}</span>
                         </div>
                       </div>
                     ))}
                   </div>
 
-                  <p className="mt-2 text-xs text-slate-600">
-                    Daily load: {dailyLoad}
-                  </p>
+                  <div className="mt-3 flex items-center justify-between gap-3 text-xs text-slate-700">
+                    <span>Daily load: {dailyLoad}</span>
+                    <span>{getDailyRecommendation(loadLabel)}</span>
+                  </div>
                 </div>
               );
             })}
