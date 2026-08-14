@@ -61,44 +61,30 @@ function parseVaultPRToMeters(
   const clean = value
     .toString()
     .trim()
-    .replace(/,/g, "")
     .toLowerCase();
 
   if (!clean) return null;
 
-  const apostropheMatch =
-    clean.match(
-      /(\d+(?:\.\d+)?)\s*['’]\s*(\d+(?:\.\d+)?)?\s*(?:in|inch|")?/i
-    );
-
-  if (apostropheMatch) {
-    const feet = Number(
-      apostropheMatch[1] || "0"
-    );
-    const inches = Number(
-      apostropheMatch[2] || "0"
-    );
-    return ((feet * 12) + inches) * 0.0254;
-  }
-
-  const ftMatch = clean.match(
-    /(\d+(?:\.\d+)?)\s*(?:ft|feet)\s*(\d+(?:\.\d+)?)?\s*(?:in|inch)?/i
+  const match = clean.match(
+    /(\d+(?:\.\d+)?)ft\s*(\d+(?:\.\d+)?)in/i
   );
 
-  if (ftMatch) {
-    const feet = Number(ftMatch[1] || "0");
-    const inches = Number(ftMatch[2] || "0");
+  if (match) {
+    const feet = Number(match[1] || "0");
+    const inches = Number(match[2] || "0");
     return ((feet * 12) + inches) * 0.0254;
   }
 
-  const plainNumber = Number(clean.replace(/[^0-9.]/g, ""));
-  if (!Number.isFinite(plainNumber)) return null;
+  const ftOnlyMatch = clean.match(
+    /(\d+(?:\.\d+)?)ft/i
+  );
 
-  if (plainNumber > 9) {
-    return plainNumber * 0.3048;
+  if (ftOnlyMatch) {
+    const feet = Number(ftOnlyMatch[1] || "0");
+    return feet * 0.3048;
   }
 
-  return plainNumber;
+  return null;
 }
 
 export default function Home() {

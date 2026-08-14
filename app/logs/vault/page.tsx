@@ -48,40 +48,44 @@ type HeightPREntry = {
   sevenL: string;
 };
 
-function normalizeVaultPR(value: string): string {
+function parseVaultHeight(value: string): { feet: number; inches: number } | null {
   const clean = value
     .trim()
     .replace(/,/g, "")
     .toLowerCase();
 
-  if (!clean) return "";
+  if (!clean) return null;
 
-  const apostropheMatch = clean.match(
-    /(\d+(?:\.\d+)?)\s*['’]\s*(\d+(?:\.\d+)?)?\s*(?:in|inch|")?/i
+  const match = clean.match(
+    /(\d+(?:\.\d+)?)ft\s*(\d+(?:\.\d+)?)in/i
   );
 
-  if (apostropheMatch) {
-    const feet = Number(apostropheMatch[1] || "0");
-    const inches = Number(apostropheMatch[2] || "0");
-    const totalInches = feet * 12 + inches;
-    return formatFeetInches(totalInches);
+  if (match) {
+    return {
+      feet: Number(match[1] || "0"),
+      inches: Number(match[2] || "0"),
+    };
   }
 
-  const ftMatch = clean.match(
-    /(\d+(?:\.\d+)?)\s*(?:ft|feet)\s*(\d+(?:\.\d+)?)?\s*(?:in|inch)?/i
+  const ftOnlyMatch = clean.match(
+    /(\d+(?:\.\d+)?)ft/i
   );
 
-  if (ftMatch) {
-    const feet = Number(ftMatch[1] || "0");
-    const inches = Number(ftMatch[2] || "0");
-    const totalInches = feet * 12 + inches;
-    return formatFeetInches(totalInches);
+  if (ftOnlyMatch) {
+    return {
+      feet: Number(ftOnlyMatch[1] || "0"),
+      inches: 0,
+    };
   }
 
-  const plainNumber = Number(clean.replace(/[^0-9.]/g, ""));
-  if (!Number.isFinite(plainNumber)) return value.trim();
+  return null;
+}
 
-  const totalInches = plainNumber * 12;
+function normalizeVaultPR(value: string): string {
+  const parsed = parseVaultHeight(value);
+  if (!parsed) return value.trim();
+
+  const totalInches = parsed.feet * 12 + parsed.inches;
   return formatFeetInches(totalInches);
 }
 
