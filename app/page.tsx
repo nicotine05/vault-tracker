@@ -496,7 +496,7 @@ export default function Home() {
 
           <div className="flex items-center gap-2 mt-1">
             <p className="text-gray-500">
-              Week {currentWeek}
+              Week {currentWeek}/{program.totalWeeks}
             </p>
 
             <span
