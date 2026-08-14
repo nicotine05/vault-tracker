@@ -23,6 +23,27 @@ const plannerDays = [
   "Sunday",
 ] as const;
 
+const trainingTypeStyles = {
+  vault: {
+    button: "border-amber-200 text-amber-900 hover:bg-amber-200",
+    selected: "bg-amber-500 text-white border-amber-500 shadow-sm",
+    card: "bg-amber-50 border-amber-200",
+    badge: "border-amber-200 bg-amber-100 text-amber-800",
+  },
+  strength: {
+    button: "border-sky-200 text-sky-900 hover:bg-sky-200",
+    selected: "bg-sky-500 text-white border-sky-500 shadow-sm",
+    card: "bg-sky-50 border-sky-200",
+    badge: "border-sky-200 bg-sky-100 text-sky-800",
+  },
+  speed: {
+    button: "border-emerald-200 text-emerald-900 hover:bg-emerald-200",
+    selected: "bg-emerald-500 text-white border-emerald-500 shadow-sm",
+    card: "bg-emerald-50 border-emerald-200",
+    badge: "border-emerald-200 bg-emerald-100 text-emerald-800",
+  },
+} as const;
+
 export default function ProgramPage() {
   const [selectedWeek, setSelectedWeek] = useState(1);
   const [unlockedWeek, setUnlockedWeek] = useState(1);
@@ -182,31 +203,44 @@ export default function ProgramPage() {
           <div className="mt-4">
             <Card title="Weekly Planner">
               <div className="space-y-3">
-                {plannerDays.map((day) => (
-                  <div key={day} className="border rounded-xl p-3">
-                    <p className="font-semibold mb-2">{day}</p>
+                {plannerDays.map((day) => {
+                  const activeType = (["vault", "strength", "speed"] as const).find(
+                    (type) => weekPlanner[day]?.[type]
+                  );
 
-                    <div className="flex gap-2 flex-wrap">
-                      {(["vault", "strength", "speed"] as const).map(
-                        (type) => (
-                          <button
-                            key={type}
-                            onClick={() =>
-                              togglePlanner(day, type)
-                            }
-                            className={`px-3 py-1 rounded-lg border ${
-                              weekPlanner[day]?.[type]
-                                ? "bg-purple-600 text-white"
-                                : ""
-                            }`}
-                          >
-                            {type}
-                          </button>
-                        )
-                      )}
+                  return (
+                    <div
+                      key={day}
+                      className={`border rounded-xl p-3 ${
+                        activeType
+                          ? trainingTypeStyles[activeType].card
+                          : "bg-white border-slate-200"
+                      }`}
+                    >
+                      <p className="font-semibold mb-2 text-slate-800">{day}</p>
+
+                      <div className="flex gap-2 flex-wrap">
+                        {(["vault", "strength", "speed"] as const).map(
+                          (type) => (
+                            <button
+                              key={type}
+                              onClick={() =>
+                                togglePlanner(day, type)
+                              }
+                              className={`px-3 py-1 rounded-lg border capitalize ${
+                                weekPlanner[day]?.[type]
+                                  ? trainingTypeStyles[type].selected
+                                  : trainingTypeStyles[type].button
+                              }`}
+                            >
+                              {type}
+                            </button>
+                          )
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </Card>
           </div>
@@ -268,12 +302,35 @@ export default function ProgramPage() {
 
               if (!hasItems) return null;
 
+              const activeType = (["vault", "strength", "speed"] as const).find(
+                (type) => d[type]
+              );
+
               return (
-                <div key={day} className="mb-3">
-                  <p className="font-semibold">{day}</p>
-                  {d.vault && <p>Vault Session</p>}
-                  {d.strength && <p>Strength Session</p>}
-                  {d.speed && <p>Speed Session</p>}
+                <div
+                  key={day}
+                  className={`mb-3 rounded-xl border p-3 ${
+                    activeType
+                      ? trainingTypeStyles[activeType].card
+                      : "bg-slate-50 border-slate-200"
+                  }`}
+                >
+                  <p className="font-semibold text-slate-800">{day}</p>
+                  {d.vault && (
+                    <span className={`mt-2 inline-flex rounded-full border px-2 py-1 text-xs font-medium ${trainingTypeStyles.vault.badge}`}>
+                      Vault Session
+                    </span>
+                  )}
+                  {d.strength && (
+                    <span className={`mt-2 ml-2 inline-flex rounded-full border px-2 py-1 text-xs font-medium ${trainingTypeStyles.strength.badge}`}>
+                      Strength Session
+                    </span>
+                  )}
+                  {d.speed && (
+                    <span className={`mt-2 ml-2 inline-flex rounded-full border px-2 py-1 text-xs font-medium ${trainingTypeStyles.speed.badge}`}>
+                      Speed Session
+                    </span>
+                  )}
                 </div>
               );
             })}
