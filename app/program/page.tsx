@@ -6,22 +6,15 @@ import {
 } from "react";
 import Card from "@/components/Card";
 import { programData } from "@/lib/programData";
-
-type PlannerDay = {
-  vault: boolean;
-  strength: boolean;
-  speed: boolean;
-};
-
-const plannerDays = [
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
-  "Sunday",
-] as const;
+import {
+  plannerDays,
+  getPhaseConfig,
+  getPlannerWarnings,
+  generateScheduleForWeek,
+  getTrafficLightSymbol,
+  type PlannerDay,
+  type TrainingType,
+} from "@/lib/trainingProgram";
 
 const trainingTypeStyles = {
   vault: {
@@ -101,12 +94,9 @@ export default function ProgramPage() {
     programData[selectedWeek as keyof typeof programData];
 
   const weekPlanner = planner[selectedWeek] || {};
+  const phaseConfig = getPhaseConfig(selectedWeek);
 
-  const targets = {
-    vault: Object.values(week.days).filter((d: any) => d.vault).length,
-    strength: Object.values(week.days).filter((d: any) => d.lifts?.length).length,
-    speed: Object.values(week.days).filter((d: any) => d.sprint).length,
-  };
+  const targets = phaseConfig.targets;
 
   const counts = {
     vault: plannerDays.filter((d) => weekPlanner[d]?.vault).length,
@@ -115,9 +105,9 @@ export default function ProgramPage() {
   };
 
   const plannerComplete =
-    counts.vault === targets.vault &&
-    counts.strength === targets.strength &&
-    counts.speed === targets.speed;
+    counts.vault >= targets.vault &&
+    counts.strength >= targets.strength &&
+    counts.speed >= targets.speed;
 
   const togglePlanner = (
     day: string,
@@ -137,14 +127,14 @@ export default function ProgramPage() {
     }));
   };
 
-  const warnings: string[] = [];
+  const warnings = getPlannerWarnings(weekPlanner, selectedWeek);
 
   if (counts.vault < targets.vault)
-    warnings.push("Missing Required Vault Session");
+    warnings.unshift("Missing Required Vault Session");
   if (counts.strength < targets.strength)
-    warnings.push("Missing Required Strength Session");
+    warnings.unshift("Missing Required Strength Session");
   if (counts.speed < targets.speed)
-    warnings.push("Missing Required Speed Session");
+    warnings.unshift("Missing Required Speed Session");
 
   const resetPlanner = () => {
     setPlanner((prev) => ({
@@ -158,6 +148,9 @@ export default function ProgramPage() {
   };
 
   const generated = scheduleGenerated[selectedWeek];
+  const generatedSchedule = generated
+    ? generateScheduleForWeek(weekPlanner, selectedWeek)
+    : {};
 
   return (
     <main className="max-w-md mx-auto p-4 pb-20">
@@ -261,9 +254,15 @@ export default function ProgramPage() {
 
           <div className="mt-4">
             <Card title="Planner Health">
-              <p>Vault {counts.vault}/{targets.vault}</p>
-              <p>Strength {counts.strength}/{targets.strength}</p>
-              <p>Speed {counts.speed}/{targets.speed}</p>
+              <p>
+                Vault {counts.vault}/{targets.vault}
+              </p>
+              <p>
+                Strength {counts.strength}/{targets.strength}
+              </p>
+              <p>
+                Speed {counts.speed}/{targets.speed}
+              </p>
             </Card>
           </div>
 
@@ -297,44 +296,48 @@ export default function ProgramPage() {
         <div className="mt-4">
           <Card title="Generated Schedule">
             {plannerDays.map((day) => {
-              const d = weekPlanner[day];
+              const dailyPlan = generatedSchedule[day];
 
-              if (!d) return null;
+              if (!dailyPlan || dailyPlan.sessions.length === 0) return null;
 
-              const hasItems =
-                d.vault || d.strength || d.speed;
-
-              if (!hasItems) return null;
-
-              const activeType = (["vault", "strength", "speed"] as const).find(
-                (type) => d[type]
-              );
+              const dailyLoad = dailyPlan.load;
+              const loadLabel = dailyPlan.level;
 
               return (
                 <div
                   key={day}
-                  className={`mb-3 rounded-xl border p-3 ${
-                    activeType
-                      ? trainingTypeStyles[activeType].card
-                      : "bg-slate-50 border-slate-200"
-                  }`}
+                  className="mb-3 rounded-xl border border-slate-200 bg-slate-50 p-3"
                 >
-                  <p className="font-semibold text-slate-800">{day}</p>
-                  {d.vault && (
-                    <span className={`mt-2 inline-flex rounded-full border px-2 py-1 text-xs font-medium ${trainingTypeStyles.vault.badge}`}>
-                      Vault Session
+                  <div className="mb-2 flex items-center justify-between">
+                    <p className="font-semibold text-slate-800">{day}</p>
+                    <span className="text-sm font-medium text-slate-700">
+                      {getTrafficLightSymbol(loadLabel)} {loadLabel}
                     </span>
-                  )}
-                  {d.strength && (
-                    <span className={`mt-2 ml-2 inline-flex rounded-full border px-2 py-1 text-xs font-medium ${trainingTypeStyles.strength.badge}`}>
-                      Strength Session
-                    </span>
-                  )}
-                  {d.speed && (
-                    <span className={`mt-2 ml-2 inline-flex rounded-full border px-2 py-1 text-xs font-medium ${trainingTypeStyles.speed.badge}`}>
-                      Speed Session
-                    </span>
-                  )}
+                  </div>
+
+                  <div className="space-y-2">
+                    {dailyPlan.sessions.map((session) => (
+                      <div
+                        key={session.id}
+                        className={`rounded-lg border px-2 py-1 text-sm ${
+                          session.type === "vault"
+                            ? "border-amber-200 bg-amber-50 text-amber-900"
+                            : session.type === "strength"
+                            ? "border-sky-200 bg-sky-50 text-sky-900"
+                            : "border-emerald-200 bg-emerald-50 text-emerald-900"
+                        }`}
+                      >
+                        <div className="flex justify-between gap-2">
+                          <span>{session.label}</span>
+                          <span className="font-medium">{session.load}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <p className="mt-2 text-xs text-slate-600">
+                    Daily load: {dailyLoad}
+                  </p>
                 </div>
               );
             })}
