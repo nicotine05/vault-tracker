@@ -13,10 +13,14 @@ import {
   generateScheduleForWeek,
   getTrafficLightSymbol,
   getDailyRecommendation,
+  getCatalogWorkout,
   type PlannerDay,
   type TrainingType,
   type TrafficLightLevel,
 } from "@/lib/trainingProgram";
+import type { StrengthWorkout } from "@/lib/catalogs/strengthCatalog";
+import type { SprintWorkout } from "@/lib/catalogs/sprintCatalog";
+import type { VaultWorkout } from "@/lib/catalogs/vaultCatalog";
 
 const trainingTypeStyles = {
   vault: {
@@ -55,6 +59,7 @@ export default function ProgramPage() {
   const [completedWorkouts, setCompletedWorkouts] = useState<Record<string, boolean>>({});
   const [planner, setPlanner] = useState<Record<number, Record<string, PlannerDay>>>({});
   const [scheduleGenerated, setScheduleGenerated] = useState<Record<number, boolean>>({});
+  const [expandedWorkouts, setExpandedWorkouts] = useState<Record<string, boolean>>({});
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
@@ -328,33 +333,106 @@ export default function ProgramPage() {
                   </div>
 
                   <div className="space-y-2">
-                    {dailyPlan.sessions.map((session) => (
-                      <div
-                        key={session.id}
-                        className={`rounded-lg border px-2 py-2 text-sm ${
-                          session.type === "vault"
-                            ? "border-amber-200 bg-amber-50 text-amber-900"
-                            : session.type === "strength"
-                            ? "border-sky-200 bg-sky-50 text-sky-900"
-                            : "border-emerald-200 bg-emerald-50 text-emerald-900"
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div>
-                            <div className="font-medium">{session.name}</div>
-                            {session.focus && (
-                              <div className="mt-1 text-[11px] opacity-80">{session.focus}</div>
-                            )}
-                            {session.jumpVolume && (
-                              <div className="mt-1 text-[10px] uppercase tracking-wide opacity-70">
-                                Jump volume: {session.jumpVolume}
+                    {dailyPlan.sessions.map((session) => {
+                      const isExpanded = expandedWorkouts[`${day}-${session.id}`];
+                      const workout = getCatalogWorkout(session.id);
+
+                      return (
+                        <div key={session.id}>
+                          <button
+                            onClick={() =>
+                              setExpandedWorkouts((prev) => ({
+                                ...prev,
+                                [`${day}-${session.id}`]: !isExpanded,
+                              }))
+                            }
+                            className={`w-full rounded-lg border px-3 py-2 text-left text-sm transition-all ${
+                              session.type === "vault"
+                                ? "border-amber-200 bg-amber-50 text-amber-900 hover:bg-amber-100"
+                                : session.type === "strength"
+                                ? "border-sky-200 bg-sky-50 text-sky-900 hover:bg-sky-100"
+                                : "border-emerald-200 bg-emerald-50 text-emerald-900 hover:bg-emerald-100"
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex-1">
+                                <div className="font-medium">{session.name}</div>
+                                {session.focus && (
+                                  <div className="mt-1 text-[11px] opacity-80">{session.focus}</div>
+                                )}
+                                {session.jumpVolume && (
+                                  <div className="mt-1 text-[10px] uppercase tracking-wide opacity-70">
+                                    Jump volume: {session.jumpVolume}
+                                  </div>
+                                )}
                               </div>
-                            )}
-                          </div>
-                          <span className="font-semibold">{session.load}</span>
+                              <div className="flex items-center gap-2">
+                                <span className="font-semibold">{session.load}</span>
+                                <span className="text-xs">{isExpanded ? "▼" : "▶"}</span>
+                              </div>
+                            </div>
+                          </button>
+
+                          {isExpanded && workout && (
+                            <div className="mt-1 rounded-lg border border-slate-200 bg-white p-3 text-xs space-y-2">
+                              {workout && "primaryLift" in workout && (
+                                <>
+                                  <div>
+                                    <span className="font-semibold">Primary:</span> {workout.primaryLift}
+                                  </div>
+                                  <div>
+                                    <span className="font-semibold">Secondary:</span> {workout.secondaryLift}
+                                  </div>
+                                  <div>
+                                    <span className="font-semibold">Superset A:</span> {workout.supersetA.join(", ")}
+                                  </div>
+                                  <div>
+                                    <span className="font-semibold">Superset B:</span> {workout.supersetB.join(", ")}
+                                  </div>
+                                  <div>
+                                    <span className="font-semibold">Finisher:</span> {workout.finisher}
+                                  </div>
+                                </>
+                              )}
+                              {workout && "workout" in workout && (
+                                <>
+                                  <div>
+                                    <span className="font-semibold">Category:</span> {workout.category}
+                                  </div>
+                                  <div>
+                                    <span className="font-semibold">Workout:</span>
+                                    <ul className="list-inside list-disc mt-1">
+                                      {workout.workout.map((w, i) => (
+                                        <li key={i}>{w}</li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                  <div>
+                                    <span className="font-semibold">Rest:</span> {workout.rest}
+                                  </div>
+                                  <div>
+                                    <span className="font-semibold">Purpose:</span> {workout.purpose}
+                                  </div>
+                                </>
+                              )}
+                              {workout && "runLength" in workout && (
+                                <>
+                                  <div>
+                                    <span className="font-semibold">Run Length:</span> {workout.runLength}
+                                  </div>
+                                  <div>
+                                    <span className="font-semibold">Jump Volume:</span> {workout.jumpVolume}
+                                  </div>
+                                  <div>
+                                    <span className="font-semibold">Description:</span> {workout.description}
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          )}
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
 
                   <div className="mt-3 flex items-center justify-between gap-3 text-xs text-slate-700">

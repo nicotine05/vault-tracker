@@ -1,3 +1,7 @@
+import { strengthCatalog, type StrengthWorkout } from "./catalogs/strengthCatalog";
+import { sprintCatalog, type SprintWorkout } from "./catalogs/sprintCatalog";
+import { vaultCatalog, type VaultWorkout } from "./catalogs/vaultCatalog";
+
 export type TrainingType = "vault" | "strength" | "speed";
 export type TrafficLightLevel = "Green" | "Yellow" | "Orange" | "Red" | "Black";
 
@@ -9,6 +13,7 @@ export type PlannerDay = {
 
 export type PlannerWeek = Record<string, PlannerDay>;
 
+// Unified session type for the planner
 export type SessionOption = {
   id: string;
   type: TrainingType;
@@ -22,6 +27,9 @@ export type SessionOption = {
   exercises?: string[];
   notes?: string;
 };
+
+// For detailed workout information
+export type DetailedWorkout = StrengthWorkout | SprintWorkout | VaultWorkout;
 
 export type PhaseDefinition = {
   name: string;
@@ -42,204 +50,117 @@ export const plannerDays = [
 ] as const;
 
 export const trafficLightThresholds = {
-  green: 4,
-  yellow: 8,
-  orange: 12,
+  green: 5,
+  yellow: 9,
+  orange: 13,
   red: 17,
 };
 
-export const vaultCatalog: SessionOption[] = [
-  {
-    id: "VD1",
+// Helper: Convert catalog workouts to SessionOption format
+function vaultToSession(vault: VaultWorkout): SessionOption {
+  return {
+    id: vault.id,
     type: "vault",
-    name: "Drill Day",
-    load: 1,
-    tags: ["technical"],
-    jumpVolume: "8-12",
-    focus: "Technical rhythm and posture",
-    phase: "Rebuild",
-    notes: "Low volume technical day for coordination and safe movement patterns.",
-  },
-  {
-    id: "VD2",
-    type: "vault",
-    name: "Technical Day",
-    load: 3,
-    tags: ["technical"],
-    jumpVolume: "10-14",
-    focus: "Short approach vaulting",
-    phase: "Build",
-    notes: "Technical focus with controlled outputs and smooth sequencing.",
-  },
-  {
-    id: "VD3",
-    type: "vault",
-    name: "Short Run Day",
-    load: 6,
-    tags: ["technical", "run-up"],
-    jumpVolume: "10-16",
-    focus: "Short approach vaulting",
-    phase: "Build",
-    notes: "Short run work with a high technical demand and strong nervous system stimulus.",
-  },
-  {
-    id: "VD4",
-    type: "vault",
-    name: "Competition Day",
-    load: 10,
-    tags: ["competition"],
-    jumpVolume: "6-10",
-    focus: "Competition model vaulting",
-    phase: "Specific",
-    notes: "Primary technical and neurological stress session for the week.",
-  },
-  {
-    id: "VD5",
-    type: "vault",
-    name: "Long Run Day",
-    load: 8,
-    tags: ["long-run", "competition"],
-    jumpVolume: "12-18",
-    focus: "Long approach and rhythm work",
-    phase: "Specific",
-    notes: "Higher-volume run-up work to integrate speed, rhythm, and posture.",
-  },
+    name: vault.name,
+    load: vault.load,
+    tags: [],
+    phase: vault.phase,
+    jumpVolume: vault.jumpVolume,
+    focus: `${vault.runLength} - ${vault.jumpVolume} jumps`,
+  };
+}
+
+function strengthToSession(strength: StrengthWorkout): SessionOption {
+  return {
+    id: strength.id,
+    type: "strength",
+    name: strength.name,
+    load: strength.load,
+    tags: [],
+    phase: strength.phase,
+    exercises: [strength.primaryLift, strength.secondaryLift],
+  };
+}
+
+function sprintToSession(sprint: SprintWorkout): SessionOption {
+  return {
+    id: sprint.id,
+    type: "speed",
+    name: sprint.name,
+    load: sprint.load,
+    tags: [],
+    phase: sprint.phase,
+    workout: sprint.workout,
+  };
+}
+
+// Helper: Get catalog item by ID
+export function getCatalogWorkout(id: string): DetailedWorkout | undefined {
+  const vault = vaultCatalog.find((v) => v.id === id);
+  if (vault) return vault;
+  const strength = strengthCatalog.find((s) => s.id === id);
+  if (strength) return strength;
+  return sprintCatalog.find((s) => s.id === id);
+}
+
+// Phase definitions with phase-based session assignments
+// REBUILD: VD2, VD3 | ST1, ST5, ST2, ST6 | S2, S1, S3
+// BUILD: VD3, VD5 | ST1, ST3, ST2, ST4 | S2, S5, S3, S6
+// SPECIFIC: VD5, VD4 | ST3, ST7, ST8 | S5, S6, S8, S9
+
+const rebuildVaults = [
+  vaultToSession(vaultCatalog.find((v) => v.id === "VD2")!),
+  vaultToSession(vaultCatalog.find((v) => v.id === "VD3")!),
 ];
 
-export const strengthCatalog: SessionOption[] = [
-  {
-    id: "ST1",
-    type: "strength",
-    name: "Heavy Lower",
-    load: 8,
-    tags: ["heavy", "lower"],
-    exercises: ["Romanian Deadlift", "Front Squat", "Split Squat", "Core Circuit"],
-    phase: "Rebuild",
-    notes: "Primary lower-body heavy session with high recovery cost.",
-  },
-  {
-    id: "ST2",
-    type: "strength",
-    name: "Heavy Squat",
-    load: 8,
-    tags: ["heavy", "squat"],
-    exercises: ["Back Squat", "Front Squat", "Walking Lunge", "Ab Wheel"],
-    phase: "Build",
-    notes: "Heavy squat emphasis with longer rest and lower total rep output.",
-  },
-  {
-    id: "ST3",
-    type: "strength",
-    name: "Strength-Speed",
-    load: 5,
-    tags: ["speed-strength"],
-    exercises: ["Box Jump", "Push Press", "Trap Bar", "Med Ball Throws"],
-    phase: "Build",
-    notes: "Explosive work with moderate fatigue and high movement quality demands.",
-  },
-  {
-    id: "ST4",
-    type: "strength",
-    name: "Dynamic Strength",
-    load: 5,
-    tags: ["dynamic"],
-    exercises: ["Jump Squat", "Bench Press", "Single-Leg RDL", "Pull-Up"],
-    phase: "Build",
-    notes: "Dynamic lower-body emphasis with speed of movement and moderate load.",
-  },
-  {
-    id: "ST5",
-    type: "strength",
-    name: "Posterior Chain",
-    load: 4,
-    tags: ["posterior-chain"],
-    exercises: ["Romanian Deadlift", "Split Squat", "Pull-Up", "Core Circuit"],
-    phase: "Specific",
-    notes: "Posterior chain work to support force transmission and vault power.",
-  },
-  {
-    id: "ST6",
-    type: "strength",
-    name: "Single-Leg Athleticism",
-    load: 3,
-    tags: ["single-leg"],
-    exercises: ["Single-Leg RDL", "Step-Up", "Lateral Lunge", "Balance Drill"],
-    phase: "Specific",
-    notes: "Unilateral stability and force production with lower total fatigue cost.",
-  },
-  {
-    id: "ST7",
-    type: "strength",
-    name: "Jump Development",
-    load: 3,
-    tags: ["jump"],
-    exercises: ["Box Jump", "Depth Jump", "Broad Jump", "Core Circuit"],
-    phase: "Specific",
-    notes: "A lower-load jump exposure day designed to improve reactive power.",
-  },
-  {
-    id: "ST8",
-    type: "strength",
-    name: "Competition Power",
-    load: 2,
-    tags: ["power"],
-    exercises: ["Clean Pull", "Trap Bar Jump", "Hanging Knee Raise", "Explosive Push-Up"],
-    phase: "Specific",
-    notes: "Lower fatigue but still high-power exposure in the competition window.",
-  },
+const rebuildStrength = [
+  strengthToSession(strengthCatalog.find((s) => s.id === "ST1")!),
+  strengthToSession(strengthCatalog.find((s) => s.id === "ST5")!),
+  strengthToSession(strengthCatalog.find((s) => s.id === "ST2")!),
+  strengthToSession(strengthCatalog.find((s) => s.id === "ST6")!),
 ];
 
-export const sprintCatalog: SessionOption[] = [
-  {
-    id: "S1",
-    type: "speed",
-    name: "Acceleration Development",
-    load: 2,
-    tags: ["short"],
-    workout: ["4 x 10m", "4 x 20m", "3 x 30m"],
-    phase: "Rebuild",
-    notes: "Short acceleration work focused on mechanics and force application.",
-  },
-  {
-    id: "S2",
-    type: "speed",
-    name: "Acceleration Power",
-    load: 3,
-    tags: ["short"],
-    workout: ["5 x 20m", "3 x 30m", "2 x 40m"],
-    phase: "Build",
-    notes: "Acceleration emphasis with moderate speed exposure and controlled recovery.",
-  },
-  {
-    id: "S3",
-    type: "speed",
-    name: "Max Velocity Development",
-    load: 4,
-    tags: ["max-velocity"],
-    workout: ["6 x 30m", "4 x 40m", "2 x 60m"],
-    phase: "Specific",
-    notes: "Higher-speed work to maximize top-end velocity output.",
-  },
-  {
-    id: "S4",
-    type: "speed",
-    name: "Runway Session",
-    load: 2,
-    tags: ["runway"],
-    workout: ["3 x 20m", "3 x 30m", "2 x 50m"],
-    phase: "Specific",
-    notes: "Lower-cost runway work used to maintain rhythm and coordination.",
-  },
-  {
-    id: "S5",
-    type: "speed",
-    name: "Sprint Mechanics",
-    load: 3,
-    tags: ["mechanics"],
-    workout: ["6 x 10m", "4 x 20m", "2 x 30m"],
-    phase: "Build",
-    notes: "Technique-driven speed session with moderate fatigue demands.",
-  },
+const rebuildSprints = [
+  sprintToSession(sprintCatalog.find((s) => s.id === "S2")!),
+  sprintToSession(sprintCatalog.find((s) => s.id === "S1")!),
+  sprintToSession(sprintCatalog.find((s) => s.id === "S3")!),
+];
+
+const buildVaults = [
+  vaultToSession(vaultCatalog.find((v) => v.id === "VD3")!),
+  vaultToSession(vaultCatalog.find((v) => v.id === "VD5")!),
+];
+
+const buildStrength = [
+  strengthToSession(strengthCatalog.find((s) => s.id === "ST1")!),
+  strengthToSession(strengthCatalog.find((s) => s.id === "ST3")!),
+  strengthToSession(strengthCatalog.find((s) => s.id === "ST2")!),
+  strengthToSession(strengthCatalog.find((s) => s.id === "ST4")!),
+];
+
+const buildSprints = [
+  sprintToSession(sprintCatalog.find((s) => s.id === "S2")!),
+  sprintToSession(sprintCatalog.find((s) => s.id === "S5")!),
+  sprintToSession(sprintCatalog.find((s) => s.id === "S3")!),
+  sprintToSession(sprintCatalog.find((s) => s.id === "S6")!),
+];
+
+const specificVaults = [
+  vaultToSession(vaultCatalog.find((v) => v.id === "VD5")!),
+  vaultToSession(vaultCatalog.find((v) => v.id === "VD4")!),
+];
+
+const specificStrength = [
+  strengthToSession(strengthCatalog.find((s) => s.id === "ST3")!),
+  strengthToSession(strengthCatalog.find((s) => s.id === "ST7")!),
+  strengthToSession(strengthCatalog.find((s) => s.id === "ST8")!),
+];
+
+const specificSprints = [
+  sprintToSession(sprintCatalog.find((s) => s.id === "S5")!),
+  sprintToSession(sprintCatalog.find((s) => s.id === "S6")!),
+  sprintToSession(sprintCatalog.find((s) => s.id === "S8")!),
+  sprintToSession(sprintCatalog.find((s) => s.id === "S9")!),
 ];
 
 export const phases: Record<string, PhaseDefinition> = {
@@ -250,9 +171,9 @@ export const phases: Record<string, PhaseDefinition> = {
       strength: 2,
       speed: 2,
     },
-    vault: [vaultCatalog[0], vaultCatalog[2]],
-    strength: [strengthCatalog[0], strengthCatalog[5]],
-    sprint: [sprintCatalog[0], sprintCatalog[4]],
+    vault: rebuildVaults,
+    strength: rebuildStrength,
+    sprint: rebuildSprints,
   },
   Build: {
     name: "Build",
@@ -261,9 +182,9 @@ export const phases: Record<string, PhaseDefinition> = {
       strength: 3,
       speed: 2,
     },
-    vault: [vaultCatalog[1], vaultCatalog[2], vaultCatalog[4]],
-    strength: [strengthCatalog[1], strengthCatalog[2], strengthCatalog[3]],
-    sprint: [sprintCatalog[1], sprintCatalog[2], sprintCatalog[4]],
+    vault: buildVaults,
+    strength: buildStrength,
+    sprint: buildSprints,
   },
   Specific: {
     name: "Specific",
@@ -272,9 +193,9 @@ export const phases: Record<string, PhaseDefinition> = {
       strength: 2,
       speed: 2,
     },
-    vault: [vaultCatalog[2], vaultCatalog[3], vaultCatalog[4]],
-    strength: [strengthCatalog[4], strengthCatalog[6]],
-    sprint: [sprintCatalog[2], sprintCatalog[3], sprintCatalog[4]],
+    vault: specificVaults,
+    strength: specificStrength,
+    sprint: specificSprints,
   },
 };
 
@@ -285,10 +206,10 @@ export function getPhaseConfig(weekNumber: number): PhaseDefinition {
 }
 
 export function getTrafficLight(load: number): TrafficLightLevel {
-  if (load <= 4) return "Green";
-  if (load <= 8) return "Yellow";
-  if (load <= 12) return "Orange";
-  if (load <= 17) return "Red";
+  if (load <= trafficLightThresholds.green) return "Green";
+  if (load <= trafficLightThresholds.yellow) return "Yellow";
+  if (load <= trafficLightThresholds.orange) return "Orange";
+  if (load <= trafficLightThresholds.red) return "Red";
   return "Black";
 }
 
