@@ -23,23 +23,25 @@ export function toPublicUser(user: UserRecord): PublicUser {
   };
 }
 
-export function findUserByEmail(email: string): UserRecord | null {
+export async function findUserByEmail(
+  email: string
+): Promise<UserRecord | null> {
   const normalized = normalizeEmail(email);
-  const store = readStoreSnapshot();
+  const store = await readStoreSnapshot();
   return store.users.find((user) => user.email === normalized) ?? null;
 }
 
-export function findUserById(id: string): UserRecord | null {
-  const store = readStoreSnapshot();
+export async function findUserById(id: string): Promise<UserRecord | null> {
+  const store = await readStoreSnapshot();
   return store.users.find((user) => user.id === id) ?? null;
 }
 
-export function createUser(params: {
+export async function createUser(params: {
   email: string;
   password: string;
   name: string;
   role: UserRole;
-}): UserRecord {
+}): Promise<UserRecord> {
   return withStore((store) => {
     const user = createUserRecord({
       id: randomUUID(),
@@ -55,8 +57,11 @@ export function createUser(params: {
   });
 }
 
-export function linkCoachAthlete(coachId: string, athleteId: string): void {
-  withStore((store) => {
+export async function linkCoachAthlete(
+  coachId: string,
+  athleteId: string
+): Promise<void> {
+  await withStore((store) => {
     const exists = store.coachAthletes.some(
       (link) => link.coachId === coachId && link.athleteId === athleteId
     );
@@ -71,15 +76,20 @@ export function linkCoachAthlete(coachId: string, athleteId: string): void {
   });
 }
 
-export function coachOwnsAthlete(coachId: string, athleteId: string): boolean {
-  const store = readStoreSnapshot();
+export async function coachOwnsAthlete(
+  coachId: string,
+  athleteId: string
+): Promise<boolean> {
+  const store = await readStoreSnapshot();
   return store.coachAthletes.some(
     (link) => link.coachId === coachId && link.athleteId === athleteId
   );
 }
 
-export function listCoachAthletes(coachId: string): AthleteSummary[] {
-  const store = readStoreSnapshot();
+export async function listCoachAthletes(
+  coachId: string
+): Promise<AthleteSummary[]> {
+  const store = await readStoreSnapshot();
 
   return store.coachAthletes
     .filter((link) => link.coachId === coachId)
@@ -93,11 +103,11 @@ export function listCoachAthletes(coachId: string): AthleteSummary[] {
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
-export function loadAthleteSync(athleteId: string): {
+export async function loadAthleteSync(athleteId: string): Promise<{
   data: SyncBlob;
   updatedAt: string | null;
-} {
-  const store = readStoreSnapshot();
+}> {
+  const store = await readStoreSnapshot();
   const record = store.athleteSync[athleteId];
 
   if (!record) {
@@ -110,10 +120,13 @@ export function loadAthleteSync(athleteId: string): {
   };
 }
 
-export function saveAthleteSync(athleteId: string, data: SyncBlob): string {
+export async function saveAthleteSync(
+  athleteId: string,
+  data: SyncBlob
+): Promise<string> {
   const updatedAt = new Date().toISOString();
 
-  withStore((store) => {
+  await withStore((store) => {
     store.athleteSync[athleteId] = {
       data,
       updatedAt,
@@ -123,11 +136,11 @@ export function saveAthleteSync(athleteId: string, data: SyncBlob): string {
   return updatedAt;
 }
 
-export function resolveSyncAthleteId(params: {
+export async function resolveSyncAthleteId(params: {
   sessionUserId: string;
   sessionRole: UserRole;
   requestedAthleteId?: string | null;
-}): { athleteId: string } | { error: string; status: number } {
+}): Promise<{ athleteId: string } | { error: string; status: number }> {
   if (params.sessionRole === "athlete") {
     if (
       params.requestedAthleteId &&
@@ -143,7 +156,9 @@ export function resolveSyncAthleteId(params: {
     return { error: "Coach must select an athlete to sync", status: 400 };
   }
 
-  if (!coachOwnsAthlete(params.sessionUserId, params.requestedAthleteId)) {
+  if (
+    !(await coachOwnsAthlete(params.sessionUserId, params.requestedAthleteId))
+  ) {
     return { error: "Athlete not linked to this coach", status: 403 };
   }
 

@@ -8,7 +8,6 @@ import {
   findUserByEmail,
   linkCoachAthlete,
   listCoachAthletes,
-  toPublicUser,
 } from "@/lib/server/users";
 
 export const runtime = "nodejs";
@@ -23,7 +22,7 @@ export async function GET(request: Request) {
     }
 
     return NextResponse.json({
-      athletes: listCoachAthletes(session.userId),
+      athletes: await listCoachAthletes(session.userId),
     });
   } catch (error) {
     const message =
@@ -61,21 +60,21 @@ export async function POST(request: Request) {
       );
     }
 
-    if (findUserByEmail(body.email)) {
+    if (await findUserByEmail(body.email)) {
       return NextResponse.json(
         { error: "An account with this email already exists" },
         { status: 409 }
       );
     }
 
-    const athlete = createUser({
+    const athlete = await createUser({
       name: body.name,
       email: body.email,
       password: body.password,
       role: "athlete",
     });
 
-    linkCoachAthlete(session.userId, athlete.id);
+    await linkCoachAthlete(session.userId, athlete.id);
 
     return NextResponse.json({
       athlete: {

@@ -25,7 +25,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const resolved = resolveSyncAthleteId({
+    const resolved = await resolveSyncAthleteId({
       sessionUserId: session.userId,
       sessionRole: session.role,
       requestedAthleteId: getRequestedAthleteId(request),
@@ -38,7 +38,7 @@ export async function GET(request: Request) {
       );
     }
 
-    const sync = loadAthleteSync(resolved.athleteId);
+    const sync = await loadAthleteSync(resolved.athleteId);
 
     return NextResponse.json({
       athleteId: resolved.athleteId,
@@ -61,7 +61,7 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const resolved = resolveSyncAthleteId({
+    const resolved = await resolveSyncAthleteId({
       sessionUserId: session.userId,
       sessionRole: session.role,
       requestedAthleteId: getRequestedAthleteId(request),
@@ -84,7 +84,7 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: "Missing sync data" }, { status: 400 });
     }
 
-    const existing = loadAthleteSync(resolved.athleteId);
+    const existing = await loadAthleteSync(resolved.athleteId);
 
     if (
       !body.force &&
@@ -101,7 +101,7 @@ export async function PUT(request: Request) {
       );
     }
 
-    const updatedAt = saveAthleteSync(resolved.athleteId, body.data);
+    const updatedAt = await saveAthleteSync(resolved.athleteId, body.data);
 
     return NextResponse.json({ ok: true, updatedAt });
   } catch (error) {

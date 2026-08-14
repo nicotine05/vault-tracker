@@ -41,14 +41,14 @@ export async function POST(request: Request) {
       );
     }
 
-    if (findUserByEmail(body.email)) {
+    if (await findUserByEmail(body.email)) {
       return NextResponse.json(
         { error: "An account with this email already exists" },
         { status: 409 }
       );
     }
 
-    const user = createUser({
+    const user = await createUser({
       email: body.email,
       password: body.password,
       name: body.name,
@@ -56,7 +56,7 @@ export async function POST(request: Request) {
     });
 
     if (body.role === "athlete" && body.coachId) {
-      linkCoachAthlete(body.coachId, user.id);
+      await linkCoachAthlete(body.coachId, user.id);
     }
 
     const token = createSessionToken(user.id, user.role);

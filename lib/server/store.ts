@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { Redis } from "@upstash/redis";
 import type { SyncBlob, UserRecord, UserRole } from "@/lib/server/types";
 
 export type CoachAthleteLink = {
@@ -25,54 +26,122 @@ const DEFAULT_STORE: VaultStore = {
   athleteSync: {},
 };
 
+const REDIS_STORE_KEY = "vault-tracker:store";
+
+let redisClient: Redis | null = null;
+
+function getRedisClient(): Redis | null {
+  if (
+    !process.env.UPSTASH_REDIS_REST_URL ||
+    !process.env.UPSTASH_REDIS_REST_TOKEN
+  ) {
+    return null;
+  }
+
+  if (!redisClient) {
+    redisClient = Redis.fromEnv();
+  }
+
+  return redisClient;
+}
+
 function getStorePath(): string {
   const configured = process.env.DATABASE_PATH;
   if (configured) {
     return path.resolve(configured);
   }
 
+  if (process.env.VERCEL) {
+    return "/tmp/vault-tracker-store.json";
+  }
+
   return path.join(process.cwd(), "data", "vault-tracker-store.json");
 }
 
-function readStore(): VaultStore {
+function normalizeStore(parsed: Partial<VaultStore> | null): VaultStore {
+  return {
+    users: parsed?.users ?? [],
+    coachAthletes: parsed?.coachAthletes ?? [],
+    athleteSync: parsed?.athleteSync ?? {},
+  };
+}
+
+async function readStoreFromRedis(): Promise<VaultStore> {
+  const redis = getRedisClient();
+  if (!redis) {
+    throw new Error("Redis is not configured");
+  }
+
+  const parsed = await redis.get<VaultStore>(REDIS_STORE_KEY);
+  return normalizeStore(parsed);
+}
+
+async function writeStoreToRedis(store: VaultStore): Promise<void> {
+  const redis = getRedisClient();
+  if (!redis) {
+    throw new Error("Redis is not configured");
+  }
+
+  await redis.set(REDIS_STORE_KEY, store);
+}
+
+function readStoreFromFile(): VaultStore {
   const storePath = getStorePath();
-  fs.mkdirSync(path.dirname(storePath), { recursive: true });
+  const directory = path.dirname(storePath);
+
+  if (directory !== "/tmp") {
+    fs.mkdirSync(directory, { recursive: true });
+  }
 
   if (!fs.existsSync(storePath)) {
-    writeStore(DEFAULT_STORE);
+    writeStoreToFile(DEFAULT_STORE);
     return structuredClone(DEFAULT_STORE);
   }
 
   try {
     const raw = fs.readFileSync(storePath, "utf8");
-    const parsed = JSON.parse(raw) as Partial<VaultStore>;
-
-    return {
-      users: parsed.users ?? [],
-      coachAthletes: parsed.coachAthletes ?? [],
-      athleteSync: parsed.athleteSync ?? {},
-    };
+    return normalizeStore(JSON.parse(raw) as Partial<VaultStore>);
   } catch {
-    writeStore(DEFAULT_STORE);
+    writeStoreToFile(DEFAULT_STORE);
     return structuredClone(DEFAULT_STORE);
   }
 }
 
-function writeStore(store: VaultStore): void {
+function writeStoreToFile(store: VaultStore): void {
   const storePath = getStorePath();
-  fs.mkdirSync(path.dirname(storePath), { recursive: true });
+  const directory = path.dirname(storePath);
+
+  if (directory !== "/tmp") {
+    fs.mkdirSync(directory, { recursive: true });
+  }
+
   fs.writeFileSync(storePath, JSON.stringify(store, null, 2), "utf8");
 }
 
-export function withStore<T>(mutator: (store: VaultStore) => T): T {
-  const store = readStore();
-  const result = mutator(store);
-  writeStore(store);
-  return result;
+export async function readStoreSnapshot(): Promise<VaultStore> {
+  if (getRedisClient()) {
+    return readStoreFromRedis();
+  }
+
+  return readStoreFromFile();
 }
 
-export function readStoreSnapshot(): VaultStore {
-  return readStore();
+async function writeStore(store: VaultStore): Promise<void> {
+  if (getRedisClient()) {
+    await writeStoreToRedis(store);
+    return;
+  }
+
+  writeStoreToFile(store);
+}
+
+export async function withStore<T>(
+  mutator: (store: VaultStore) => T | Promise<T>
+): Promise<T> {
+  const store = await readStoreSnapshot();
+  const result = await mutator(store);
+  await writeStore(store);
+  return result;
 }
 
 export function normalizeEmail(email: string): string {
@@ -95,4 +164,8 @@ export function createUserRecord(params: {
     role: params.role,
     createdAt: params.createdAt,
   };
+}
+
+export function usesRedisStore(): boolean {
+  return Boolean(getRedisClient());
 }

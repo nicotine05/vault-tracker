@@ -3,6 +3,7 @@ import {
   readSessionToken,
   verifySessionToken,
 } from "@/lib/server/session";
+import type { AthleteSummary } from "@/lib/server/types";
 import {
   findUserById,
   listCoachAthletes,
@@ -23,20 +24,20 @@ export async function GET(request: Request) {
       return NextResponse.json({ user: null });
     }
 
-    const user = findUserById(session.userId);
+    const user = await findUserById(session.userId);
     if (!user) {
       return NextResponse.json({ user: null });
     }
 
     const payload: {
       user: ReturnType<typeof toPublicUser>;
-      athletes?: ReturnType<typeof listCoachAthletes>;
+      athletes?: AthleteSummary[];
     } = {
       user: toPublicUser(user),
     };
 
     if (user.role === "coach") {
-      payload.athletes = listCoachAthletes(user.id);
+      payload.athletes = await listCoachAthletes(user.id);
     }
 
     return NextResponse.json(payload);
