@@ -560,7 +560,7 @@ export default function VaultPage() {
                           e.target.value
                         )
                       }
-                      placeholder="PR"
+                      placeholder="xxft xin"
                       className="border rounded px-2 py-1 w-24 text-right"
                     />
 
