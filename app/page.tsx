@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import MealPlanCard from "@/components/home/MealPlanCard";
+import HomeGreeting from "@/components/home/HomeGreeting";
 import TodayTrainingCard from "@/components/home/TodayTrainingCard";
 import WeightSummaryCard from "@/components/home/WeightSummaryCard";
 import Card from "@/components/Card";
@@ -27,29 +28,59 @@ export default function Home() {
   const currentPhase = getPhaseNameForWeek(currentWeek);
   const planKey = getMealPlanKeyForWeek(currentWeek);
 
+  const weekProgress = Math.round((currentWeek / program.totalWeeks) * 100);
+
   return (
     <main className="max-w-md mx-auto p-4 pb-20">
-      <div className="mb-6 flex items-start justify-between">
-        <div>
-          <h1 className="text-4xl font-bold">Road to 15ft</h1>
+      <div className="mb-6 flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-[1.65rem] font-bold leading-none tracking-tight text-foreground">
+            Vault{" "}
+            <span className="text-accent-text">Tracker</span>
+          </h1>
 
-          <div className="mt-1 flex items-center gap-2">
-            <p className="text-muted">
-              Week {currentWeek}/{program.totalWeeks}
-            </p>
+          <div className="mt-2.5 flex flex-wrap items-center gap-2">
+            <div className="inline-flex items-center gap-2 rounded-full border border-border bg-surface-muted px-2.5 py-1">
+              <span className="text-[11px] font-semibold tabular-nums text-foreground">
+                Week {currentWeek}
+                <span className="font-normal text-muted">
+                  /{program.totalWeeks}
+                </span>
+              </span>
+
+              <span className="h-3 w-px bg-border" aria-hidden />
+
+              <div className="flex items-center gap-1.5">
+                <div className="h-1 w-10 overflow-hidden rounded-full bg-border/70">
+                  <div
+                    className="h-full rounded-full bg-accent transition-all duration-300"
+                    style={{ width: `${weekProgress}%` }}
+                  />
+                </div>
+                <span className="text-[10px] font-medium tabular-nums text-muted">
+                  {weekProgress}%
+                </span>
+              </div>
+            </div>
 
             <span
-              className={`rounded-full px-2 py-1 text-xs font-medium ${getPhaseBadgeClass(currentPhase)}`}
+              className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${getPhaseBadgeClass(currentPhase)}`}
             >
               {currentPhase}
             </span>
           </div>
         </div>
 
-        <Link href="/settings" className="text-2xl">
+        <Link
+          href="/settings"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border bg-surface text-lg transition hover:bg-surface-muted"
+          aria-label="Settings"
+        >
           ⚙️
         </Link>
       </div>
+
+      <HomeGreeting />
 
       <div className="mb-4">
         <MealPlanCard planKey={planKey} />

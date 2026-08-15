@@ -28,8 +28,6 @@ export default function ProgressPage() {
 
   return (
     <main className="max-w-md mx-auto p-4 pb-20">
-      <h1 className="mb-4 text-3xl font-bold">Progress</h1>
-
       <WeightSummaryCard weightHistory={weightHistory} readOnly />
 
       <VaultGoalCard runPRs={runPRs} />

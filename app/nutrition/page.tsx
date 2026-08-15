@@ -17,8 +17,6 @@ export default function NutritionPage() {
 
   return (
     <main className="max-w-md mx-auto p-4 pb-20">
-      <h1 className="text-3xl font-bold mb-4">Nutrition</h1>
-
       <Card>
         <p className="text-sm text-muted">Current Meal Plan</p>
 

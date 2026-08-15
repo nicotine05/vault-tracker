@@ -22,9 +22,7 @@ export default function ProgramPage() {
   return (
     <Suspense
       fallback={
-        <main className="max-w-md mx-auto p-4 pb-20">
-          <h1 className="mb-4 text-3xl font-bold">Program</h1>
-        </main>
+        <main className="max-w-md mx-auto p-4 pb-20" />
       }
     >
       <ProgramPageContent />
@@ -101,8 +99,6 @@ function ProgramPageContent() {
 
   return (
     <main className="max-w-md mx-auto p-4 pb-20">
-      <h1 className="mb-4 text-3xl font-bold">Program</h1>
-
       <ProgramWeekHeader
         planningWeek={planningWeek}
         currentWeek={currentWeek}

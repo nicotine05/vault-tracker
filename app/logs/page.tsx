@@ -6,10 +6,6 @@ import Card from "@/components/Card";
 export default function LogsPage() {
   return (
     <main className="max-w-md mx-auto p-4 pb-20">
-      <h1 className="text-3xl font-bold mb-4">
-        Logs
-      </h1>
-
       <div className="space-y-4">
 
         <Link href="/logs/vault">
