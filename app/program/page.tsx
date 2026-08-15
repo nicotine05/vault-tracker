@@ -78,32 +78,29 @@ export default function ProgramPage() {
         planningWeek={planningWeek}
         currentWeek={currentWeek}
         phaseName={phaseName}
+        isPlanning={!generated}
       />
 
       {!generated && (
-        <>
-          <div className="mt-4">
-            <PlannerHealthBar
-              metrics={healthMetrics}
-              healthWarnings={healthWarnings}
-              otherWarnings={otherWarnings}
-            />
-          </div>
+        <div className="mt-4 space-y-4">
+          <PlannerHealthBar
+            metrics={healthMetrics}
+            healthWarnings={healthWarnings}
+            otherWarnings={otherWarnings}
+          />
 
-          <div className="mt-4">
-            <WeeklyPlannerCard
-              readOnly={isCoachReadOnly}
-              weekPlanner={weekPlanner}
-              onToggle={togglePlanner}
-            />
-          </div>
+          <WeeklyPlannerCard
+            readOnly={isCoachReadOnly}
+            weekPlanner={weekPlanner}
+            onToggle={togglePlanner}
+          />
 
           {plannerComplete && !isCoachReadOnly && (
-            <div className="mt-4">
+            <div>
               <button
                 type="button"
                 onClick={() => generateWeekSchedule(planningWeek)}
-                className="w-full rounded-xl bg-purple-600 p-4 font-bold text-white"
+                className="w-full rounded-2xl bg-accent p-4 font-bold text-white shadow-lg shadow-accent/20 transition hover:opacity-95"
               >
                 Generate Schedule
               </button>
@@ -111,19 +108,20 @@ export default function ProgramPage() {
               <button
                 type="button"
                 onClick={() => resetWeekPlanner(planningWeek)}
-                className="mt-2 w-full rounded-xl border border-gray-300 p-2 text-sm text-gray-700"
+                className="mt-2 w-full rounded-2xl border border-border bg-surface p-2 text-sm text-muted transition hover:bg-surface-muted"
               >
                 Reset
               </button>
             </div>
           )}
-        </>
+        </div>
       )}
 
       {generated && (
         <GeneratedScheduleCard
           readOnly={isCoachReadOnly}
           planningWeek={planningWeek}
+          currentWeek={currentWeek}
           generatedSchedule={generatedSchedule}
           completedWorkouts={completedWorkouts}
           expandedWorkouts={expandedWorkouts}

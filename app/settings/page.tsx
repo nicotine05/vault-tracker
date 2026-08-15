@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import AccountSettings from "@/components/AccountSettings";
+import ThemePicker from "@/components/settings/ThemePicker";
 import Card from "@/components/Card";
 import { useAuth } from "@/components/AuthProvider";
 import { program } from "@/lib/data";
@@ -60,19 +61,19 @@ export default function SettingsPage() {
 
       <Card title="Program Week">
         {isCoachReadOnly ? (
-          <p className="text-sm text-gray-500 mb-4">
+          <p className="text-sm text-muted mb-4">
             Athlete&apos;s active week is Week {currentWeek} ({viewingPhase}{" "}
             phase). Program changes can only be made by the athlete.
           </p>
         ) : (
-          <p className="text-sm text-gray-500 mb-4">
+          <p className="text-sm text-muted mb-4">
             Your active week is Week {currentWeek}. Browse up to{" "}
             {MAX_PLAN_AHEAD_WEEKS} weeks ahead to plan workouts — they&apos;ll
             show on your calendar and Program tab.
           </p>
         )}
 
-        <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-4">
+        <div className="flex items-center justify-between rounded-xl border border-border bg-surface-muted p-4">
           <button
             type="button"
             onClick={handlePreviousWeek}
@@ -84,7 +85,7 @@ export default function SettingsPage() {
 
           <div className="text-center">
             <p className="text-2xl font-bold">Week {viewingWeek}</p>
-            <p className="text-sm text-gray-500">{viewingPhase} phase</p>
+            <p className="text-sm text-muted">{viewingPhase} phase</p>
             {isActiveWeek && (
               <span className="mt-1 inline-block text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-800">
                 Active week
@@ -131,7 +132,7 @@ export default function SettingsPage() {
           <button
             type="button"
             onClick={handleReturnToActiveWeek}
-            className="mt-4 w-full rounded-xl border border-slate-300 p-3 text-sm font-medium text-slate-700"
+            className="mt-4 w-full rounded-xl border border-border bg-surface p-3 text-sm font-medium text-foreground"
           >
             Back to active week (Week {currentWeek})
           </button>
@@ -144,11 +145,15 @@ export default function SettingsPage() {
         )}
 
         {currentWeek >= program.totalWeeks && isActiveWeek && (
-          <p className="mt-4 text-center text-sm text-gray-500">
+          <p className="mt-4 text-center text-sm text-muted">
             You&apos;re on the final week of the program.
           </p>
         )}
       </Card>
+
+      <div className="mt-4">
+        <ThemePicker />
+      </div>
 
       <div className="mt-4">
         <AccountSettings />

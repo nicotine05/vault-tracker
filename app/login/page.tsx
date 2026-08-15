@@ -20,7 +20,7 @@ export default function LoginPage() {
     return (
       <main className="max-w-md mx-auto p-4 pb-20">
         <Card title="Already signed in">
-          <p className="text-sm text-gray-500 mb-4">
+          <p className="text-sm text-muted mb-4">
             You&apos;re signed in as {user.name} ({user.role}).
           </p>
           <Link
@@ -56,7 +56,7 @@ export default function LoginPage() {
   return (
     <main className="max-w-md mx-auto p-4 pb-20">
       <h1 className="text-3xl font-bold mb-2">Vault Tracker</h1>
-      <p className="text-sm text-gray-500 mb-6">
+      <p className="text-sm text-muted mb-6">
         Sign in to sync data across devices. Coaches can manage athlete
         accounts for a small local squad.
       </p>

@@ -34,7 +34,7 @@ export default function Home() {
           <h1 className="text-4xl font-bold">Road to 15ft</h1>
 
           <div className="mt-1 flex items-center gap-2">
-            <p className="text-gray-500">
+            <p className="text-muted">
               Week {currentWeek}/{program.totalWeeks}
             </p>
 

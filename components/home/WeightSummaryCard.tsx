@@ -33,7 +33,7 @@ export default function WeightSummaryCard({
 
   const content = (
     <>
-      <p className="text-sm text-gray-500">Current Weight</p>
+      <p className="text-sm text-muted">Current Weight</p>
 
       <p className={compact ? "text-3xl font-bold" : "text-3xl font-bold"}>
         {currentWeight}
@@ -48,7 +48,7 @@ export default function WeightSummaryCard({
                 ? "text-green-600"
                 : dailyChange < 0
                   ? "text-red-600"
-                  : "text-gray-500"
+                  : "text-muted"
             }`}
           >
             {formatWeightDelta(dailyChange)}
@@ -63,7 +63,7 @@ export default function WeightSummaryCard({
                 ? "text-green-600"
                 : monthlyChange < 0
                   ? "text-red-600"
-                  : "text-gray-500"
+                  : "text-muted"
             }`}
           >
             {monthlyChange > 0 ? "+" : ""}

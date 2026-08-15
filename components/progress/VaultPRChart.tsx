@@ -51,7 +51,7 @@ export default function VaultPRChart({
       </div>
 
       {chartData.length < 2 ? (
-        <p className="text-gray-500">
+        <p className="text-muted">
           Log at least two PR entries to display a chart.
         </p>
       ) : (

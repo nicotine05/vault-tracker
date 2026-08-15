@@ -1,21 +1,22 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Card from "@/components/Card";
-import WorkoutExpandPanel from "@/components/program/WorkoutExpandPanel";
+import ScheduleDaySection from "@/components/program/ScheduleDaySection";
+import ScheduleWeekOverview from "@/components/program/ScheduleWeekOverview";
 import type { WorkoutToggleParams } from "@/lib/hooks/useProgramState";
 import {
-  getCatalogWorkout,
-  getDailyRecommendation,
-  getTrafficLightSymbol,
-  plannerDays,
-  workoutCompletionKey,
-  type GeneratedWeekSchedule,
-} from "@/lib/trainingProgram";
-import { trafficStyles } from "@/lib/ui/trainingStyles";
+  getAdjacentPlannerDay,
+  getEmptyDailyPlan,
+  getInitialScheduleViewDay,
+  type ScheduleViewMode,
+} from "@/lib/domain/programScheduleView";
+import { plannerDays, type GeneratedWeekSchedule } from "@/lib/trainingProgram";
 
 type GeneratedScheduleCardProps = {
   readOnly: boolean;
   planningWeek: number;
+  currentWeek: number;
   generatedSchedule: GeneratedWeekSchedule;
   completedWorkouts: Record<string, boolean>;
   expandedWorkouts: Record<string, boolean>;
@@ -29,6 +30,7 @@ type GeneratedScheduleCardProps = {
 export default function GeneratedScheduleCard({
   readOnly,
   planningWeek,
+  currentWeek,
   generatedSchedule,
   completedWorkouts,
   expandedWorkouts,
@@ -38,133 +40,120 @@ export default function GeneratedScheduleCard({
   onSetConfirmingKey,
   onReset,
 }: GeneratedScheduleCardProps) {
+  const [viewMode, setViewMode] = useState<ScheduleViewMode>("week");
+  const [selectedDay, setSelectedDay] = useState(() =>
+    getInitialScheduleViewDay(planningWeek, currentWeek, generatedSchedule)
+  );
+
+  useEffect(() => {
+    setViewMode("week");
+    setSelectedDay(
+      getInitialScheduleViewDay(planningWeek, currentWeek, generatedSchedule)
+    );
+  }, [planningWeek, currentWeek, generatedSchedule]);
+
+  const canGoPrevious = selectedDay !== plannerDays[0];
+  const canGoNext = selectedDay !== plannerDays[plannerDays.length - 1];
+  const selectedDailyPlan =
+    generatedSchedule[selectedDay] ?? getEmptyDailyPlan();
+
+  function openDailyView(day: string) {
+    setSelectedDay(day);
+    setViewMode("day");
+    onSetConfirmingKey(null);
+  }
+
   return (
     <div className="mt-4">
       <Card title="Generated Schedule">
-        {plannerDays.map((day) => {
-          const dailyPlan = generatedSchedule[day];
-          if (!dailyPlan || dailyPlan.sessions.length === 0) return null;
+        <div className="mb-4 grid grid-cols-2 gap-2">
+          {(["week", "day"] as const).map((mode) => {
+            const selected = viewMode === mode;
 
-          return (
-            <div
-              key={day}
-              className="mb-3 rounded-xl border border-slate-200 bg-slate-50 p-3"
+            return (
+              <button
+                key={mode}
+                type="button"
+                aria-pressed={selected}
+                onClick={() => {
+                  onSetConfirmingKey(null);
+                  setViewMode(mode);
+                }}
+                className={`rounded-xl border px-3 py-2 text-sm font-semibold capitalize transition ${
+                  selected
+                    ? "border-purple-600 bg-purple-600 text-white"
+                    : "border-border bg-surface text-foreground hover:bg-surface-muted"
+                }`}
+              >
+                {mode === "week" ? "Weekly View" : "Daily View"}
+              </button>
+            );
+          })}
+        </div>
+
+        {viewMode === "day" && (
+          <div className="mb-4 flex items-center justify-between rounded-xl border border-border bg-surface p-2">
+            <button
+              type="button"
+              onClick={() =>
+                setSelectedDay(getAdjacentPlannerDay(selectedDay, -1))
+              }
+              disabled={!canGoPrevious}
+              className="rounded-lg border px-3 py-1 disabled:opacity-40"
             >
-              <div className="mb-2 flex items-center justify-between gap-3">
-                <p className="font-semibold text-slate-800">{day}</p>
-                <span
-                  className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-xs font-semibold ${trafficStyles[dailyPlan.level]}`}
-                >
-                  {getTrafficLightSymbol(dailyPlan.level)} {dailyPlan.level}
-                </span>
-              </div>
+              ←
+            </button>
 
-              <div className="space-y-2">
-                {dailyPlan.sessions.map((session) => {
-                  const completionKey = workoutCompletionKey(
-                    planningWeek,
-                    day,
-                    session.id
-                  );
-                  const expandKey = `${day}-${session.id}`;
-                  const isComplete = Boolean(completedWorkouts[completionKey]);
-                  const isExpanded = expandedWorkouts[expandKey];
-                  const workout = getCatalogWorkout(session.id);
-
-                  return (
-                    <div key={session.id}>
-                      <button
-                        type="button"
-                        onClick={() => onToggleExpanded(expandKey)}
-                        className={`w-full rounded-lg border px-3 py-2 text-left text-sm transition-all ${
-                          session.type === "vault"
-                            ? "border-amber-200 bg-amber-50 text-amber-900 hover:bg-amber-100"
-                            : session.type === "strength"
-                              ? "border-sky-200 bg-sky-50 text-sky-900 hover:bg-sky-100"
-                              : "border-emerald-200 bg-emerald-50 text-emerald-900 hover:bg-emerald-100"
-                        } ${isComplete ? "opacity-60" : ""}`}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex-1">
-                            <div className="font-medium">{session.name}</div>
-                            {session.focus && (
-                              <div className="mt-1 text-[11px] opacity-80">
-                                {session.focus}
-                              </div>
-                            )}
-                            {session.jumpVolume && (
-                              <div className="mt-1 text-[10px] uppercase tracking-wide opacity-70">
-                                Jump volume: {session.jumpVolume}
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold">{session.load}</span>
-                            <span className="text-xs">
-                              {isExpanded ? "▼" : "▶"}
-                            </span>
-                          </div>
-                        </div>
-                      </button>
-
-                      {isComplete ? (
-                        <p className="mt-1.5 text-center text-xs font-medium text-green-700">
-                          Completed ✓
-                        </p>
-                      ) : !readOnly ? (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (confirmingKey === completionKey) {
-                              onConfirmWorkout({
-                                weekNumber: planningWeek,
-                                day,
-                                sessionId: session.id,
-                                sessionName: session.name,
-                                sessionType: session.type,
-                              });
-                              onSetConfirmingKey(null);
-                            } else {
-                              onSetConfirmingKey(completionKey);
-                            }
-                          }}
-                          className={`mt-1.5 w-full rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${
-                            confirmingKey === completionKey
-                              ? "border-green-600 bg-green-600 text-white"
-                              : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
-                          }`}
-                        >
-                          {confirmingKey === completionKey
-                            ? "Confirm?"
-                            : "Complete workout"}
-                        </button>
-                      ) : null}
-
-                      {isExpanded && workout && (
-                        <WorkoutExpandPanel
-                          workout={workout}
-                          planningWeek={planningWeek}
-                        />
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div className="mt-3 flex items-center justify-between gap-3 text-xs text-slate-700">
-                <span>Daily load: {dailyPlan.load}</span>
-                <span>{getDailyRecommendation(dailyPlan.level)}</span>
-              </div>
+            <div className="text-center">
+              <p className="font-semibold text-foreground">{selectedDay}</p>
+              <p className="text-xs text-muted">
+                {selectedDailyPlan.sessions.length} workout
+                {selectedDailyPlan.sessions.length === 1 ? "" : "s"}
+              </p>
             </div>
-          );
-        })}
+
+            <button
+              type="button"
+              onClick={() =>
+                setSelectedDay(getAdjacentPlannerDay(selectedDay, 1))
+              }
+              disabled={!canGoNext}
+              className="rounded-lg border px-3 py-1 disabled:opacity-40"
+            >
+              →
+            </button>
+          </div>
+        )}
+
+        {viewMode === "week" ? (
+          <ScheduleWeekOverview
+            planningWeek={planningWeek}
+            currentWeek={currentWeek}
+            generatedSchedule={generatedSchedule}
+            completedWorkouts={completedWorkouts}
+            onSelectDay={openDailyView}
+          />
+        ) : (
+          <ScheduleDaySection
+            day={selectedDay}
+            planningWeek={planningWeek}
+            dailyPlan={selectedDailyPlan}
+            readOnly={readOnly}
+            completedWorkouts={completedWorkouts}
+            expandedWorkouts={expandedWorkouts}
+            confirmingKey={confirmingKey}
+            onToggleExpanded={onToggleExpanded}
+            onConfirmWorkout={onConfirmWorkout}
+            onSetConfirmingKey={onSetConfirmingKey}
+          />
+        )}
       </Card>
 
       {!readOnly && (
         <button
           type="button"
           onClick={onReset}
-          className="mt-3 w-full rounded-xl border border-gray-300 p-2 text-sm text-gray-700"
+          className="mt-3 w-full rounded-xl border border-border bg-surface p-2 text-sm text-muted"
         >
           Reset
         </button>

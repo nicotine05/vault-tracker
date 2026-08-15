@@ -47,10 +47,10 @@ export default function VaultHeightInput({
         onKeyDown={handleKeyDown}
         placeholder="00"
         aria-label="Feet"
-        className="w-9 rounded border px-1 py-1 text-center"
+        className="w-9 rounded border border-border bg-surface-muted px-1 py-1 text-center text-foreground"
       />
 
-      <span className="text-sm text-gray-600">ft</span>
+      <span className="text-sm text-muted">ft</span>
 
       <input
         type="text"
@@ -65,10 +65,10 @@ export default function VaultHeightInput({
         onKeyDown={handleKeyDown}
         placeholder="0"
         aria-label="Inches"
-        className="w-7 rounded border px-1 py-1 text-center"
+        className="w-7 rounded border border-border bg-surface-muted px-1 py-1 text-center text-foreground"
       />
 
-      <span className="text-sm text-gray-600">in</span>
+      <span className="text-sm text-muted">in</span>
     </div>
   );
 }

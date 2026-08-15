@@ -184,9 +184,9 @@ export default function TrainingCalendar() {
   }
 
   return (
-    <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+    <div className="mt-4 rounded-2xl border border-border bg-surface p-3 shadow-sm">
       <div className="mb-2 flex items-center justify-between gap-2">
-        <h3 className="text-base font-bold text-slate-900">Training Calendar</h3>
+        <h3 className="text-base font-bold text-foreground">Training Calendar</h3>
 
         <div className="flex items-center gap-2">
           <button
@@ -196,13 +196,13 @@ export default function TrainingCalendar() {
                 new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1)
               )
             }
-            className="h-7 w-7 rounded-lg border border-slate-200 bg-slate-50 text-sm"
+            className="h-7 w-7 rounded-lg border border-border bg-surface-muted text-sm text-foreground hover:bg-surface-accent"
             aria-label="Previous month"
           >
             ←
           </button>
 
-          <span className="min-w-[110px] text-center text-xs font-semibold text-slate-700">
+          <span className="min-w-[110px] text-center text-xs font-semibold text-foreground">
             {monthLabel}
           </span>
 
@@ -213,7 +213,7 @@ export default function TrainingCalendar() {
                 new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1)
               )
             }
-            className="h-7 w-7 rounded-lg border border-slate-200 bg-slate-50 text-sm"
+            className="h-7 w-7 rounded-lg border border-border bg-surface-muted text-sm text-foreground hover:bg-surface-accent"
             aria-label="Next month"
           >
             →
@@ -221,7 +221,7 @@ export default function TrainingCalendar() {
         </div>
       </div>
 
-      <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+      <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-semibold uppercase tracking-wide text-muted">
         {dayNames.map((day) => (
           <div key={day}>{day}</div>
         ))}
@@ -231,7 +231,7 @@ export default function TrainingCalendar() {
         {monthDays.map((date, index) => {
           if (!date) {
             return (
-              <div key={`empty-${index}`} className="h-12 rounded-lg bg-slate-50" />
+              <div key={`empty-${index}`} className="h-12 rounded-lg bg-surface-muted" />
             );
           }
 
@@ -251,11 +251,11 @@ export default function TrainingCalendar() {
               onClick={() => handleSelectDate(dateKey)}
               className={`flex h-12 flex-col items-center justify-center rounded-lg border text-[10px] transition ${
                 isSelected
-                  ? "border-violet-400 bg-violet-50"
-                  : "border-slate-200 bg-white hover:border-slate-300"
+                  ? "border-accent bg-surface-accent ring-1 ring-accent/30"
+                  : "border-border bg-surface hover:border-border-accent hover:bg-surface-muted"
               }`}
             >
-              <span className="text-slate-700">{date.getDate()}</span>
+              <span className="text-foreground">{date.getDate()}</span>
 
               <div className="mt-1 flex items-center justify-center gap-0.5">
                 {daySessions.length > 0 ? (
@@ -269,14 +269,14 @@ export default function TrainingCalendar() {
                     ) : (
                       <span
                         key={`${dateKey}-${session.id}-plan`}
-                        className={`h-2 w-2 rounded-full border ${trainingTypeStyles[session.type].ring} bg-white`}
+                        className={`h-2 w-2 rounded-full border bg-surface ${trainingTypeStyles[session.type].ring}`}
                         aria-hidden="true"
                       />
                     )
                   )
                 ) : (
                   <span
-                    className="h-2 w-2 rounded-full bg-slate-200"
+                    className="h-2 w-2 rounded-full bg-border"
                     aria-hidden="true"
                   />
                 )}
@@ -286,13 +286,13 @@ export default function TrainingCalendar() {
         })}
       </div>
 
-      <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-2">
-        <p className="text-[11px] font-semibold text-slate-600">
+      <div className="mt-3 rounded-xl border border-border bg-surface-muted p-2">
+        <p className="text-[11px] font-semibold text-muted">
           {selectedDateLabel}
         </p>
 
         {selectedDaySessions.length === 0 ? (
-          <p className="mt-2 text-[11px] text-slate-500">No training this day</p>
+          <p className="mt-2 text-[11px] text-muted">No training this day</p>
         ) : (
           <ul className="mt-2 space-y-1">
             {selectedDaySessions.map((session) => {
@@ -304,13 +304,7 @@ export default function TrainingCalendar() {
                   <button
                     type="button"
                     onClick={() => handleToggleSession(session.id)}
-                    className={`flex w-full items-center justify-between rounded-lg border px-2 py-1.5 text-left text-[11px] ${
-                      session.type === "vault"
-                        ? "border-amber-200 bg-amber-50 text-amber-900"
-                        : session.type === "strength"
-                        ? "border-sky-200 bg-sky-50 text-sky-900"
-                        : "border-emerald-200 bg-emerald-50 text-emerald-900"
-                    }`}
+                    className={`flex w-full items-center justify-between rounded-lg border px-2 py-1.5 text-left text-[11px] ${trainingTypeStyles[session.type].row}`}
                   >
                     <span className="font-medium">
                       {session.status === "completed" ? "✓ " : "○ "}
@@ -328,9 +322,9 @@ export default function TrainingCalendar() {
                   </button>
 
                   {isExpanded && (
-                    <div className="mt-1 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-[10px] text-slate-600">
+                    <div className="mt-1 rounded-lg border border-border bg-surface px-2 py-1.5 text-[10px] text-muted">
                       <p>
-                        <span className="font-semibold">Status:</span>{" "}
+                        <span className="font-semibold text-foreground">Status:</span>{" "}
                         {session.status === "completed"
                           ? `Completed ${new Date(
                               session.completedAt!
@@ -343,21 +337,21 @@ export default function TrainingCalendar() {
 
                       {session.load !== undefined && (
                         <p className="mt-1">
-                          <span className="font-semibold">Load:</span>{" "}
+                          <span className="font-semibold text-foreground">Load:</span>{" "}
                           {session.load}
                         </p>
                       )}
 
                       {session.focus && (
                         <p className="mt-1">
-                          <span className="font-semibold">Focus:</span>{" "}
+                          <span className="font-semibold text-foreground">Focus:</span>{" "}
                           {session.focus}
                         </p>
                       )}
 
                       {session.jumpVolume && (
                         <p className="mt-1">
-                          <span className="font-semibold">Jumps:</span>{" "}
+                          <span className="font-semibold text-foreground">Jumps:</span>{" "}
                           {session.jumpVolume}
                         </p>
                       )}
@@ -377,7 +371,7 @@ export default function TrainingCalendar() {
           </ul>
         )}
 
-        <p className="mt-2 text-[10px] text-slate-400">
+        <p className="mt-2 text-[10px] text-muted">
           Filled dots = done · Rings = scheduled (includes plan-ahead weeks)
         </p>
       </div>

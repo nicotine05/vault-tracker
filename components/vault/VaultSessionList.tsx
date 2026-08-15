@@ -41,12 +41,12 @@ export default function VaultSessionList({
   return (
     <div>
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-xl font-bold">Vault Sessions</h2>
+        <h2 className="text-xl font-bold text-foreground">Vault Sessions</h2>
 
         <select
           value={weekFilter}
           onChange={(event) => onWeekFilterChange(event.target.value)}
-          className="rounded-lg border px-2 py-1"
+          className="rounded-lg border border-border bg-surface-muted px-2 py-1 text-foreground"
         >
           <option value="all">All</option>
           {weekOptions.map((week) => (
@@ -70,8 +70,8 @@ export default function VaultSessionList({
               >
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="font-bold">{session.date}</p>
-                    <p className="text-sm text-gray-500">
+                    <p className="font-bold text-foreground">{session.date}</p>
+                    <p className="text-sm text-muted">
                       {session.jumps.length} jumps
                     </p>
                   </div>
@@ -84,14 +84,14 @@ export default function VaultSessionList({
                 </div>
 
                 {session.keys.length > 0 && (
-                  <div className="mt-2 text-sm text-gray-600">
+                  <div className="mt-2 text-sm text-muted">
                     🎯 {session.keys.join(" • ")}
                   </div>
                 )}
               </div>
 
               {expanded && (
-                <div className="mt-4 border-t pt-4">
+                <div className="mt-4 border-t border-border pt-4">
                   <div className="space-y-2">
                     {session.jumps.map((jump) => (
                       <JumpDetail
@@ -106,7 +106,7 @@ export default function VaultSessionList({
                     <button
                       type="button"
                       onClick={() => onDeleteSession(session.id)}
-                      className="mt-4 w-full rounded-xl border border-red-300 p-2 text-red-500"
+                      className="mt-4 w-full rounded-xl border border-red-300 p-2 text-red-500 [data-theme=dark]:border-red-400/60 [data-theme=dark]:text-red-400"
                     >
                       Delete Session
                     </button>
@@ -131,19 +131,19 @@ function JumpDetail({
   const reference = getRunReference(jump.run, stepRefs);
 
   return (
-    <div className="rounded-lg border p-3">
-      <div className="flex gap-2">
+    <div className="rounded-lg border border-border bg-surface-muted p-3 text-foreground">
+      <div className="flex flex-wrap gap-2">
         <span>{getGradeEmoji(jump.grade)}</span>
         <span>{jump.run}</span>
         {reference && (
-          <span className="text-xs text-blue-600">({reference})</span>
+          <span className="text-xs text-accent-text">({reference})</span>
         )}
         <span>{jump.grip}</span>
         <span>{jump.takeoff}</span>
       </div>
 
       {jump.comment && (
-        <p className="mt-1 text-sm text-gray-600">{jump.comment}</p>
+        <p className="mt-1 text-sm text-muted">{jump.comment}</p>
       )}
     </div>
   );

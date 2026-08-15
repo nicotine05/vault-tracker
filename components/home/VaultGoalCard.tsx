@@ -15,7 +15,7 @@ export default function VaultGoalCard({ runPRs }: VaultGoalCardProps) {
 
   return (
     <Card className="mb-4">
-      <p className="text-sm text-gray-500">Current PR</p>
+      <p className="text-sm text-muted">Current PR</p>
       <p className="text-xl font-bold">{maxPRString || "--"}</p>
 
       <div className="mt-4">
@@ -31,7 +31,7 @@ export default function VaultGoalCard({ runPRs }: VaultGoalCardProps) {
           />
         </div>
 
-        <p className="mt-2 text-sm text-gray-500">Goal: 15ft</p>
+        <p className="mt-2 text-sm text-muted">Goal: 15ft</p>
       </div>
     </Card>
   );

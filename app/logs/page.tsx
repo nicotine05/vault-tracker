@@ -20,7 +20,7 @@ export default function LogsPage() {
                   🏆 Vault Log
                 </p>
 
-                <p className="text-gray-500 text-sm">
+                <p className="text-muted text-sm">
                   Track vault sessions,
                   technical keys, grip,
                   run and jump quality
@@ -42,7 +42,7 @@ export default function LogsPage() {
                   🏃 Sprint Log
                 </p>
 
-                <p className="text-gray-500 text-sm">
+                <p className="text-muted text-sm">
                   Store 10m and 20m
                   sprint PRs
                 </p>
@@ -63,7 +63,7 @@ export default function LogsPage() {
                   💪 Strength Log
                 </p>
 
-                <p className="text-gray-500 text-sm">
+                <p className="text-muted text-sm">
                   Track Bench, Squat
                   and Pullup PRs
                 </p>

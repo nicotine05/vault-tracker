@@ -33,14 +33,14 @@ export default function VaultStepReferencePanel({
 }: VaultStepReferencePanelProps) {
   return (
     <fieldset disabled={readOnly} className="m-0 min-w-0 border-0 p-0">
-      <div className="h-fit space-y-3 rounded-xl border border-blue-200 bg-blue-50 p-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold">Step Reference</h2>
+      <div className="h-fit space-y-3 rounded-xl border border-border-accent bg-surface-accent p-3">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-lg font-bold text-foreground">Step Reference</h2>
 
           <button
             type="button"
             onClick={onToggleEditing}
-            className="rounded-lg border px-3 py-1 text-sm"
+            className="rounded-lg border border-border bg-surface px-3 py-1 text-sm text-foreground hover:bg-surface-muted"
           >
             {editingRefs ? "Done" : "Edit"}
           </button>
@@ -48,15 +48,15 @@ export default function VaultStepReferencePanel({
           <button
             type="button"
             onClick={onTogglePRMenu}
-            className="rounded-lg bg-green-500 px-3 py-1 text-sm text-white"
+            className="rounded-lg bg-accent px-3 py-1 text-sm font-medium text-white"
           >
             PRs
           </button>
         </div>
 
         {VAULT_RUN_STEPS.map(([label, key]) => (
-          <div key={label} className="flex items-center justify-between">
-            <span className="font-medium">{label}</span>
+          <div key={label} className="flex items-center justify-between gap-2">
+            <span className="font-medium text-foreground">{label}</span>
 
             {editingRefs ? (
               <input
@@ -67,21 +67,21 @@ export default function VaultStepReferencePanel({
                     [key]: event.target.value,
                   })
                 }
-                className="w-24 rounded-lg border px-2 py-1 text-right"
+                className="w-24 rounded-lg border border-border bg-surface-muted px-2 py-1 text-right text-foreground"
               />
             ) : (
-              <span>{stepRefs[key] || "--"}</span>
+              <span className="text-foreground">{stepRefs[key] || "--"}</span>
             )}
           </div>
         ))}
 
         {showPRMenu && (
-          <div className="mt-3 space-y-2 border-t pt-3">
-            <p className="font-semibold">PR by Step</p>
+          <div className="mt-3 space-y-2 border-t border-border pt-3">
+            <p className="font-semibold text-foreground">PR by Step</p>
 
             {VAULT_RUN_STEPS.map(([label, key]) => (
               <div key={label} className="flex items-center justify-between gap-2">
-                <span className="shrink-0">{label}</span>
+                <span className="shrink-0 text-foreground">{label}</span>
 
                 <VaultHeightInput
                   value={runPRs[key]}
@@ -89,7 +89,7 @@ export default function VaultStepReferencePanel({
                   onCommit={onSaveHeightPRs}
                 />
 
-                <span className="w-20 shrink-0 text-right text-xs text-gray-500">
+                <span className="w-20 shrink-0 text-right text-xs text-muted">
                   {runPRs[`${key}Date` as keyof RunPRs] as string}
                 </span>
               </div>
@@ -98,13 +98,13 @@ export default function VaultStepReferencePanel({
             <button
               type="button"
               onClick={onSaveHeightPRs}
-              className="mt-2 w-full rounded-lg bg-green-500 p-2 text-white"
+              className="mt-2 w-full rounded-lg bg-accent p-2 font-medium text-white"
             >
               Save Height PRs
             </button>
 
             {latestPRDate && (
-              <div className="border-t pt-2 text-xs">
+              <div className="border-t border-border pt-2 text-xs text-muted">
                 Latest Saved: {latestPRDate}
               </div>
             )}

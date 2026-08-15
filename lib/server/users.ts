@@ -13,6 +13,7 @@ import type {
   UserRecord,
   UserRole,
 } from "@/lib/server/types";
+import { isThemeId } from "@/lib/ui/themes";
 
 export function toPublicUser(user: UserRecord): PublicUser {
   return {
@@ -20,6 +21,7 @@ export function toPublicUser(user: UserRecord): PublicUser {
     email: user.email,
     name: user.name,
     role: user.role,
+    theme: isThemeId(user.theme) ? user.theme : undefined,
   };
 }
 
@@ -134,6 +136,21 @@ export async function saveAthleteSync(
   });
 
   return updatedAt;
+}
+
+export async function updateUserTheme(
+  userId: string,
+  theme: string
+): Promise<UserRecord | null> {
+  return withStore((store) => {
+    const user = store.users.find((entry) => entry.id === userId);
+    if (!user) {
+      return null;
+    }
+
+    user.theme = theme;
+    return user;
+  });
 }
 
 export async function resolveSyncAthleteId(params: {

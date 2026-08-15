@@ -12,41 +12,47 @@ export default function PlannerHealthBar({
   otherWarnings,
 }: PlannerHealthBarProps) {
   return (
-    <div className="sticky top-0 z-20 rounded-xl border border-amber-200 bg-amber-50/95 px-3 py-2 shadow-sm backdrop-blur-sm">
-      <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-amber-900">
-        <span aria-hidden="true">⚠</span>
-        <span>Planner Health</span>
+    <div className="rounded-2xl border border-border-accent bg-accent-soft/70 p-4 shadow-sm backdrop-blur-sm">
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <p className="text-sm font-semibold text-accent-text">Week Targets</p>
+        <span className="text-xs text-muted">Phase requirements</span>
       </div>
 
-      <div className="grid grid-cols-3 gap-2 text-sm text-slate-800">
+      <div className="grid grid-cols-3 gap-2">
         {metrics.map(({ label, current, required }) => {
           const isWarning = current < required;
+          const progress = Math.min(100, Math.round((current / required) * 100));
 
           return (
             <div
               key={label}
-              className={`rounded-lg border p-2 text-center ${
+              className={`rounded-xl border p-3 ${
                 isWarning
-                  ? "border-red-200 bg-red-50 text-red-900"
-                  : "border-slate-200 bg-white text-slate-800"
+                  ? "border-red-300/50 bg-red-500/10"
+                  : "border-emerald-300/50 bg-emerald-500/10"
               }`}
             >
-              <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+              <div className="text-[10px] font-semibold uppercase tracking-wide text-muted">
                 {label}
               </div>
-              <div className="mt-1 font-bold">
-                {isWarning ? (
-                  <>
-                    <span className="inline-flex rounded bg-red-200 px-1 text-red-900">
-                      {current}
-                    </span>
-                    <span className="text-slate-500">/{required}</span>
-                  </>
-                ) : (
-                  <>
-                    {current}/{required}
-                  </>
-                )}
+
+              <div
+                className={`mt-2 text-lg font-bold ${
+                  isWarning
+                    ? "text-red-700 [data-theme=dark]:text-red-300"
+                    : "text-emerald-700 [data-theme=dark]:text-emerald-300"
+                }`}
+              >
+                {current}/{required}
+              </div>
+
+              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-black/5">
+                <div
+                  className={`h-full rounded-full transition-all ${
+                    isWarning ? "bg-red-500" : "bg-emerald-500"
+                  }`}
+                  style={{ width: `${progress}%` }}
+                />
               </div>
             </div>
           );
@@ -54,7 +60,7 @@ export default function PlannerHealthBar({
       </div>
 
       {otherWarnings.length > 0 && (
-        <ul className="mt-3 space-y-1 text-sm text-amber-900">
+        <ul className="mt-3 space-y-1 text-sm text-accent-text">
           {otherWarnings.map((warning) => (
             <li key={warning}>• {warning}</li>
           ))}
@@ -62,7 +68,7 @@ export default function PlannerHealthBar({
       )}
 
       {healthWarnings.length > 0 && (
-        <div className="mt-3 text-xs font-medium text-red-700">
+        <div className="mt-3 space-y-1 text-xs font-medium text-red-700 [data-theme=dark]:text-red-300">
           {healthWarnings.map((warning) => (
             <div key={warning}>
               •{" "}

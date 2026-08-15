@@ -42,7 +42,7 @@ export default function VaultPage() {
 
       <div className="grid items-start gap-4 md:grid-cols-[320px_1fr]">
         <div className="space-y-4">
-          <Card className="border-violet-300 bg-violet-50 shadow-md">
+          <Card>
             <VaultStepReferencePanel
               readOnly={isCoachReadOnly}
               editingRefs={editingRefs}
@@ -70,7 +70,7 @@ export default function VaultPage() {
           />
         </div>
 
-        <Card className="border-purple-200 bg-purple-50">
+        <Card>
           <VaultNewSessionPanel
             readOnly={isCoachReadOnly}
             keys={keys}

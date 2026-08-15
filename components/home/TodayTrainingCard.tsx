@@ -20,7 +20,7 @@ export default function TodayTrainingCard({
   return (
     <Link href="/program">
       <Card className="h-full cursor-pointer transition hover:shadow-md">
-        <p className="text-sm text-gray-500">Today&apos;s Training</p>
+        <p className="text-sm text-muted">Today&apos;s Training</p>
 
         {snapshot && todayWorkoutPlan && todayWorkoutPlan.sessions.length > 0 ? (
           <>
@@ -34,7 +34,7 @@ export default function TodayTrainingCard({
               </span>
             </div>
 
-            <p className="mt-2 text-xs text-gray-600">
+            <p className="mt-2 text-xs text-muted">
               {todayWorkoutPlan.sessions
                 .slice(0, 2)
                 .map((session) => session.name)
@@ -44,13 +44,13 @@ export default function TodayTrainingCard({
           </>
         ) : snapshot && todayWorkoutPlan && todayWorkoutPlan.sessions.length === 0 ? (
           <>
-            <p className="mt-2 text-base font-bold text-slate-800">
+            <p className="mt-2 text-base font-bold text-foreground">
               Recovery Day.
             </p>
-            <p className="mt-1 text-xs text-gray-500">No training scheduled.</p>
+            <p className="mt-1 text-xs text-muted">No training scheduled.</p>
           </>
         ) : (
-          <p className="mt-2 text-base font-bold text-slate-800">
+          <p className="mt-2 text-base font-bold text-foreground">
             Complete your weekly planner.
           </p>
         )}

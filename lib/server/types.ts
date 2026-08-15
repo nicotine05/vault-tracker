@@ -7,6 +7,7 @@ export type UserRecord = {
   name: string;
   role: UserRole;
   createdAt: string;
+  theme?: string;
 };
 
 export type PublicUser = {
@@ -14,6 +15,7 @@ export type PublicUser = {
   email: string;
   name: string;
   role: UserRole;
+  theme?: string;
 };
 
 export type SessionPayload = {

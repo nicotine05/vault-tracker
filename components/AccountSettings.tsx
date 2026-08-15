@@ -25,7 +25,7 @@ export default function AccountSettings() {
   if (!user) {
     return (
       <Card title="Account & Sync">
-        <p className="text-sm text-gray-500 mb-4">
+        <p className="text-sm text-muted mb-4">
           Sign in to sync training data across devices and manage your
           athletes.
         </p>
@@ -69,14 +69,14 @@ export default function AccountSettings() {
 
   return (
     <Card title="Account & Sync">
-      <p className="text-sm text-gray-500">
+      <p className="text-sm text-muted">
         Signed in as <span className="font-medium">{user.name}</span> (
         {user.role})
       </p>
 
       {user.role === "coach" && (
         <div className="mt-4">
-          <label className="block text-sm font-medium text-slate-700">
+          <label className="block text-sm font-medium text-foreground">
             Viewing athlete
           </label>
           <select
@@ -98,7 +98,7 @@ export default function AccountSettings() {
           </select>
 
           <div className="mt-4 space-y-2">
-            <p className="text-sm font-medium text-slate-700">Add athlete</p>
+            <p className="text-sm font-medium text-foreground">Add athlete</p>
             <input
               value={name}
               onChange={(event) => setName(event.target.value)}
@@ -148,13 +148,13 @@ export default function AccountSettings() {
       <button
         type="button"
         onClick={() => void logout()}
-        className="mt-2 w-full rounded-xl border border-slate-300 p-3 text-sm font-medium text-slate-700"
+        className="mt-2 w-full rounded-xl border border-slate-300 p-3 text-sm font-medium text-foreground"
       >
         Log out
       </button>
 
       {message && (
-        <p className="mt-3 text-center text-xs text-slate-600">{message}</p>
+        <p className="mt-3 text-center text-xs text-muted">{message}</p>
       )}
     </Card>
   );

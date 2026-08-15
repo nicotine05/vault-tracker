@@ -13,7 +13,7 @@ export default function WorkoutExpandPanel({
   planningWeek,
 }: WorkoutExpandPanelProps) {
   return (
-    <div className="mt-1 space-y-2 rounded-lg border border-slate-200 bg-white p-3 text-xs">
+    <div className="mt-1 space-y-2 rounded-lg border border-border bg-surface p-3 text-xs">
       {"primaryLift" in workout && (
         <>
           {(() => {
@@ -33,20 +33,20 @@ export default function WorkoutExpandPanel({
                 <div className="space-y-1 pt-2">
                   <div>
                     <span className="font-semibold text-sky-700">Primary</span>
-                    <div className="text-slate-700">
+                    <div className="text-foreground">
                       {workout.primaryLift} — {prescriptions.primary}
                     </div>
                   </div>
                   <div>
                     <span className="font-semibold text-sky-700">Secondary</span>
-                    <div className="text-slate-700">
+                    <div className="text-foreground">
                       {workout.secondaryLift} — {prescriptions.secondary}
                     </div>
                   </div>
 
                   <div className="pt-1">
                     <span className="font-semibold text-sky-700">Superset A</span>
-                    <div className="space-y-1 text-slate-700">
+                    <div className="space-y-1 text-foreground">
                       {workout.supersetA.map((exercise, index) => (
                         <div key={index}>
                           {exercise} — {prescriptions.supersetA[index]}
@@ -57,7 +57,7 @@ export default function WorkoutExpandPanel({
 
                   <div className="pt-1">
                     <span className="font-semibold text-sky-700">Superset B</span>
-                    <div className="space-y-1 text-slate-700">
+                    <div className="space-y-1 text-foreground">
                       {workout.supersetB.map((exercise, index) => (
                         <div key={index}>
                           {exercise} — {prescriptions.supersetB[index]}
@@ -68,7 +68,7 @@ export default function WorkoutExpandPanel({
 
                   <div className="pt-1">
                     <span className="font-semibold text-sky-700">Finisher</span>
-                    <div className="text-slate-700">
+                    <div className="text-foreground">
                       {workout.finisher} — {prescriptions.finisher}
                     </div>
                   </div>
