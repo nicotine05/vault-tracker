@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import AccountSettings from "@/components/AccountSettings";
 import ThemePicker from "@/components/settings/ThemePicker";
 import Card from "@/components/Card";
@@ -31,7 +31,11 @@ export default function SettingsPage() {
     setPlanningWeek,
   } = useProgramState();
 
-  const [viewingWeek, setViewingWeek] = useState(currentWeek);
+  const [viewingWeek, setViewingWeek] = useState(planningWeek);
+
+  useEffect(() => {
+    setViewingWeek(planningWeek);
+  }, [planningWeek]);
 
   const viewingPhase = getPhaseNameForWeek(viewingWeek);
   const maxWeek = maxViewableWeek(currentWeek);
@@ -39,19 +43,26 @@ export default function SettingsPage() {
   const isFutureWeek = viewingWeek > currentWeek;
   const isProgramOnFutureWeek = planningWeek > currentWeek;
   const canPlanAhead =
-    isFutureWeek && viewingWeek <= currentWeek + MAX_PLAN_AHEAD_WEEKS;
-  const canFinishWeek =
-    isActiveWeek && currentWeek < program.totalWeeks;
-  const showReturnToActiveWeek =
     !isCoachReadOnly &&
-    (!isActiveWeek || isProgramOnFutureWeek);
+    isFutureWeek &&
+    viewingWeek <= currentWeek + MAX_PLAN_AHEAD_WEEKS;
+  const canFinishWeek =
+    !isCoachReadOnly && isActiveWeek && currentWeek < program.totalWeeks;
+  const showReturnToActiveWeek = !isActiveWeek || isProgramOnFutureWeek;
+
+  function updateViewingWeek(week: number) {
+    setViewingWeek(week);
+    if (isCoachReadOnly) {
+      setPlanningWeek(week);
+    }
+  }
 
   function handlePreviousWeek() {
-    setViewingWeek((prev) => Math.max(1, prev - 1));
+    updateViewingWeek(Math.max(1, viewingWeek - 1));
   }
 
   function handleNextWeek() {
-    setViewingWeek((prev) => Math.min(maxWeek, prev + 1));
+    updateViewingWeek(Math.min(maxWeek, viewingWeek + 1));
   }
 
   function handlePlanAhead() {
@@ -70,8 +81,9 @@ export default function SettingsPage() {
       <Card title="Program Week">
         {isCoachReadOnly ? (
           <p className="text-sm text-muted mb-4">
-            Athlete&apos;s active week is Week {currentWeek} ({viewingPhase}{" "}
-            phase). Program changes can only be made by the athlete.
+            Athlete&apos;s active week is Week {currentWeek} (
+            {getPhaseNameForWeek(currentWeek)} phase). Browse weeks here to
+            review their program — changes are view-only.
           </p>
         ) : (
           <p className="text-sm text-muted mb-4">

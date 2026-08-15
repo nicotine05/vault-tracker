@@ -5,20 +5,10 @@ import { useAuth } from "@/components/AuthProvider";
 import { getFirstName, getTimeGreeting } from "@/lib/domain/greeting";
 
 export default function HomeGreeting() {
-  const { user, isCoachReadOnly, athletes, viewingAthleteId } = useAuth();
+  const { user, isCoachReadOnly } = useAuth();
   const greeting = getTimeGreeting();
 
   if (isCoachReadOnly && user) {
-    const viewingAthlete = athletes.find(
-      (athlete) => athlete.id === viewingAthleteId
-    );
-
-    const athleteLabel = viewingAthlete
-      ? viewingAthlete.name
-      : athletes.length === 0
-        ? "no athletes linked"
-        : "no athlete selected";
-
     return (
       <div className="mb-4 rounded-2xl border border-border/70 bg-gradient-to-br from-surface-muted/80 to-surface px-4 py-3">
         <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">
@@ -26,8 +16,7 @@ export default function HomeGreeting() {
         </p>
 
         <p className="mt-1 text-xl font-semibold leading-tight tracking-tight text-foreground">
-          Coach. You are viewing{" "}
-          <span className="text-accent-text">{athleteLabel}</span>
+          <span className="text-accent-text">Coach</span>
         </p>
       </div>
     );

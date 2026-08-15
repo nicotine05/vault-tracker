@@ -2,6 +2,7 @@ import "./globals.css";
 import Navigation from "./Navigation";
 import { AuthProvider } from "@/components/AuthProvider";
 import CoachReadOnlyBanner from "@/components/CoachReadOnlyBanner";
+import { ProgramStateProvider } from "@/components/ProgramStateProvider";
 import SyncConflictBanner from "@/components/SyncConflictBanner";
 import { ThemeProvider } from "@/components/ThemeProvider";
 
@@ -21,13 +22,15 @@ export default function RootLayout({
       </head>
       <body>
         <AuthProvider>
-          <ThemeProvider>
-            <CoachReadOnlyBanner />
-            <SyncConflictBanner />
-            <main className="pb-24">{children}</main>
+          <ProgramStateProvider>
+            <ThemeProvider>
+              <CoachReadOnlyBanner />
+              <SyncConflictBanner />
+              <main className="pb-24">{children}</main>
 
-            <Navigation />
-          </ThemeProvider>
+              <Navigation />
+            </ThemeProvider>
+          </ProgramStateProvider>
         </AuthProvider>
       </body>
     </html>

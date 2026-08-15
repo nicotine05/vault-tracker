@@ -6,23 +6,26 @@ import { getMealPlanKeyForWeek } from "@/lib/domain/programWeek";
 import { useProgramState } from "@/lib/hooks/useProgramState";
 
 export default function NutritionPage() {
-  const { currentWeek } = useProgramState();
+  const { currentWeek, planningWeek } = useProgramState();
 
-  const planKey = getMealPlanKeyForWeek(currentWeek);
+  const planKey = getMealPlanKeyForWeek(planningWeek);
   const plan = mealPlans[planKey];
 
-  const nextWeek = Math.min(currentWeek + 1, 12);
+  const nextWeek = Math.min(planningWeek + 1, 12);
   const nextPlanKey = getMealPlanKeyForWeek(nextWeek);
   const nextPlan = mealPlans[nextPlanKey];
+  const isViewingActiveWeek = planningWeek === currentWeek;
 
   return (
     <main className="max-w-md mx-auto p-4 pb-20">
       <Card>
-        <p className="text-sm text-muted">Current Meal Plan</p>
+        <p className="text-sm text-muted">
+          {isViewingActiveWeek ? "Current Meal Plan" : "Meal Plan"}
+        </p>
 
         <p className="font-bold text-xl text-foreground">Plan {planKey}</p>
 
-        <p className="text-sm text-muted">Week {currentWeek}</p>
+        <p className="text-sm text-muted">Week {planningWeek}</p>
       </Card>
 
       <div className="mt-4 space-y-4">
