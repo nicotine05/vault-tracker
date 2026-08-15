@@ -3,13 +3,14 @@
 import { useEffect, useState } from "react";
 import Card from "@/components/Card";
 import TrainingCalendar from "@/components/TrainingCalendar";
+import VaultPRChart from "@/components/progress/VaultPRChart";
 import { useAuth } from "@/components/AuthProvider";
 import type { HeightPREntry, RunPRs, WeightEntry } from "@/lib/domain/types";
 import {
-  highestVaultPRMeters,
-  metersToFeetInches,
-  parseVaultPRToMeters,
-} from "@/lib/domain/vaultUnits";
+  computeVaultGoalProgress,
+  getHighestPRDisplay,
+  type VaultRunChartKey,
+} from "@/lib/domain/vaultProgress";
 import {
   computeWeightStats,
   formatWeightDelta,
@@ -20,30 +21,16 @@ import {
   subscribeWeightHistory,
 } from "@/lib/storage/weightStore";
 import {
-  getVaultHeightPRValues,
   loadVaultPRHistory,
   loadVaultRunPRs,
   subscribeVaultRunPRs,
 } from "@/lib/storage/logStore";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
-
-const START_PR_METERS = 3.6576;
-const GOAL_PR_METERS = 4.57;
 
 export default function ProgressPage() {
   const { isCoachReadOnly } = useAuth();
   const [vaultRunPRs, setVaultRunPRs] = useState<RunPRs>(loadVaultRunPRs);
   const [prHistory, setPrHistory] = useState<HeightPREntry[]>([]);
-  const [selectedRun, setSelectedRun] = useState<
-    "threeL" | "fourL" | "fiveL" | "sixL" | "sevenL"
-  >("sevenL");
+  const [selectedRun, setSelectedRun] = useState<VaultRunChartKey>("sevenL");
   const [weightHistory, setWeightHistory] = useState<WeightEntry[]>([]);
   const [showWeightEditor, setShowWeightEditor] = useState(false);
   const [newWeight, setNewWeight] = useState("");
@@ -66,74 +53,6 @@ export default function ProgressPage() {
     };
   }, []);
 
-  const currentPRMeters = highestVaultPRMeters(
-    getVaultHeightPRValues(vaultRunPRs),
-    START_PR_METERS
-  );
-
-  const maxPRString =
-    getVaultHeightPRValues(vaultRunPRs)
-      .sort((a, b) => {
-        const aMeters = parseVaultPRToMeters(a) || 0;
-        const bMeters = parseVaultPRToMeters(b) || 0;
-        return bMeters - aMeters;
-      })[0] || "";
-
-  const goalProgress = Math.max(
-    0,
-    Math.min(
-      100,
-      Math.round(
-        ((currentPRMeters -
-          START_PR_METERS) /
-          (GOAL_PR_METERS -
-            START_PR_METERS)) *
-          100
-      )
-    )
-  );
-
-  const chartData =
-    prHistory
-      .filter((entry) => {
-        const value = entry[selectedRun];
-        return value && parseVaultPRToMeters(value) !== null;
-      })
-      .map((entry) => {
-        const value = entry[selectedRun];
-        return {
-          date: entry.date,
-          pr: parseVaultPRToMeters(value) || 0,
-        };
-      })
-      .sort(
-        (a, b) =>
-          new Date(a.date).getTime() -
-          new Date(b.date).getTime()
-      );
-
-  const minPR =
-    chartData.length > 0
-      ? Math.floor(
-          Math.min(
-            ...chartData.map(
-              (d) => d.pr
-            )
-          ) - 0.3
-        )
-      : undefined;
-
-  const maxPR =
-    chartData.length > 0
-      ? Math.ceil(
-          Math.max(
-            ...chartData.map(
-              (d) => d.pr
-            )
-          ) + 0.3
-        )
-      : undefined;
-
   function saveWeight() {
     const parsed = parseFloat(newWeight);
     if (isNaN(parsed)) return;
@@ -145,35 +64,30 @@ export default function ProgressPage() {
 
   const { currentWeight, dailyChange, monthlyChange, previousDate } =
     computeWeightStats(weightHistory);
+  const maxPRString = getHighestPRDisplay(vaultRunPRs);
+  const goalProgress = computeVaultGoalProgress(vaultRunPRs);
 
   return (
     <main className="max-w-md mx-auto p-4 pb-20">
-      <h1 className="text-3xl font-bold mb-4">
-        Progress
-      </h1>
+      <h1 className="mb-4 text-3xl font-bold">Progress</h1>
 
       <Card className="mb-4">
-        <p className="text-sm text-gray-500">
-          Current Weight
-        </p>
+        <p className="text-sm text-gray-500">Current Weight</p>
 
         <p className="text-3xl font-bold">
           {currentWeight}
-          {currentWeight !== "--"
-            ? " lbs"
-            : ""}
+          {currentWeight !== "--" ? " lbs" : ""}
         </p>
 
         <div className="mt-1 space-y-1">
-
           {dailyChange !== null && (
             <p
               className={`text-sm font-medium ${
                 dailyChange > 0
                   ? "text-green-600"
                   : dailyChange < 0
-                  ? "text-red-600"
-                  : "text-gray-500"
+                    ? "text-red-600"
+                    : "text-gray-500"
               }`}
             >
               {formatWeightDelta(dailyChange)}
@@ -187,28 +101,21 @@ export default function ProgressPage() {
                 monthlyChange > 0
                   ? "text-green-600"
                   : monthlyChange < 0
-                  ? "text-red-600"
-                  : "text-gray-500"
+                    ? "text-red-600"
+                    : "text-gray-500"
               }`}
             >
-              {monthlyChange > 0
-                ? "+"
-                : ""}
+              {monthlyChange > 0 ? "+" : ""}
               {monthlyChange.toFixed(1)}
               lbs (30d)
             </p>
           )}
-
         </div>
 
         {!isCoachReadOnly && (
           <button
-            onClick={() =>
-              setShowWeightEditor(
-                !showWeightEditor
-              )
-            }
-            className="mt-3 w-full bg-blue-500 text-white rounded-xl py-2 text-sm font-medium"
+            onClick={() => setShowWeightEditor(!showWeightEditor)}
+            className="mt-3 w-full rounded-xl bg-blue-500 py-2 text-sm font-medium text-white"
           >
             Update Weight
           </button>
@@ -220,18 +127,14 @@ export default function ProgressPage() {
               type="number"
               step="0.1"
               value={newWeight}
-              onChange={(e) =>
-                setNewWeight(
-                  e.target.value
-                )
-              }
+              onChange={(event) => setNewWeight(event.target.value)}
               placeholder="182.4"
-              className="w-full border rounded-xl p-2"
+              className="w-full rounded-xl border p-2"
             />
 
             <button
               onClick={saveWeight}
-              className="w-full bg-green-500 text-white rounded-xl py-2"
+              className="w-full rounded-xl bg-green-500 py-2 text-white"
             >
               Save
             </button>
@@ -239,126 +142,36 @@ export default function ProgressPage() {
         )}
       </Card>
 
-      <div className="grid grid-cols-2 gap-4 mb-4">
-      </div>
-
       <div className="mb-4">
         <Card>
-          <p className="text-sm text-gray-500">
-            Current PR
-          </p>
-
-          <p className="font-bold text-xl">
-            {maxPRString || "--"}
-          </p>
+          <p className="text-sm text-gray-500">Current PR</p>
+          <p className="text-xl font-bold">{maxPRString || "--"}</p>
         </Card>
       </div>
 
       <Card>
-        <div className="flex justify-between mb-2">
-          <span className="font-medium">
-            Goal Progress
-          </span>
-
-          <span className="font-bold">
-            {goalProgress}%
-          </span>
+        <div className="mb-2 flex justify-between">
+          <span className="font-medium">Goal Progress</span>
+          <span className="font-bold">{goalProgress}%</span>
         </div>
 
-        <div className="w-full bg-gray-200 rounded-full h-3">
+        <div className="h-3 w-full rounded-full bg-gray-200">
           <div
-            className="bg-blue-500 h-3 rounded-full"
-            style={{
-              width: `${goalProgress}%`,
-            }}
+            className="h-3 rounded-full bg-blue-500"
+            style={{ width: `${goalProgress}%` }}
           />
         </div>
 
-        <p className="text-sm text-gray-500 mt-2">
-          Goal: 15ft
-        </p>
+        <p className="mt-2 text-sm text-gray-500">Goal: 15ft</p>
       </Card>
 
       <div className="mt-4">
         <Card>
-          <div className="flex justify-between items-center mb-4">
-            <p className="font-semibold">
-              Vault PR Progression
-            </p>
-
-            <select
-              value={selectedRun}
-              onChange={(e) =>
-                setSelectedRun(
-                  e.target.value as any
-                )
-              }
-              className="border rounded-lg px-2 py-1"
-            >
-              <option value="threeL">3L</option>
-              <option value="fourL">4L</option>
-              <option value="fiveL">5L</option>
-              <option value="sixL">6L</option>
-              <option value="sevenL">7L</option>
-            </select>
-          </div>
-
-          {chartData.length < 2 ? (
-            <p className="text-gray-500">
-              Log at least two PR
-              entries to display a
-              chart.
-            </p>
-          ) : (
-            <div className="h-64">
-              <ResponsiveContainer
-                width="100%"
-                height="100%"
-              >
-                <LineChart
-                  data={chartData}
-                >
-                  <XAxis
-                    dataKey="date"
-                  />
-
-                  <YAxis
-                    domain={[
-                      minPR ?? "auto",
-                      maxPR ?? "auto",
-                    ]}
-                    tickFormatter={(
-                      value
-                    ) =>
-                      metersToFeetInches(
-                        Number(value)
-                      )
-                    }
-                  />
-
-                  <Tooltip
-                    formatter={(
-                      value
-                    ) => [
-                      metersToFeetInches(
-                        Number(value)
-                      ),
-                      "PR",
-                    ]}
-                  />
-
-                  <Line
-                    type="monotone"
-                    dataKey="pr"
-                    strokeWidth={3}
-                    dot={{
-                      r: 5,
-                    }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          )}
+          <VaultPRChart
+            prHistory={prHistory}
+            selectedRun={selectedRun}
+            onRunChange={setSelectedRun}
+          />
         </Card>
       </div>
 

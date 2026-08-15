@@ -1,8 +1,11 @@
+import { runStorageMigrations } from "@/lib/storage/migrations";
 import { isCoachReadOnly } from "@/lib/sync/readOnly";
 import { SYNC_STORAGE_KEYS } from "@/lib/sync/syncKeys";
 
 export function getItem<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
+
+  runStorageMigrations();
 
   try {
     const raw = localStorage.getItem(key);

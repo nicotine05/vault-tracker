@@ -1,11 +1,8 @@
 import { getItem, setItem } from "@/lib/storage/localStore";
 import { isCoachReadOnly } from "@/lib/sync/readOnly";
-import {
-  EMPTY_RUN_PRS,
-  EMPTY_SPRINT_PRS,
-  EMPTY_STRENGTH_PRS,
-  EMPTY_STEP_REFS,
-} from "@/lib/storage/logStore";
+import { runStorageMigrations } from "@/lib/storage/migrations";
+import { getDefaultSyncSnapshot } from "@/lib/sync/snapshotDefaults";
+import { normalizeSyncSnapshot } from "@/lib/sync/snapshotSchema";
 import { STORAGE_EVENTS, STORAGE_KEYS } from "@/lib/storage/keys";
 import {
   COACH_VIEWING_ATHLETE_KEY,
@@ -23,6 +20,48 @@ type SyncResponse = {
 let syncTimer: ReturnType<typeof setTimeout> | null = null;
 let syncEnabled = false;
 let lastPushedAt = 0;
+
+export type SyncConflictInfo = {
+  remoteUpdatedAt: string;
+};
+
+let syncConflict: SyncConflictInfo | null = null;
+const conflictListeners = new Set<() => void>();
+
+function setSyncConflict(conflict: SyncConflictInfo | null): void {
+  syncConflict = conflict;
+  for (const listener of conflictListeners) {
+    listener();
+  }
+}
+
+export function getSyncConflict(): SyncConflictInfo | null {
+  return syncConflict;
+}
+
+export function subscribeSyncConflict(listener: () => void): () => void {
+  conflictListeners.add(listener);
+  return () => {
+    conflictListeners.delete(listener);
+  };
+}
+
+export async function resolveSyncConflict(
+  resolution: "keep-local" | "use-remote"
+): Promise<void> {
+  if (!syncConflict) {
+    return;
+  }
+
+  setSyncConflict(null);
+
+  if (resolution === "keep-local") {
+    await pushRemoteSync(true);
+    return;
+  }
+
+  await pullRemoteSync();
+}
 
 export function setSyncEnabled(enabled: boolean): void {
   syncEnabled = enabled;
@@ -60,25 +99,25 @@ export function clearLocalSyncData(options?: { silent?: boolean }): void {
     return;
   }
 
-  localStorage.setItem(STORAGE_KEYS.CURRENT_WEEK, "1");
-  localStorage.setItem(STORAGE_KEYS.PLANNING_WEEK, "1");
+  const defaults = getDefaultSyncSnapshot();
 
-  const defaults: Record<string, unknown> = {
-    [STORAGE_KEYS.WEEKLY_PLANNER]: {},
-    [STORAGE_KEYS.SCHEDULE_SNAPSHOTS]: {},
-    [STORAGE_KEYS.COMPLETED_WORKOUTS]: {},
-    [STORAGE_KEYS.EXECUTION_HISTORY]: {},
-    [STORAGE_KEYS.WEIGHT_HISTORY]: [],
-    [STORAGE_KEYS.VAULT_RUN_PRS]: EMPTY_RUN_PRS,
-    [STORAGE_KEYS.VAULT_PR_HISTORY]: [],
-    [STORAGE_KEYS.SPRINT_PRS]: EMPTY_SPRINT_PRS,
-    [STORAGE_KEYS.STRENGTH_PRS]: EMPTY_STRENGTH_PRS,
-    [STORAGE_KEYS.VAULT_LOGS]: [],
-    [STORAGE_KEYS.VAULT_STEP_REFERENCES]: EMPTY_STEP_REFS,
-    [STORAGE_KEYS.MIGRATION_V1]: true,
-  };
+  localStorage.setItem(
+    STORAGE_KEYS.CURRENT_WEEK,
+    String(defaults[STORAGE_KEYS.CURRENT_WEEK])
+  );
+  localStorage.setItem(
+    STORAGE_KEYS.PLANNING_WEEK,
+    String(defaults[STORAGE_KEYS.PLANNING_WEEK])
+  );
 
   for (const [key, value] of Object.entries(defaults)) {
+    if (
+      key === STORAGE_KEYS.CURRENT_WEEK ||
+      key === STORAGE_KEYS.PLANNING_WEEK
+    ) {
+      continue;
+    }
+
     setItem(key, value, { skipSync: true });
   }
 
@@ -110,6 +149,8 @@ export function setSyncContextAthleteId(athleteId: string | null): void {
 }
 
 function buildLocalSnapshot(): Record<string, unknown> {
+  runStorageMigrations();
+
   const snapshot: Record<string, unknown> = {};
 
   for (const key of SYNC_STORAGE_KEYS) {
@@ -121,14 +162,15 @@ function buildLocalSnapshot(): Record<string, unknown> {
     snapshot[key] = getItem(key, null);
   }
 
-  return snapshot;
+  return normalizeSyncSnapshot(snapshot);
 }
 
 function applyRemoteSnapshot(data: Record<string, unknown>): void {
   clearLocalSyncData({ silent: true });
+  const normalized = normalizeSyncSnapshot(data);
 
   for (const key of SYNC_STORAGE_KEYS) {
-    const value = data[key];
+    const value = normalized[key];
     if (value === undefined || value === null) {
       continue;
     }
@@ -141,6 +183,8 @@ function applyRemoteSnapshot(data: Record<string, unknown>): void {
     setItem(key, value, { skipSync: true });
   }
 
+  runStorageMigrations();
+  setSyncConflict(null);
   notifyStorageRefresh();
 }
 
@@ -207,7 +251,10 @@ export async function pushRemoteSync(force = false): Promise<void> {
   }
 
   if (response.status === 409) {
-    await pullRemoteSync();
+    const payload = (await response.json()) as { updatedAt?: string };
+    setSyncConflict({
+      remoteUpdatedAt: payload.updatedAt ?? new Date().toISOString(),
+    });
     return;
   }
 
@@ -217,6 +264,7 @@ export async function pushRemoteSync(force = false): Promise<void> {
 
   const payload = (await response.json()) as { updatedAt: string };
   lastPushedAt = new Date(payload.updatedAt).getTime();
+  setSyncConflict(null);
 }
 
 export function scheduleSyncPush(): void {

@@ -8,6 +8,7 @@ import type { WorkoutExecutionRecord } from "@/lib/domain/types";
 import { getCalendarDateForProgramDay } from "@/lib/domain/calendarUtils";
 import { getItem, getString, setItem } from "@/lib/storage/localStore";
 import { STORAGE_EVENTS, STORAGE_KEYS } from "@/lib/storage/keys";
+import { runStorageMigrations } from "@/lib/storage/migrations";
 
 export type WeekScheduleSnapshot = {
   weekNumber: number;
@@ -67,40 +68,6 @@ function createSnapshot(
   };
 }
 
-function migrateLegacyProgramData(): void {
-  if (getItem<boolean>(STORAGE_KEYS.MIGRATION_V1, false)) return;
-
-  const snapshots = getItem<Record<number, WeekScheduleSnapshot>>(
-    STORAGE_KEYS.SCHEDULE_SNAPSHOTS,
-    {}
-  );
-
-  const legacyGenerated = getItem<Record<number, boolean>>(
-    STORAGE_KEYS.GENERATED_SCHEDULES,
-    {}
-  );
-
-  const legacyPlanner = getItem<Record<number, Record<string, PlannerDay>>>(
-    STORAGE_KEYS.WEEKLY_PLANNER,
-    {}
-  );
-
-  for (const [weekKey, isGenerated] of Object.entries(legacyGenerated)) {
-    if (!isGenerated) continue;
-
-    const weekNumber = Number(weekKey);
-    if (snapshots[weekNumber]) continue;
-
-    snapshots[weekNumber] = createSnapshot(
-      weekNumber,
-      legacyPlanner[weekNumber] ?? {}
-    );
-  }
-
-  setItem(STORAGE_KEYS.SCHEDULE_SNAPSHOTS, snapshots);
-  setItem(STORAGE_KEYS.MIGRATION_V1, true);
-}
-
 function backfillScheduledDates(
   history: Record<string, WorkoutExecutionRecord>,
   currentWeek: number
@@ -126,7 +93,7 @@ function backfillScheduledDates(
 }
 
 export function loadProgramState(): ProgramState {
-  migrateLegacyProgramData();
+  runStorageMigrations();
 
   const currentWeek = clampWeek(
     Number(getString(STORAGE_KEYS.CURRENT_WEEK, "1"))
