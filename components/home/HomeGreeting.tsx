@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
 import { getFirstName, getTimeGreeting } from "@/lib/domain/greeting";
 
@@ -18,7 +19,12 @@ export default function HomeGreeting() {
         {firstName ? (
           <span className="text-accent-text">{firstName}</span>
         ) : (
-          "Welcome back"
+          <Link
+            href="/login"
+            className="text-accent-text transition hover:opacity-80"
+          >
+            Sign in
+          </Link>
         )}
       </p>
     </div>
