@@ -5,6 +5,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Card from "@/components/Card";
 import { useAuth } from "@/components/AuthProvider";
+import {
+  fieldClassName,
+  linkTextClassName,
+  primaryButtonClassName,
+  destructiveTextClassName,
+} from "@/lib/ui/componentStyles";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -25,7 +31,7 @@ export default function LoginPage() {
           </p>
           <Link
             href="/settings"
-            className="block w-full rounded-xl bg-purple-600 p-3 text-center font-semibold text-white"
+            className={`block text-center ${primaryButtonClassName}`}
           >
             Go to Settings
           </Link>
@@ -68,7 +74,7 @@ export default function LoginPage() {
               value={name}
               onChange={(event) => setName(event.target.value)}
               placeholder="Your name"
-              className="w-full rounded-xl border border-slate-300 p-3 text-sm"
+              className={fieldClassName}
               required
             />
           )}
@@ -78,7 +84,7 @@ export default function LoginPage() {
             onChange={(event) => setEmail(event.target.value)}
             placeholder="Email"
             type="email"
-            className="w-full rounded-xl border border-slate-300 p-3 text-sm"
+            className={fieldClassName}
             required
           />
 
@@ -87,18 +93,18 @@ export default function LoginPage() {
             onChange={(event) => setPassword(event.target.value)}
             placeholder="Password"
             type="password"
-            className="w-full rounded-xl border border-slate-300 p-3 text-sm"
+            className={fieldClassName}
             required
           />
 
           {error && (
-            <p className="text-sm text-red-600">{error}</p>
+            <p className={destructiveTextClassName}>{error}</p>
           )}
 
           <button
             type="submit"
             disabled={submitting}
-            className="w-full rounded-xl bg-purple-600 p-3 font-semibold text-white disabled:opacity-60"
+            className={primaryButtonClassName}
           >
             {submitting
               ? "Working..."
@@ -113,7 +119,7 @@ export default function LoginPage() {
           onClick={() =>
             setMode((current) => (current === "login" ? "register" : "login"))
           }
-          className="mt-3 w-full text-sm text-blue-600"
+          className={`mt-3 w-full ${linkTextClassName}`}
         >
           {mode === "login"
             ? "Need a coach account? Register"

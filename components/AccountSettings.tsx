@@ -3,6 +3,12 @@
 import { useState } from "react";
 import Card from "@/components/Card";
 import { useAuth } from "@/components/AuthProvider";
+import {
+  fieldClassNameSm,
+  primaryButtonClassName,
+  secondaryButtonClassName,
+  softButtonClassName,
+} from "@/lib/ui/componentStyles";
 
 export default function AccountSettings() {
   const {
@@ -31,7 +37,7 @@ export default function AccountSettings() {
         </p>
         <a
           href="/login"
-          className="block w-full rounded-xl bg-purple-600 p-3 text-center font-semibold text-white"
+          className={`block text-center ${primaryButtonClassName}`}
         >
           Go to Login
         </a>
@@ -84,7 +90,7 @@ export default function AccountSettings() {
             onChange={(event) =>
               void selectAthlete(event.target.value || null)
             }
-            className="mt-1 w-full rounded-xl border border-slate-300 p-2 text-sm"
+            className={`mt-1 ${fieldClassNameSm}`}
           >
             {athletes.length === 0 ? (
               <option value="">No athletes yet</option>
@@ -103,26 +109,26 @@ export default function AccountSettings() {
               value={name}
               onChange={(event) => setName(event.target.value)}
               placeholder="Athlete name"
-              className="w-full rounded-xl border border-slate-300 p-2 text-sm"
+              className={fieldClassNameSm}
             />
             <input
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               placeholder="Athlete email"
               type="email"
-              className="w-full rounded-xl border border-slate-300 p-2 text-sm"
+              className={fieldClassNameSm}
             />
             <input
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               placeholder="Temporary password"
               type="password"
-              className="w-full rounded-xl border border-slate-300 p-2 text-sm"
+              className={fieldClassNameSm}
             />
             <button
               type="button"
               onClick={() => void handleCreateAthlete()}
-              className="w-full rounded-xl border border-purple-300 bg-purple-50 p-2 text-sm font-medium text-purple-800"
+              className={softButtonClassName}
             >
               Create athlete account
             </button>
@@ -134,7 +140,7 @@ export default function AccountSettings() {
         type="button"
         onClick={() => void handleSyncNow()}
         disabled={syncing}
-        className="mt-4 w-full rounded-xl bg-blue-600 p-3 text-sm font-semibold text-white disabled:opacity-60"
+        className={`mt-4 ${primaryButtonClassName}`}
       >
         {syncing
           ? isCoachReadOnly
@@ -148,7 +154,7 @@ export default function AccountSettings() {
       <button
         type="button"
         onClick={() => void logout()}
-        className="mt-2 w-full rounded-xl border border-slate-300 p-3 text-sm font-medium text-foreground"
+        className={`mt-2 ${secondaryButtonClassName}`}
       >
         Log out
       </button>

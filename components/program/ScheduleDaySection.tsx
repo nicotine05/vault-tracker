@@ -9,7 +9,8 @@ import {
   workoutCompletionKey,
   type DailySchedule,
 } from "@/lib/trainingProgram";
-import { trafficStyles } from "@/lib/ui/trainingStyles";
+import { trafficStyles, trainingTypeStyles } from "@/lib/ui/trainingStyles";
+import { successTextClassName } from "@/lib/ui/componentStyles";
 
 type ScheduleDaySectionProps = {
   day: string;
@@ -73,13 +74,7 @@ export default function ScheduleDaySection({
               <button
                 type="button"
                 onClick={() => onToggleExpanded(expandKey)}
-                className={`w-full rounded-lg border px-3 py-2 text-left text-sm transition-all ${
-                  session.type === "vault"
-                    ? "border-amber-200 bg-amber-50 text-amber-900 hover:bg-amber-100"
-                    : session.type === "strength"
-                      ? "border-sky-200 bg-sky-50 text-sky-900 hover:bg-sky-100"
-                      : "border-emerald-200 bg-emerald-50 text-emerald-900 hover:bg-emerald-100"
-                } ${isComplete ? "opacity-60" : ""}`}
+                className={`w-full rounded-lg border px-3 py-2 text-left text-sm transition-all ${trainingTypeStyles[session.type].row} ${isComplete ? "opacity-60" : ""}`}
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1">
@@ -103,7 +98,7 @@ export default function ScheduleDaySection({
               </button>
 
               {isComplete ? (
-                <p className="mt-1.5 text-center text-xs font-medium text-green-700">
+                <p className={`mt-1.5 text-center ${successTextClassName}`}>
                   Completed ✓
                 </p>
               ) : !readOnly ? (
@@ -125,7 +120,7 @@ export default function ScheduleDaySection({
                   }}
                   className={`mt-1.5 w-full rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${
                     confirmingKey === completionKey
-                      ? "border-green-600 bg-green-600 text-white"
+                      ? "border-accent bg-accent text-white"
                       : "border-border bg-surface text-foreground hover:bg-surface-muted"
                   }`}
                 >

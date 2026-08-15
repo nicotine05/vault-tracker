@@ -14,6 +14,11 @@ import {
   type ScheduleViewMode,
 } from "@/lib/domain/programScheduleView";
 import { plannerDays, type GeneratedWeekSchedule } from "@/lib/trainingProgram";
+import {
+  segmentedIdleClassName,
+  segmentedSelectedClassName,
+  navButtonClassName,
+} from "@/lib/ui/componentStyles";
 
 type GeneratedScheduleCardProps = {
   readOnly: boolean;
@@ -93,8 +98,8 @@ export default function GeneratedScheduleCard({
                 }}
                 className={`rounded-xl border px-3 py-2 text-sm font-semibold capitalize transition ${
                   selected
-                    ? "border-purple-600 bg-purple-600 text-white"
-                    : "border-border bg-surface text-foreground hover:bg-surface-muted"
+                    ? segmentedSelectedClassName
+                    : segmentedIdleClassName
                 }`}
               >
                 {mode === "week" ? "Weekly View" : "Daily View"}
@@ -111,7 +116,7 @@ export default function GeneratedScheduleCard({
                 setSelectedDay(getAdjacentPlannerDay(selectedDay, -1))
               }
               disabled={!canGoPrevious}
-              className="rounded-lg border px-3 py-1 disabled:opacity-40"
+              className={navButtonClassName}
             >
               ←
             </button>
@@ -130,7 +135,7 @@ export default function GeneratedScheduleCard({
                 setSelectedDay(getAdjacentPlannerDay(selectedDay, 1))
               }
               disabled={!canGoNext}
-              className="rounded-lg border px-3 py-1 disabled:opacity-40"
+              className={navButtonClassName}
             >
               →
             </button>

@@ -24,9 +24,9 @@ export default function VaultGoalCard({ runPRs }: VaultGoalCardProps) {
           <span className="font-bold">{goalProgress}%</span>
         </div>
 
-        <div className="h-3 w-full rounded-full bg-gray-200">
+        <div className="h-3 w-full rounded-full bg-border/70">
           <div
-            className="h-3 rounded-full bg-blue-500"
+            className="h-3 rounded-full bg-accent transition-all duration-300"
             style={{ width: `${goalProgress}%` }}
           />
         </div>

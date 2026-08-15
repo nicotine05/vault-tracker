@@ -66,15 +66,15 @@ export const STRENGTH_PR_FIELDS: PRFieldDefinition[] = [
 ];
 
 export const SPRINT_PR_DISPLAY = [
-  { prKey: "tenMeterPR" as const, dateKey: "tenMeterDate" as const, label: "10 Meter PR", color: "text-green-500", unit: "seconds" },
-  { prKey: "twentyMeterPR" as const, dateKey: "twentyMeterDate" as const, label: "20 Meter PR", color: "text-blue-500", unit: "seconds" },
-  { prKey: "thirtyMeterPR" as const, dateKey: "thirtyMeterDate" as const, label: "30 Meter PR", color: "text-purple-500", unit: "seconds" },
+  { prKey: "tenMeterPR" as const, dateKey: "tenMeterDate" as const, label: "10 Meter PR", color: "text-emerald-700 [data-theme=dark]:text-emerald-300", unit: "seconds" },
+  { prKey: "twentyMeterPR" as const, dateKey: "twentyMeterDate" as const, label: "20 Meter PR", color: "text-accent-text", unit: "seconds" },
+  { prKey: "thirtyMeterPR" as const, dateKey: "thirtyMeterDate" as const, label: "30 Meter PR", color: "text-indigo-700 [data-theme=dark]:text-indigo-300", unit: "seconds" },
 ];
 
 export const STRENGTH_PR_DISPLAY = [
-  { prKey: "benchPR" as const, dateKey: "benchDate" as const, label: "Bench Press PR", color: "text-red-500" },
-  { prKey: "squatPR" as const, dateKey: "squatDate" as const, label: "Squat PR", color: "text-blue-500" },
-  { prKey: "pullupPR" as const, dateKey: "pullupDate" as const, label: "Pullup PR", color: "text-green-500" },
+  { prKey: "benchPR" as const, dateKey: "benchDate" as const, label: "Bench Press PR", color: "text-red-600 [data-theme=dark]:text-red-400" },
+  { prKey: "squatPR" as const, dateKey: "squatDate" as const, label: "Squat PR", color: "text-accent-text" },
+  { prKey: "pullupPR" as const, dateKey: "pullupDate" as const, label: "Pullup PR", color: "text-emerald-700 [data-theme=dark]:text-emerald-300" },
 ];
 
 function isBetter(

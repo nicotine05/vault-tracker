@@ -8,6 +8,7 @@ import {
   STRENGTH_PR_FIELDS,
 } from "@/lib/domain/prLog";
 import { useStrengthPRState } from "@/lib/hooks/useStrengthPRState";
+import { destructiveOutlineButtonClassName } from "@/lib/ui/componentStyles";
 
 export default function StrengthPage() {
   const { isCoachReadOnly } = useAuth();
@@ -22,7 +23,7 @@ export default function StrengthPage() {
           <button
             type="button"
             onClick={clearPRs}
-            className="rounded-lg border border-red-300 px-3 py-1 text-xs text-red-500"
+            className={destructiveOutlineButtonClassName}
           >
             Reset
           </button>
@@ -35,7 +36,6 @@ export default function StrengthPage() {
         inputs={inputs}
         onInputChange={updateInput}
         onSave={savePRs}
-        saveButtonClassName="bg-red-500"
       />
 
       <div className="mt-6 space-y-4">

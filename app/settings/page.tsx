@@ -12,6 +12,14 @@ import {
   MAX_PLAN_AHEAD_WEEKS,
   maxViewableWeek,
 } from "@/lib/storage/programStore";
+import {
+  navButtonClassName,
+  primaryButtonClassName,
+  secondaryButtonClassName,
+  statusBadgeActiveClassName,
+  statusBadgeFutureClassName,
+  warningTextClassName,
+} from "@/lib/ui/componentStyles";
 
 export default function SettingsPage() {
   const { isCoachReadOnly } = useAuth();
@@ -78,21 +86,21 @@ export default function SettingsPage() {
             type="button"
             onClick={handlePreviousWeek}
             disabled={viewingWeek <= 1}
-            className="px-3 py-1 border rounded-lg disabled:opacity-40"
+            className={navButtonClassName}
           >
             ←
           </button>
 
           <div className="text-center">
-            <p className="text-2xl font-bold">Week {viewingWeek}</p>
+            <p className="text-2xl font-bold text-foreground">Week {viewingWeek}</p>
             <p className="text-sm text-muted">{viewingPhase} phase</p>
             {isActiveWeek && (
-              <span className="mt-1 inline-block text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-800">
+              <span className={statusBadgeActiveClassName}>
                 Active week
               </span>
             )}
             {isFutureWeek && (
-              <span className="mt-1 inline-block text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
+              <span className={statusBadgeFutureClassName}>
                 Future week
               </span>
             )}
@@ -102,7 +110,7 @@ export default function SettingsPage() {
             type="button"
             onClick={handleNextWeek}
             disabled={viewingWeek >= maxWeek}
-            className="px-3 py-1 border rounded-lg disabled:opacity-40"
+            className={navButtonClassName}
           >
             →
           </button>
@@ -112,7 +120,7 @@ export default function SettingsPage() {
           <button
             type="button"
             onClick={advanceToNextWeek}
-            className="mt-4 w-full rounded-xl bg-purple-600 p-3 font-semibold text-white"
+            className={`mt-4 ${primaryButtonClassName}`}
           >
             Finish Week {currentWeek} → Start Week {currentWeek + 1}
           </button>
@@ -122,7 +130,7 @@ export default function SettingsPage() {
           <button
             type="button"
             onClick={handlePlanAhead}
-            className="mt-4 w-full rounded-xl bg-amber-500 p-3 font-semibold text-white"
+            className={`mt-4 ${primaryButtonClassName}`}
           >
             Plan Ahead — Week {viewingWeek}
           </button>
@@ -132,14 +140,14 @@ export default function SettingsPage() {
           <button
             type="button"
             onClick={handleReturnToActiveWeek}
-            className="mt-4 w-full rounded-xl border border-border bg-surface p-3 text-sm font-medium text-foreground"
+            className={`mt-4 ${secondaryButtonClassName}`}
           >
             Back to active week (Week {currentWeek})
           </button>
         )}
 
         {isProgramOnFutureWeek && isActiveWeek && !showReturnToActiveWeek && (
-          <p className="mt-3 text-center text-xs text-amber-700">
+          <p className={`mt-3 text-center text-xs ${warningTextClassName}`}>
             Program tab is showing planned Week {planningWeek}.
           </p>
         )}

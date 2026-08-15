@@ -2,6 +2,7 @@
 
 import Card from "@/components/Card";
 import type { PRFieldDefinition } from "@/lib/domain/prLog";
+import { fieldClassName, primaryButtonClassName } from "@/lib/ui/componentStyles";
 
 type PRInputFormProps = {
   readOnly: boolean;
@@ -18,7 +19,7 @@ export default function PRInputForm({
   inputs,
   onInputChange,
   onSave,
-  saveButtonClassName = "bg-green-500",
+  saveButtonClassName,
 }: PRInputFormProps) {
   return (
     <Card>
@@ -39,7 +40,7 @@ export default function PRInputForm({
                 onInputChange(field.inputKey, event.target.value)
               }
               placeholder={field.placeholder}
-              className="w-full rounded-xl border p-3"
+              className={fieldClassName}
             />
           </div>
         ))}
@@ -47,7 +48,7 @@ export default function PRInputForm({
         <button
           type="button"
           onClick={onSave}
-          className={`w-full rounded-xl p-3 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 ${saveButtonClassName}`}
+          className={`${primaryButtonClassName} disabled:cursor-not-allowed disabled:opacity-50${saveButtonClassName ? ` ${saveButtonClassName}` : ""}`}
         >
           Update PRs
         </button>

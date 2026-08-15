@@ -6,6 +6,12 @@ import {
   formatWeightDelta,
 } from "@/lib/domain/weightStats";
 import type { WeightEntry } from "@/lib/domain/types";
+import {
+  fieldClassNameSm,
+  negativeDeltaClassName,
+  positiveDeltaClassName,
+  primaryButtonClassNameSm,
+} from "@/lib/ui/componentStyles";
 
 type WeightSummaryCardProps = {
   weightHistory: WeightEntry[];
@@ -45,9 +51,9 @@ export default function WeightSummaryCard({
           <p
             className={`text-sm font-medium ${
               dailyChange > 0
-                ? "text-green-600"
+                ? positiveDeltaClassName
                 : dailyChange < 0
-                  ? "text-red-600"
+                  ? negativeDeltaClassName
                   : "text-muted"
             }`}
           >
@@ -60,9 +66,9 @@ export default function WeightSummaryCard({
           <p
             className={`text-sm font-medium ${
               monthlyChange > 0
-                ? "text-green-600"
+                ? positiveDeltaClassName
                 : monthlyChange < 0
-                  ? "text-red-600"
+                  ? negativeDeltaClassName
                   : "text-muted"
             }`}
           >
@@ -77,7 +83,7 @@ export default function WeightSummaryCard({
         <button
           type="button"
           onClick={onToggleEditor}
-          className="mt-3 w-full rounded-xl bg-blue-500 py-2 text-sm font-medium text-white"
+          className={`mt-3 ${primaryButtonClassNameSm}`}
         >
           Update Weight
         </button>
@@ -91,13 +97,13 @@ export default function WeightSummaryCard({
             value={newWeight ?? ""}
             onChange={(event) => onNewWeightChange(event.target.value)}
             placeholder="182.4"
-            className="w-full rounded-xl border p-2"
+            className={fieldClassNameSm}
           />
 
           <button
             type="button"
             onClick={onSave}
-            className="w-full rounded-xl bg-green-500 py-2 text-white"
+            className={primaryButtonClassNameSm}
           >
             Save
           </button>

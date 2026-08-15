@@ -8,6 +8,11 @@ import {
   type GeneratedWeekSchedule,
 } from "@/lib/trainingProgram";
 import { trafficStyles } from "@/lib/ui/trainingStyles";
+import {
+  linkTextClassName,
+  todayBadgeClassName,
+  todayCardClassName,
+} from "@/lib/ui/componentStyles";
 
 type ScheduleWeekOverviewProps = {
   planningWeek: number;
@@ -69,7 +74,7 @@ export default function ScheduleWeekOverview({
               isRestDay
                 ? "border-border/70 bg-surface-muted/60 hover:bg-surface-muted/80 [data-theme=dark]:border-border/30 [data-theme=dark]:bg-surface-muted/20 [data-theme=dark]:hover:bg-surface-muted/30"
                 : isToday
-                  ? "border-purple-300 bg-purple-50 hover:bg-purple-100"
+                  ? todayCardClassName
                   : "border-border bg-surface hover:bg-surface-muted"
             }`}
           >
@@ -78,7 +83,7 @@ export default function ScheduleWeekOverview({
                 <div className="flex items-center gap-2">
                   <p className="font-semibold text-foreground">{day}</p>
                   {isToday && (
-                    <span className="rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-purple-700">
+                    <span className={todayBadgeClassName}>
                       Today
                     </span>
                   )}
@@ -117,7 +122,7 @@ export default function ScheduleWeekOverview({
                   className={`text-xs font-medium ${
                     isRestDay
                       ? "text-muted/80 [data-theme=dark]:text-muted/50"
-                      : "text-blue-600"
+                      : linkTextClassName
                   }`}
                 >
                   Open →

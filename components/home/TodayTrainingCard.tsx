@@ -61,7 +61,7 @@ export default function TodayTrainingCard({
           </p>
         )}
 
-        <p className="mt-3 text-xs text-blue-500">Tap to open →</p>
+        <p className="mt-3 text-xs text-accent-text">Tap to open →</p>
       </Card>
     </Link>
   );

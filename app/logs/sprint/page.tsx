@@ -8,6 +8,7 @@ import {
   SPRINT_PR_FIELDS,
 } from "@/lib/domain/prLog";
 import { useSprintPRState } from "@/lib/hooks/useSprintPRState";
+import { destructiveOutlineButtonClassName } from "@/lib/ui/componentStyles";
 
 export default function SprintPage() {
   const { isCoachReadOnly } = useAuth();
@@ -22,7 +23,7 @@ export default function SprintPage() {
           <button
             type="button"
             onClick={clearPRs}
-            className="rounded-lg border border-red-300 px-3 py-1 text-xs text-red-500"
+            className={destructiveOutlineButtonClassName}
           >
             Reset
           </button>

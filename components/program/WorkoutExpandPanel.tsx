@@ -2,6 +2,7 @@ import {
   getPhaseConfig,
   type DetailedWorkout,
 } from "@/lib/trainingProgram";
+import { todayBadgeClassName } from "@/lib/ui/componentStyles";
 
 type WorkoutExpandPanelProps = {
   workout: DetailedWorkout;
@@ -26,26 +27,26 @@ export default function WorkoutExpandPanel({
 
             return (
               <>
-                <div className="mb-2 inline-block rounded-full bg-sky-100 px-2 py-1 font-semibold text-sky-800">
+                <div className={`mb-2 inline-block ${todayBadgeClassName}`}>
                   {phase.name.toUpperCase()}
                 </div>
 
                 <div className="space-y-1 pt-2">
                   <div>
-                    <span className="font-semibold text-sky-700">Primary</span>
+                    <span className="font-semibold text-accent-text">Primary</span>
                     <div className="text-foreground">
                       {workout.primaryLift} — {prescriptions.primary}
                     </div>
                   </div>
                   <div>
-                    <span className="font-semibold text-sky-700">Secondary</span>
+                    <span className="font-semibold text-accent-text">Secondary</span>
                     <div className="text-foreground">
                       {workout.secondaryLift} — {prescriptions.secondary}
                     </div>
                   </div>
 
                   <div className="pt-1">
-                    <span className="font-semibold text-sky-700">Superset A</span>
+                    <span className="font-semibold text-accent-text">Superset A</span>
                     <div className="space-y-1 text-foreground">
                       {workout.supersetA.map((exercise, index) => (
                         <div key={index}>
@@ -56,7 +57,7 @@ export default function WorkoutExpandPanel({
                   </div>
 
                   <div className="pt-1">
-                    <span className="font-semibold text-sky-700">Superset B</span>
+                    <span className="font-semibold text-accent-text">Superset B</span>
                     <div className="space-y-1 text-foreground">
                       {workout.supersetB.map((exercise, index) => (
                         <div key={index}>
@@ -67,7 +68,7 @@ export default function WorkoutExpandPanel({
                   </div>
 
                   <div className="pt-1">
-                    <span className="font-semibold text-sky-700">Finisher</span>
+                    <span className="font-semibold text-accent-text">Finisher</span>
                     <div className="text-foreground">
                       {workout.finisher} — {prescriptions.finisher}
                     </div>

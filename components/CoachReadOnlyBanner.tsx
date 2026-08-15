@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/components/AuthProvider";
+import { coachBannerClassName } from "@/lib/ui/componentStyles";
 
 export default function CoachReadOnlyBanner() {
   const { user, isCoachReadOnly, athletes, viewingAthleteId } = useAuth();
@@ -20,7 +21,7 @@ export default function CoachReadOnlyBanner() {
       : "No athlete selected";
 
   return (
-    <div className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-center text-sm text-amber-900">
+    <div className={coachBannerClassName}>
       Coach view — read-only · Viewing athlete:{" "}
       <span className="font-semibold">{athleteLabel}</span>
     </div>
