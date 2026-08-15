@@ -1,6 +1,8 @@
 import type {
   HeightPREntry,
   Jump,
+  SprintPREntry,
+  StrengthPREntry,
   VaultSession,
   WeightEntry,
   WorkoutExecutionRecord,
@@ -133,6 +135,32 @@ function normalizeHeightPREntry(value: unknown): HeightPREntry | null {
     fiveL: isString(value.fiveL) ? value.fiveL : "",
     sixL: isString(value.sixL) ? value.sixL : "",
     sevenL: isString(value.sevenL) ? value.sevenL : "",
+  };
+}
+
+function normalizeSprintPREntry(value: unknown): SprintPREntry | null {
+  if (!isRecord(value) || !isString(value.date)) {
+    return null;
+  }
+
+  return {
+    date: value.date,
+    tenMeter: isString(value.tenMeter) ? value.tenMeter : "",
+    twentyMeter: isString(value.twentyMeter) ? value.twentyMeter : "",
+    thirtyMeter: isString(value.thirtyMeter) ? value.thirtyMeter : "",
+  };
+}
+
+function normalizeStrengthPREntry(value: unknown): StrengthPREntry | null {
+  if (!isRecord(value) || !isString(value.date)) {
+    return null;
+  }
+
+  return {
+    date: value.date,
+    bench: isString(value.bench) ? value.bench : "",
+    squat: isString(value.squat) ? value.squat : "",
+    pullup: isString(value.pullup) ? value.pullup : "",
   };
 }
 
@@ -312,10 +340,24 @@ export function normalizeSyncSnapshot(
       data[STORAGE_KEYS.SPRINT_PRS],
       EMPTY_SPRINT_PRS
     ),
+    [STORAGE_KEYS.SPRINT_PR_HISTORY]: isArray(
+      data[STORAGE_KEYS.SPRINT_PR_HISTORY]
+    )
+      ? (data[STORAGE_KEYS.SPRINT_PR_HISTORY] as unknown[])
+          .map(normalizeSprintPREntry)
+          .filter((entry): entry is SprintPREntry => entry !== null)
+      : [],
     [STORAGE_KEYS.STRENGTH_PRS]: mergeStringRecord(
       data[STORAGE_KEYS.STRENGTH_PRS],
       EMPTY_STRENGTH_PRS
     ),
+    [STORAGE_KEYS.STRENGTH_PR_HISTORY]: isArray(
+      data[STORAGE_KEYS.STRENGTH_PR_HISTORY]
+    )
+      ? (data[STORAGE_KEYS.STRENGTH_PR_HISTORY] as unknown[])
+          .map(normalizeStrengthPREntry)
+          .filter((entry): entry is StrengthPREntry => entry !== null)
+      : [],
     [STORAGE_KEYS.VAULT_LOGS]: isArray(data[STORAGE_KEYS.VAULT_LOGS])
       ? (data[STORAGE_KEYS.VAULT_LOGS] as unknown[])
           .map(normalizeVaultSession)

@@ -1,4 +1,4 @@
-import type { SprintPRs, StrengthPRs } from "@/lib/domain/types";
+import type { SprintPREntry, SprintPRs, StrengthPREntry, StrengthPRs } from "@/lib/domain/types";
 
 export type PRCompareMode = "lower" | "higher";
 
@@ -119,4 +119,162 @@ export function applyPRUpdates(
 
 export function emptyInputs(fields: PRFieldDefinition[]): Record<string, string> {
   return Object.fromEntries(fields.map((field) => [field.inputKey, ""]));
+}
+
+export function appendSprintPREntry(
+  prHistory: SprintPREntry[],
+  previous: SprintPRs,
+  next: SprintPRs
+): { history: SprintPREntry[]; changed: boolean } {
+  const entry: SprintPREntry = {
+    date: new Date().toLocaleDateString(),
+    tenMeter: "",
+    twentyMeter: "",
+    thirtyMeter: "",
+  };
+
+  let hasChanges = false;
+
+  for (const field of SPRINT_PR_FIELDS) {
+    const prKey = field.prKey as keyof SprintPRs;
+    const previousValue = String(previous[prKey]);
+    const nextValue = String(next[prKey]);
+
+    if (
+      nextValue !== "" &&
+      isBetter(field.compare, previousValue, nextValue)
+    ) {
+      entry[field.inputKey as keyof SprintPREntry] = nextValue;
+      hasChanges = true;
+    }
+  }
+
+  if (!hasChanges) {
+    return { history: prHistory, changed: false };
+  }
+
+  return {
+    history: [entry, ...prHistory],
+    changed: true,
+  };
+}
+
+export function appendStrengthPREntry(
+  prHistory: StrengthPREntry[],
+  previous: StrengthPRs,
+  next: StrengthPRs
+): { history: StrengthPREntry[]; changed: boolean } {
+  const entry: StrengthPREntry = {
+    date: new Date().toLocaleDateString(),
+    bench: "",
+    squat: "",
+    pullup: "",
+  };
+
+  let hasChanges = false;
+
+  for (const field of STRENGTH_PR_FIELDS) {
+    const prKey = field.prKey as keyof StrengthPRs;
+    const previousValue = String(previous[prKey]);
+    const nextValue = String(next[prKey]);
+
+    if (
+      nextValue !== "" &&
+      isBetter(field.compare, previousValue, nextValue)
+    ) {
+      entry[field.inputKey as keyof StrengthPREntry] = nextValue;
+      hasChanges = true;
+    }
+  }
+
+  if (!hasChanges) {
+    return { history: prHistory, changed: false };
+  }
+
+  return {
+    history: [entry, ...prHistory],
+    changed: true,
+  };
+}
+
+export function bootstrapSprintPREntry(prs: SprintPRs): SprintPREntry | null {
+  const entry: SprintPREntry = {
+    date: "",
+    tenMeter: "",
+    twentyMeter: "",
+    thirtyMeter: "",
+  };
+
+  let hasAny = false;
+
+  for (const field of SPRINT_PR_FIELDS) {
+    const prKey = field.prKey as keyof SprintPRs;
+    const dateKey = field.dateKey as keyof SprintPRs;
+    const value = String(prs[prKey]);
+    if (!value) {
+      continue;
+    }
+
+    entry[field.inputKey as keyof SprintPREntry] = value;
+    hasAny = true;
+
+    const dateValue = String(prs[dateKey]);
+    if (
+      dateValue &&
+      (!entry.date || new Date(dateValue).getTime() > new Date(entry.date).getTime())
+    ) {
+      entry.date = dateValue;
+    }
+  }
+
+  if (!hasAny) {
+    return null;
+  }
+
+  if (!entry.date) {
+    entry.date = new Date().toLocaleDateString();
+  }
+
+  return entry;
+}
+
+export function bootstrapStrengthPREntry(prs: StrengthPRs): StrengthPREntry | null {
+  const entry: StrengthPREntry = {
+    date: "",
+    bench: "",
+    squat: "",
+    pullup: "",
+  };
+
+  let hasAny = false;
+
+  for (const field of STRENGTH_PR_FIELDS) {
+    const prKey = field.prKey as keyof StrengthPRs;
+    const dateKey = field.dateKey as keyof StrengthPRs;
+    const value = String(prs[prKey]);
+    if (!value) {
+      continue;
+    }
+
+    entry[field.inputKey as keyof StrengthPREntry] = value;
+    hasAny = true;
+
+    const dateValue = String(prs[dateKey]);
+    if (
+      dateValue &&
+      (!entry.date || new Date(dateValue).getTime() > new Date(entry.date).getTime())
+    ) {
+      entry.date = dateValue;
+    }
+  }
+
+  if (!hasAny) {
+    return null;
+  }
+
+  if (!entry.date) {
+    entry.date = new Date().toLocaleDateString();
+  }
+
+  return entry;
 }

@@ -1,7 +1,9 @@
 import type {
   HeightPREntry,
   RunPRs,
+  SprintPREntry,
   SprintPRs,
+  StrengthPREntry,
   StrengthPRs,
   VaultSession,
   VaultStepReferences,
@@ -54,6 +56,16 @@ export function loadSprintPRs(): SprintPRs {
 
 export function saveSprintPRs(prs: SprintPRs): void {
   setItem(STORAGE_KEYS.SPRINT_PRS, prs);
+  window.dispatchEvent(new Event(STORAGE_EVENTS.SPRINT_PRS_CHANGED));
+}
+
+export function loadSprintPRHistory(): SprintPREntry[] {
+  return getItem<SprintPREntry[]>(STORAGE_KEYS.SPRINT_PR_HISTORY, []);
+}
+
+export function saveSprintPRHistory(history: SprintPREntry[]): void {
+  setItem(STORAGE_KEYS.SPRINT_PR_HISTORY, history);
+  window.dispatchEvent(new Event(STORAGE_EVENTS.SPRINT_PRS_CHANGED));
 }
 
 export function loadStrengthPRs(): StrengthPRs {
@@ -62,6 +74,16 @@ export function loadStrengthPRs(): StrengthPRs {
 
 export function saveStrengthPRs(prs: StrengthPRs): void {
   setItem(STORAGE_KEYS.STRENGTH_PRS, prs);
+  window.dispatchEvent(new Event(STORAGE_EVENTS.STRENGTH_PRS_CHANGED));
+}
+
+export function loadStrengthPRHistory(): StrengthPREntry[] {
+  return getItem<StrengthPREntry[]>(STORAGE_KEYS.STRENGTH_PR_HISTORY, []);
+}
+
+export function saveStrengthPRHistory(history: StrengthPREntry[]): void {
+  setItem(STORAGE_KEYS.STRENGTH_PR_HISTORY, history);
+  window.dispatchEvent(new Event(STORAGE_EVENTS.STRENGTH_PRS_CHANGED));
 }
 
 export function loadVaultSessions(): VaultSession[] {
@@ -115,6 +137,30 @@ export function subscribeVaultRunPRs(listener: () => void): () => void {
 
   return () => {
     window.removeEventListener(STORAGE_EVENTS.VAULT_RUN_PRS_CHANGED, handler);
+    window.removeEventListener("storage", handler);
+  };
+}
+
+export function subscribeSprintPRs(listener: () => void): () => void {
+  const handler = () => listener();
+
+  window.addEventListener(STORAGE_EVENTS.SPRINT_PRS_CHANGED, handler);
+  window.addEventListener("storage", handler);
+
+  return () => {
+    window.removeEventListener(STORAGE_EVENTS.SPRINT_PRS_CHANGED, handler);
+    window.removeEventListener("storage", handler);
+  };
+}
+
+export function subscribeStrengthPRs(listener: () => void): () => void {
+  const handler = () => listener();
+
+  window.addEventListener(STORAGE_EVENTS.STRENGTH_PRS_CHANGED, handler);
+  window.addEventListener("storage", handler);
+
+  return () => {
+    window.removeEventListener(STORAGE_EVENTS.STRENGTH_PRS_CHANGED, handler);
     window.removeEventListener("storage", handler);
   };
 }

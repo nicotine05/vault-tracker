@@ -6,24 +6,57 @@ import TrainingCalendar from "@/components/TrainingCalendar";
 import VaultGoalCard from "@/components/home/VaultGoalCard";
 import WeightSummaryCard from "@/components/home/WeightSummaryCard";
 import VaultPRChart from "@/components/progress/VaultPRChart";
-import type { HeightPREntry } from "@/lib/domain/types";
-import type { VaultRunChartKey } from "@/lib/domain/vaultProgress";
+import type {
+  HeightPREntry,
+  SprintPREntry,
+  StrengthPREntry,
+} from "@/lib/domain/types";
+import type {
+  PRChartTab,
+  SprintChartKey,
+  StrengthChartKey,
+} from "@/lib/domain/prProgress";
 import { useWeightHistory } from "@/lib/hooks/useWeightHistory";
 import { useVaultRunPRs } from "@/lib/hooks/useVaultRunPRs";
-import { loadVaultPRHistory, subscribeVaultRunPRs } from "@/lib/storage/logStore";
+import {
+  loadSprintPRHistory,
+  loadStrengthPRHistory,
+  loadVaultPRHistory,
+  subscribeSprintPRs,
+  subscribeStrengthPRs,
+  subscribeVaultRunPRs,
+} from "@/lib/storage/logStore";
 
 export default function ProgressPage() {
   const runPRs = useVaultRunPRs();
-  const [prHistory, setPrHistory] = useState<HeightPREntry[]>([]);
-  const [selectedRun, setSelectedRun] = useState<VaultRunChartKey>("sevenL");
+  const [vaultHistory, setVaultHistory] = useState<HeightPREntry[]>([]);
+  const [sprintHistory, setSprintHistory] = useState<SprintPREntry[]>([]);
+  const [strengthHistory, setStrengthHistory] = useState<StrengthPREntry[]>([]);
+  const [selectedTab, setSelectedTab] = useState<PRChartTab>("sevenL");
+  const [sprintMetric, setSprintMetric] = useState<SprintChartKey>("tenMeter");
+  const [strengthMetric, setStrengthMetric] =
+    useState<StrengthChartKey>("bench");
   const { weightHistory } = useWeightHistory();
 
   useEffect(() => {
-    const refreshHistory = () => setPrHistory(loadVaultPRHistory());
-    refreshHistory();
+    const refreshVaultHistory = () => setVaultHistory(loadVaultPRHistory());
+    const refreshSprintHistory = () => setSprintHistory(loadSprintPRHistory());
+    const refreshStrengthHistory = () =>
+      setStrengthHistory(loadStrengthPRHistory());
 
-    const unsubscribe = subscribeVaultRunPRs(refreshHistory);
-    return unsubscribe;
+    refreshVaultHistory();
+    refreshSprintHistory();
+    refreshStrengthHistory();
+
+    const unsubscribeVault = subscribeVaultRunPRs(refreshVaultHistory);
+    const unsubscribeSprint = subscribeSprintPRs(refreshSprintHistory);
+    const unsubscribeStrength = subscribeStrengthPRs(refreshStrengthHistory);
+
+    return () => {
+      unsubscribeVault();
+      unsubscribeSprint();
+      unsubscribeStrength();
+    };
   }, []);
 
   return (
@@ -35,9 +68,15 @@ export default function ProgressPage() {
       <div className="mt-4">
         <Card>
           <VaultPRChart
-            prHistory={prHistory}
-            selectedRun={selectedRun}
-            onRunChange={setSelectedRun}
+            vaultHistory={vaultHistory}
+            sprintHistory={sprintHistory}
+            strengthHistory={strengthHistory}
+            selectedTab={selectedTab}
+            onTabChange={setSelectedTab}
+            sprintMetric={sprintMetric}
+            onSprintMetricChange={setSprintMetric}
+            strengthMetric={strengthMetric}
+            onStrengthMetricChange={setStrengthMetric}
           />
         </Card>
       </div>

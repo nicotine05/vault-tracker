@@ -1,6 +1,14 @@
 import { STORAGE_KEYS } from "@/lib/storage/keys";
 import type { PlannerDay } from "@/lib/trainingProgram";
 import {
+  bootstrapSprintPREntry,
+  bootstrapStrengthPREntry,
+} from "@/lib/domain/prLog";
+import {
+  EMPTY_SPRINT_PRS,
+  EMPTY_STRENGTH_PRS,
+} from "@/lib/storage/logStore";
+import {
   generateScheduleSnapshot,
   type WeekScheduleSnapshot,
 } from "@/lib/storage/programStore";
@@ -68,8 +76,32 @@ function migrateLegacyGeneratedSchedules(): void {
   writeJson(STORAGE_KEYS.MIGRATION_V1, true);
 }
 
+function migrateSprintStrengthPRHistory(): void {
+  const sprintHistory = readJson<unknown[]>(STORAGE_KEYS.SPRINT_PR_HISTORY, []);
+  if (sprintHistory.length === 0) {
+    const sprintPRs = readJson(STORAGE_KEYS.SPRINT_PRS, EMPTY_SPRINT_PRS);
+    const entry = bootstrapSprintPREntry(sprintPRs);
+    if (entry) {
+      writeJson(STORAGE_KEYS.SPRINT_PR_HISTORY, [entry]);
+    }
+  }
+
+  const strengthHistory = readJson<unknown[]>(
+    STORAGE_KEYS.STRENGTH_PR_HISTORY,
+    []
+  );
+  if (strengthHistory.length === 0) {
+    const strengthPRs = readJson(STORAGE_KEYS.STRENGTH_PRS, EMPTY_STRENGTH_PRS);
+    const entry = bootstrapStrengthPREntry(strengthPRs);
+    if (entry) {
+      writeJson(STORAGE_KEYS.STRENGTH_PR_HISTORY, [entry]);
+    }
+  }
+}
+
 const MIGRATIONS: Migration[] = [
   { id: "legacy-generated-schedules", run: migrateLegacyGeneratedSchedules },
+  { id: "sprint-strength-pr-history", run: migrateSprintStrengthPRHistory },
 ];
 
 let migrationsRan = false;

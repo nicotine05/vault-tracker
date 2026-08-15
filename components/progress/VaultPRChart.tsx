@@ -8,47 +8,137 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import type { HeightPREntry, SprintPREntry, StrengthPREntry } from "@/lib/domain/types";
 import {
-  buildVaultPRChartData,
-  getVaultPRChartDomain,
-  type VaultRunChartKey,
-} from "@/lib/domain/vaultProgress";
-import type { HeightPREntry } from "@/lib/domain/types";
-import { metersToFeetInches } from "@/lib/domain/vaultUnits";
+  buildPRChartData,
+  formatPRChartValue,
+  getPRChartDomain,
+  getSprintChartLabel,
+  getStrengthChartLabel,
+  type PRChartTab,
+  type SprintChartKey,
+  type StrengthChartKey,
+} from "@/lib/domain/prProgress";
+import {
+  segmentedIdleClassName,
+  segmentedSelectedClassName,
+} from "@/lib/ui/componentStyles";
 
 type VaultPRChartProps = {
-  prHistory: HeightPREntry[];
-  selectedRun: VaultRunChartKey;
-  onRunChange: (run: VaultRunChartKey) => void;
+  vaultHistory: HeightPREntry[];
+  sprintHistory: SprintPREntry[];
+  strengthHistory: StrengthPREntry[];
+  selectedTab: PRChartTab;
+  onTabChange: (tab: PRChartTab) => void;
+  sprintMetric: SprintChartKey;
+  onSprintMetricChange: (metric: SprintChartKey) => void;
+  strengthMetric: StrengthChartKey;
+  onStrengthMetricChange: (metric: StrengthChartKey) => void;
 };
 
+const VAULT_TABS: { id: PRChartTab; label: string }[] = [
+  { id: "threeL", label: "3L" },
+  { id: "fourL", label: "4L" },
+  { id: "fiveL", label: "5L" },
+  { id: "sixL", label: "6L" },
+  { id: "sevenL", label: "7L" },
+  { id: "sprint", label: "Sprint" },
+  { id: "strength", label: "Strength" },
+];
+
+const SPRINT_METRICS: SprintChartKey[] = ["tenMeter", "twentyMeter", "thirtyMeter"];
+const STRENGTH_METRICS: StrengthChartKey[] = ["bench", "squat", "pullup"];
+
 export default function VaultPRChart({
-  prHistory,
-  selectedRun,
-  onRunChange,
+  vaultHistory,
+  sprintHistory,
+  strengthHistory,
+  selectedTab,
+  onTabChange,
+  sprintMetric,
+  onSprintMetricChange,
+  strengthMetric,
+  onStrengthMetricChange,
 }: VaultPRChartProps) {
-  const chartData = buildVaultPRChartData(prHistory, selectedRun);
-  const [minPR, maxPR] = getVaultPRChartDomain(chartData);
+  const chartData = buildPRChartData({
+    tab: selectedTab,
+    vaultHistory,
+    sprintHistory,
+    strengthHistory,
+    sprintMetric,
+    strengthMetric,
+  });
+  const [minPR, maxPR] = getPRChartDomain(selectedTab, chartData);
 
   return (
     <>
-      <div className="mb-4 flex items-center justify-between">
-        <p className="font-semibold">Vault PR Progression</p>
-
-        <select
-          value={selectedRun}
-          onChange={(event) =>
-            onRunChange(event.target.value as VaultRunChartKey)
-          }
-          className="rounded-lg border px-2 py-1"
-        >
-          <option value="threeL">3L</option>
-          <option value="fourL">4L</option>
-          <option value="fiveL">5L</option>
-          <option value="sixL">6L</option>
-          <option value="sevenL">7L</option>
-        </select>
+      <div className="mb-4">
+        <p className="font-semibold">PR Progression</p>
       </div>
+
+      <div className="mb-3 flex gap-1 overflow-x-auto pb-1">
+        {VAULT_TABS.map((tab) => {
+          const selected = selectedTab === tab.id;
+
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              aria-pressed={selected}
+              onClick={() => onTabChange(tab.id)}
+              className={`shrink-0 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition ${
+                selected ? segmentedSelectedClassName : segmentedIdleClassName
+              }`}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {selectedTab === "sprint" && (
+        <div className="mb-3 flex gap-1">
+          {SPRINT_METRICS.map((metric) => {
+            const selected = sprintMetric === metric;
+
+            return (
+              <button
+                key={metric}
+                type="button"
+                aria-pressed={selected}
+                onClick={() => onSprintMetricChange(metric)}
+                className={`rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition ${
+                  selected ? segmentedSelectedClassName : segmentedIdleClassName
+                }`}
+              >
+                {getSprintChartLabel(metric)}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {selectedTab === "strength" && (
+        <div className="mb-3 flex gap-1">
+          {STRENGTH_METRICS.map((metric) => {
+            const selected = strengthMetric === metric;
+
+            return (
+              <button
+                key={metric}
+                type="button"
+                aria-pressed={selected}
+                onClick={() => onStrengthMetricChange(metric)}
+                className={`rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition ${
+                  selected ? segmentedSelectedClassName : segmentedIdleClassName
+                }`}
+              >
+                {getStrengthChartLabel(metric)}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {chartData.length < 2 ? (
         <p className="text-muted">
@@ -62,13 +152,13 @@ export default function VaultPRChart({
               <YAxis
                 domain={[minPR, maxPR]}
                 tickFormatter={(value) =>
-                  metersToFeetInches(Number(value))
+                  formatPRChartValue(selectedTab, Number(value), strengthMetric)
                 }
                 width={72}
               />
               <Tooltip
                 formatter={(value) => [
-                  metersToFeetInches(Number(value)),
+                  formatPRChartValue(selectedTab, Number(value), strengthMetric),
                   "PR",
                 ]}
                 labelFormatter={(label) => `Date: ${label}`}

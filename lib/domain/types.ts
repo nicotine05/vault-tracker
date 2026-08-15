@@ -25,6 +25,20 @@ export type HeightPREntry = {
   sevenL: string;
 };
 
+export type SprintPREntry = {
+  date: string;
+  tenMeter: string;
+  twentyMeter: string;
+  thirtyMeter: string;
+};
+
+export type StrengthPREntry = {
+  date: string;
+  bench: string;
+  squat: string;
+  pullup: string;
+};
+
 export type MealPlanKey = "A" | "B" | "C";
 
 export type SprintPRs = {
