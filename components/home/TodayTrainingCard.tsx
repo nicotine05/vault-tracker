@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Card from "@/components/Card";
+import { buildProgramDayHref } from "@/lib/domain/programScheduleView";
 import { getTodayWorkoutPlan } from "@/lib/domain/todayTraining";
 import type { WeekScheduleSnapshot } from "@/lib/storage/programStore";
 import { getTrafficLightSymbol } from "@/lib/trainingProgram";
@@ -17,8 +18,13 @@ export default function TodayTrainingCard({
   const { todayName, snapshot, dailyPlan: todayWorkoutPlan } =
     getTodayWorkoutPlan(scheduleSnapshotsByWeek, currentWeek);
 
+  const programHref =
+    snapshot && todayWorkoutPlan
+      ? buildProgramDayHref(todayName, currentWeek)
+      : "/program";
+
   return (
-    <Link href="/program">
+    <Link href={programHref}>
       <Card className="h-full cursor-pointer transition hover:shadow-md">
         <p className="text-sm text-muted">Today&apos;s Training</p>
 

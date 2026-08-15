@@ -6,6 +6,24 @@ import {
 
 export type ScheduleViewMode = "week" | "day";
 
+export type PlannerDayName = (typeof plannerDays)[number];
+
+export function isPlannerDayName(
+  value: string | null | undefined
+): value is PlannerDayName {
+  return plannerDays.includes(value as PlannerDayName);
+}
+
+export function buildProgramDayHref(day: string, week: number): string {
+  const params = new URLSearchParams({
+    view: "day",
+    day,
+    week: String(week),
+  });
+
+  return `/program?${params.toString()}`;
+}
+
 export function getInitialScheduleViewDay(
   planningWeek: number,
   currentWeek: number,

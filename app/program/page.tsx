@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import GeneratedScheduleCard from "@/components/program/GeneratedScheduleCard";
 import PlannerHealthBar from "@/components/program/PlannerHealthBar";
@@ -18,6 +19,21 @@ import { isWeekScheduleGenerated } from "@/lib/storage/programStore";
 import type { TrainingType } from "@/lib/trainingProgram";
 
 export default function ProgramPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="max-w-md mx-auto p-4 pb-20">
+          <h1 className="mb-4 text-3xl font-bold">Program</h1>
+        </main>
+      }
+    >
+      <ProgramPageContent />
+    </Suspense>
+  );
+}
+
+function ProgramPageContent() {
+  const searchParams = useSearchParams();
   const { isCoachReadOnly } = useAuth();
   const {
     currentWeek,
@@ -30,10 +46,23 @@ export default function ProgramPage() {
     generateWeekSchedule,
     resetWeekPlanner,
     completeWorkout,
+    setPlanningWeek,
   } = useProgramState();
 
   const [expandedWorkouts, setExpandedWorkouts] = useState<Record<string, boolean>>({});
   const [confirmingKey, setConfirmingKey] = useState<string | null>(null);
+
+  useEffect(() => {
+    const weekParam = searchParams.get("week");
+    if (!weekParam) {
+      return;
+    }
+
+    const week = Number(weekParam);
+    if (Number.isFinite(week) && week !== planningWeek) {
+      setPlanningWeek(week);
+    }
+  }, [searchParams, planningWeek, setPlanningWeek]);
 
   const weekPlanner = plannerByWeek[planningWeek] || {};
   const phaseName = getPhaseNameForWeek(planningWeek);

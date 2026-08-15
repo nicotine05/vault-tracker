@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Card from "@/components/Card";
 import ScheduleDaySection from "@/components/program/ScheduleDaySection";
 import ScheduleWeekOverview from "@/components/program/ScheduleWeekOverview";
@@ -9,6 +10,7 @@ import {
   getAdjacentPlannerDay,
   getEmptyDailyPlan,
   getInitialScheduleViewDay,
+  isPlannerDayName,
   type ScheduleViewMode,
 } from "@/lib/domain/programScheduleView";
 import { plannerDays, type GeneratedWeekSchedule } from "@/lib/trainingProgram";
@@ -40,17 +42,27 @@ export default function GeneratedScheduleCard({
   onSetConfirmingKey,
   onReset,
 }: GeneratedScheduleCardProps) {
+  const searchParams = useSearchParams();
   const [viewMode, setViewMode] = useState<ScheduleViewMode>("week");
   const [selectedDay, setSelectedDay] = useState(() =>
     getInitialScheduleViewDay(planningWeek, currentWeek, generatedSchedule)
   );
 
   useEffect(() => {
+    const view = searchParams.get("view");
+    const dayParam = searchParams.get("day");
+
+    if (view === "day" && isPlannerDayName(dayParam)) {
+      setViewMode("day");
+      setSelectedDay(dayParam);
+      return;
+    }
+
     setViewMode("week");
     setSelectedDay(
       getInitialScheduleViewDay(planningWeek, currentWeek, generatedSchedule)
     );
-  }, [planningWeek, currentWeek, generatedSchedule]);
+  }, [planningWeek, currentWeek, generatedSchedule, searchParams]);
 
   const canGoPrevious = selectedDay !== plannerDays[0];
   const canGoNext = selectedDay !== plannerDays[plannerDays.length - 1];
