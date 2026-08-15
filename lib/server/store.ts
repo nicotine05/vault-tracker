@@ -30,16 +30,30 @@ const REDIS_STORE_KEY = "vault-tracker:store";
 
 let redisClient: Redis | null = null;
 
+function getRedisCredentials(): { url: string; token: string } | null {
+  const url =
+    process.env.UPSTASH_REDIS_REST_URL ?? process.env.KV_REST_API_URL;
+  const token =
+    process.env.UPSTASH_REDIS_REST_TOKEN ?? process.env.KV_REST_API_TOKEN;
+
+  if (!url || !token) {
+    return null;
+  }
+
+  return { url, token };
+}
+
 function getRedisClient(): Redis | null {
-  if (
-    !process.env.UPSTASH_REDIS_REST_URL ||
-    !process.env.UPSTASH_REDIS_REST_TOKEN
-  ) {
+  const credentials = getRedisCredentials();
+  if (!credentials) {
     return null;
   }
 
   if (!redisClient) {
-    redisClient = Redis.fromEnv();
+    redisClient = new Redis({
+      url: credentials.url,
+      token: credentials.token,
+    });
   }
 
   return redisClient;
@@ -168,4 +182,11 @@ export function createUserRecord(params: {
 
 export function usesRedisStore(): boolean {
   return Boolean(getRedisClient());
+}
+
+export type StoreBackend = "redis" | "file";
+
+/** Where account + sync data is persisted on this deployment. */
+export function getStoreBackend(): StoreBackend {
+  return usesRedisStore() ? "redis" : "file";
 }
