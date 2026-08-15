@@ -1,4 +1,3 @@
-import { getItem, setItem } from "@/lib/storage/localStore";
 import { STORAGE_KEYS } from "@/lib/storage/keys";
 import type { PlannerDay } from "@/lib/trainingProgram";
 import {
@@ -11,23 +10,40 @@ type Migration = {
   run: () => void;
 };
 
+function readJson<T>(key: string, fallback: T): T {
+  const raw = localStorage.getItem(key);
+  if (raw === null) {
+    return fallback;
+  }
+
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return fallback;
+  }
+}
+
+function writeJson(key: string, value: unknown): void {
+  localStorage.setItem(key, JSON.stringify(value));
+}
+
 /** Legacy generatedSchedules → scheduleSnapshotsByWeek */
 function migrateLegacyGeneratedSchedules(): void {
-  if (getItem<boolean>(STORAGE_KEYS.MIGRATION_V1, false)) {
+  if (readJson<boolean>(STORAGE_KEYS.MIGRATION_V1, false)) {
     return;
   }
 
-  const snapshots = getItem<Record<number, WeekScheduleSnapshot>>(
+  const snapshots = readJson<Record<number, WeekScheduleSnapshot>>(
     STORAGE_KEYS.SCHEDULE_SNAPSHOTS,
     {}
   );
 
-  const legacyGenerated = getItem<Record<number, boolean>>(
+  const legacyGenerated = readJson<Record<number, boolean>>(
     STORAGE_KEYS.GENERATED_SCHEDULES,
     {}
   );
 
-  const legacyPlanner = getItem<Record<number, Record<string, PlannerDay>>>(
+  const legacyPlanner = readJson<Record<number, Record<string, PlannerDay>>>(
     STORAGE_KEYS.WEEKLY_PLANNER,
     {}
   );
@@ -48,18 +64,22 @@ function migrateLegacyGeneratedSchedules(): void {
     );
   }
 
-  setItem(STORAGE_KEYS.SCHEDULE_SNAPSHOTS, snapshots, { skipSync: true });
-  setItem(STORAGE_KEYS.MIGRATION_V1, true, { skipSync: true });
+  writeJson(STORAGE_KEYS.SCHEDULE_SNAPSHOTS, snapshots);
+  writeJson(STORAGE_KEYS.MIGRATION_V1, true);
 }
 
 const MIGRATIONS: Migration[] = [
   { id: "legacy-generated-schedules", run: migrateLegacyGeneratedSchedules },
 ];
 
+let migrationsRan = false;
+
 export function runStorageMigrations(): void {
-  if (typeof window === "undefined") {
+  if (typeof window === "undefined" || migrationsRan) {
     return;
   }
+
+  migrationsRan = true;
 
   for (const migration of MIGRATIONS) {
     migration.run();
