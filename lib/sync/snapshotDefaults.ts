@@ -1,3 +1,4 @@
+import { getDefaultCurrentWeekStartDate } from "@/lib/domain/calendarUtils";
 import {
   EMPTY_RUN_PRS,
   EMPTY_SPRINT_PRS,
@@ -10,6 +11,7 @@ import { STORAGE_KEYS } from "@/lib/storage/keys";
 export function getDefaultSyncSnapshot(): Record<string, unknown> {
   return {
     [STORAGE_KEYS.CURRENT_WEEK]: "1",
+    [STORAGE_KEYS.CURRENT_WEEK_START]: getDefaultCurrentWeekStartDate(),
     [STORAGE_KEYS.PLANNING_WEEK]: "1",
     [STORAGE_KEYS.WEEKLY_PLANNER]: {},
     [STORAGE_KEYS.SCHEDULE_SNAPSHOTS]: {},

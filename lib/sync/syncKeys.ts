@@ -3,6 +3,7 @@ import { STORAGE_KEYS } from "@/lib/storage/keys";
 /** All localStorage keys that should sync to the server for an athlete. */
 export const SYNC_STORAGE_KEYS = [
   STORAGE_KEYS.CURRENT_WEEK,
+  STORAGE_KEYS.CURRENT_WEEK_START,
   STORAGE_KEYS.PLANNING_WEEK,
   STORAGE_KEYS.WEEKLY_PLANNER,
   STORAGE_KEYS.SCHEDULE_SNAPSHOTS,

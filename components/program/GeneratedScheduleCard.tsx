@@ -60,14 +60,14 @@ export default function GeneratedScheduleCard({
     if (view === "day" && isPlannerDayName(dayParam)) {
       setViewMode("day");
       setSelectedDay(dayParam);
-      return;
     }
+  }, [searchParams]);
 
-    setViewMode("week");
+  useEffect(() => {
     setSelectedDay(
       getInitialScheduleViewDay(planningWeek, currentWeek, generatedSchedule)
     );
-  }, [planningWeek, currentWeek, generatedSchedule, searchParams]);
+  }, [planningWeek, currentWeek, generatedSchedule]);
 
   const canGoPrevious = selectedDay !== plannerDays[0];
   const canGoNext = selectedDay !== plannerDays[plannerDays.length - 1];

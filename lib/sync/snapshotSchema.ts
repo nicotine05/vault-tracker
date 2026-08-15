@@ -307,6 +307,11 @@ export function normalizeSyncSnapshot(
     [STORAGE_KEYS.CURRENT_WEEK]: clampWeekValue(
       data[STORAGE_KEYS.CURRENT_WEEK] ?? defaults[STORAGE_KEYS.CURRENT_WEEK]
     ),
+    [STORAGE_KEYS.CURRENT_WEEK_START]: isString(
+      data[STORAGE_KEYS.CURRENT_WEEK_START]
+    )
+      ? data[STORAGE_KEYS.CURRENT_WEEK_START]
+      : defaults[STORAGE_KEYS.CURRENT_WEEK_START],
     [STORAGE_KEYS.PLANNING_WEEK]: clampWeekValue(
       data[STORAGE_KEYS.PLANNING_WEEK] ?? defaults[STORAGE_KEYS.PLANNING_WEEK]
     ),

@@ -12,7 +12,7 @@ import {
 import type { PlannerDay, TrainingType } from "@/lib/trainingProgram";
 import { workoutCompletionKey } from "@/lib/trainingProgram";
 import type { WorkoutExecutionRecord } from "@/lib/domain/types";
-import { getCalendarDateForProgramDay } from "@/lib/domain/calendarUtils";
+import { getCalendarDateForProgramDay, getDefaultCurrentWeekStartDate, shiftWeekStartDate } from "@/lib/domain/calendarUtils";
 import {
   clampPlanningWeek,
   generateScheduleSnapshot,
@@ -86,9 +86,14 @@ export function ProgramStateProvider({
     if (isCoachReadOnly()) return;
     setState((prev) => {
       const currentWeek = Math.min(12, Math.max(1, week));
+      const weekDelta = currentWeek - prev.currentWeek;
+      const anchor =
+        prev.currentWeekStartDate || getDefaultCurrentWeekStartDate();
+
       return {
         ...prev,
         currentWeek,
+        currentWeekStartDate: shiftWeekStartDate(anchor, weekDelta),
         planningWeek: clampPlanningWeek(prev.planningWeek, currentWeek),
       };
     });
@@ -105,9 +110,13 @@ export function ProgramStateProvider({
     if (isCoachReadOnly()) return;
     setState((prev) => {
       const nextWeek = Math.min(12, prev.currentWeek + 1);
+      const anchor =
+        prev.currentWeekStartDate || getDefaultCurrentWeekStartDate();
+
       return {
         ...prev,
         currentWeek: nextWeek,
+        currentWeekStartDate: shiftWeekStartDate(anchor, 1),
         planningWeek: nextWeek,
       };
     });
@@ -199,7 +208,8 @@ export function ProgramStateProvider({
       const scheduledDate = getCalendarDateForProgramDay(
         params.weekNumber,
         params.day,
-        prev.currentWeek
+        prev.currentWeek,
+        prev.currentWeekStartDate
       );
 
       const record: WorkoutExecutionRecord = {

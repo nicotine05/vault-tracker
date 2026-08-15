@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { WorkoutExecutionRecord } from "@/lib/domain/types";
 import {
   getRecordCalendarDate,
@@ -11,11 +11,8 @@ import {
   getCatalogWorkout,
   type TrainingType,
 } from "@/lib/trainingProgram";
-import {
-  loadProgramState,
-  MAX_PLAN_AHEAD_WEEKS,
-  subscribeProgramState,
-} from "@/lib/storage/programStore";
+import { useProgramState } from "@/lib/hooks/useProgramState";
+import { MAX_PLAN_AHEAD_WEEKS } from "@/lib/storage/programStore";
 import { trainingTypeStyles } from "@/lib/ui/trainingStyles";
 
 type DaySessionView = {
@@ -35,10 +32,14 @@ const dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 function getCompletionsForDate(
   history: Record<string, WorkoutExecutionRecord>,
   dateKey: string,
-  currentWeek: number
+  currentWeek: number,
+  currentWeekStartDate: string
 ): WorkoutExecutionRecord[] {
   return Object.values(history).filter((record) => {
-    return getRecordCalendarDate(record, currentWeek) === dateKey;
+    return (
+      getRecordCalendarDate(record, currentWeek, currentWeekStartDate) ===
+      dateKey
+    );
   });
 }
 
@@ -46,6 +47,7 @@ function buildDaySessions(
   dateKey: string,
   executionHistory: Record<string, WorkoutExecutionRecord>,
   currentWeek: number,
+  currentWeekStartDate: string,
   schedulesByWeek: Record<
     number,
     Record<string, { sessions: Array<{ id: string; type: string; name: string; load: number; focus?: string; jumpVolume?: string }> }>
@@ -54,7 +56,8 @@ function buildDaySessions(
   const completions = getCompletionsForDate(
     executionHistory,
     dateKey,
-    currentWeek
+    currentWeek,
+    currentWeekStartDate
   );
 
   const views: DaySessionView[] = completions.map((record) => ({
@@ -72,7 +75,8 @@ function buildDaySessions(
     dateKey,
     currentWeek,
     schedulesByWeek,
-    MAX_PLAN_AHEAD_WEEKS
+    MAX_PLAN_AHEAD_WEEKS,
+    currentWeekStartDate
   );
 
   for (const session of scheduled) {
@@ -94,22 +98,17 @@ function buildDaySessions(
 }
 
 export default function TrainingCalendar() {
-  const [programState, setProgramState] = useState(loadProgramState);
+  const {
+    currentWeek,
+    currentWeekStartDate,
+    executionHistory,
+    scheduleSnapshotsByWeek,
+  } = useProgramState();
   const [currentMonth, setCurrentMonth] = useState(
     () => new Date(new Date().getFullYear(), new Date().getMonth(), 1)
   );
   const [selectedDate, setSelectedDate] = useState(() => toLocalDateKey(new Date()));
   const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
-
-  useEffect(() => {
-    setProgramState(loadProgramState());
-    return subscribeProgramState(() => {
-      setProgramState(loadProgramState());
-    });
-  }, []);
-
-  const { currentWeek, executionHistory, scheduleSnapshotsByWeek } =
-    programState;
 
   const schedulesByWeek = useMemo(() => {
     const result: Record<
@@ -161,9 +160,16 @@ export default function TrainingCalendar() {
         selectedDate,
         executionHistory,
         currentWeek,
+        currentWeekStartDate,
         schedulesByWeek
       ),
-    [selectedDate, executionHistory, currentWeek, schedulesByWeek]
+    [
+      selectedDate,
+      executionHistory,
+      currentWeek,
+      currentWeekStartDate,
+      schedulesByWeek,
+    ]
   );
 
   const selectedDateLabel = new Date(
@@ -241,6 +247,7 @@ export default function TrainingCalendar() {
             dateKey,
             executionHistory,
             currentWeek,
+            currentWeekStartDate,
             schedulesByWeek
           );
 

@@ -35,6 +35,7 @@ function ProgramPageContent() {
   const { isCoachReadOnly } = useAuth();
   const {
     currentWeek,
+    currentWeekStartDate,
     planningWeek,
     plannerByWeek,
     scheduleSnapshotsByWeek,
@@ -75,6 +76,7 @@ function ProgramPageContent() {
 
   const programState = {
     currentWeek,
+    currentWeekStartDate,
     planningWeek,
     plannerByWeek,
     scheduleSnapshotsByWeek,

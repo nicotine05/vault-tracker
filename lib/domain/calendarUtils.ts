@@ -25,6 +25,19 @@ export function getCalendarWeekStart(date: Date): Date {
   return start;
 }
 
+export function getDefaultCurrentWeekStartDate(date: Date = new Date()): string {
+  return toLocalDateKey(getCalendarWeekStart(date));
+}
+
+export function shiftWeekStartDate(
+  weekStartDate: string,
+  weekDelta: number
+): string {
+  const date = new Date(`${weekStartDate}T00:00:00`);
+  date.setDate(date.getDate() + weekDelta * 7);
+  return toLocalDateKey(date);
+}
+
 export function getWeekDateKeys(weekStart: Date): string[] {
   return Array.from({ length: 7 }, (_, index) => {
     const date = new Date(weekStart);
@@ -48,16 +61,18 @@ export function getCalendarDateForProgramDay(
   weekNumber: number,
   dayName: string,
   currentWeek: number,
-  anchorDate: Date = new Date()
+  currentWeekStartDate?: string
 ): string {
-  const weekStart = getCalendarWeekStart(anchorDate);
+  const weekStart = currentWeekStartDate
+    ? new Date(`${currentWeekStartDate}T00:00:00`)
+    : getCalendarWeekStart(new Date());
   const weekOffset = weekNumber - currentWeek;
   const dayIndex = programDayNames.indexOf(
     dayName as (typeof programDayNames)[number]
   );
 
   if (dayIndex === -1) {
-    return toLocalDateKey(anchorDate);
+    return toLocalDateKey(new Date());
   }
 
   const date = new Date(weekStart);
@@ -67,7 +82,8 @@ export function getCalendarDateForProgramDay(
 
 export function getRecordCalendarDate(
   record: { scheduledDate?: string; weekNumber: number; day: string; completedAt: string },
-  currentWeek: number
+  currentWeek: number,
+  currentWeekStartDate?: string
 ): string {
   if (record.scheduledDate) {
     return record.scheduledDate;
@@ -76,7 +92,8 @@ export function getRecordCalendarDate(
   return getCalendarDateForProgramDay(
     record.weekNumber,
     record.day,
-    currentWeek
+    currentWeek,
+    currentWeekStartDate
   );
 }
 
@@ -95,7 +112,8 @@ export function getScheduledSessionsForDate(
   dateKey: string,
   currentWeek: number,
   schedulesByWeek: Record<number, Record<string, { sessions: Array<{ id: string; type: string; name: string; load: number; focus?: string; jumpVolume?: string }> }> | undefined>,
-  maxPlanAhead: number = 3
+  maxPlanAhead: number = 3,
+  currentWeekStartDate?: string
 ): Array<{ id: string; type: string; name: string; load: number; focus?: string; jumpVolume?: string; weekNumber: number }> {
   const results: Array<{
     id: string;
@@ -107,20 +125,33 @@ export function getScheduledSessionsForDate(
     weekNumber: number;
   }> = [];
   const seen = new Set<string>();
+  const weeksToCheck = new Set<number>();
 
   for (
     let week = currentWeek;
     week <= Math.min(12, currentWeek + maxPlanAhead);
     week += 1
   ) {
-    const schedule = schedulesByWeek[week];
+    weeksToCheck.add(week);
+  }
+
+  for (const weekKey of Object.keys(schedulesByWeek ?? {})) {
+    const week = Number(weekKey);
+    if (Number.isFinite(week) && week >= currentWeek) {
+      weeksToCheck.add(week);
+    }
+  }
+
+  for (const week of weeksToCheck) {
+    const schedule = schedulesByWeek?.[week];
     if (!schedule) continue;
 
     for (const dayName of programDayNamesList) {
       const programDate = getCalendarDateForProgramDay(
         week,
         dayName,
-        currentWeek
+        currentWeek,
+        currentWeekStartDate
       );
       if (programDate !== dateKey) continue;
 

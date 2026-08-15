@@ -5,7 +5,7 @@ import {
   type PlannerDay,
 } from "@/lib/trainingProgram";
 import type { WorkoutExecutionRecord } from "@/lib/domain/types";
-import { getCalendarDateForProgramDay } from "@/lib/domain/calendarUtils";
+import { getCalendarDateForProgramDay, getDefaultCurrentWeekStartDate } from "@/lib/domain/calendarUtils";
 import { getItem, getString, setItem } from "@/lib/storage/localStore";
 import { STORAGE_EVENTS, STORAGE_KEYS } from "@/lib/storage/keys";
 import { runStorageMigrations } from "@/lib/storage/migrations";
@@ -22,6 +22,7 @@ export const MAX_PLAN_AHEAD_WEEKS = 3;
 
 export type ProgramState = {
   currentWeek: number;
+  currentWeekStartDate: string;
   planningWeek: number;
   plannerByWeek: Record<number, Record<string, PlannerDay>>;
   scheduleSnapshotsByWeek: Record<number, WeekScheduleSnapshot>;
@@ -31,6 +32,7 @@ export type ProgramState = {
 
 const DEFAULT_STATE: ProgramState = {
   currentWeek: 1,
+  currentWeekStartDate: getDefaultCurrentWeekStartDate(),
   planningWeek: 1,
   plannerByWeek: {},
   scheduleSnapshotsByWeek: {},
@@ -70,7 +72,8 @@ function createSnapshot(
 
 function backfillScheduledDates(
   history: Record<string, WorkoutExecutionRecord>,
-  currentWeek: number
+  currentWeek: number,
+  currentWeekStartDate: string
 ): Record<string, WorkoutExecutionRecord> {
   let changed = false;
   const next = { ...history };
@@ -83,7 +86,8 @@ function backfillScheduledDates(
       scheduledDate: getCalendarDateForProgramDay(
         record.weekNumber,
         record.day,
-        currentWeek
+        currentWeek,
+        currentWeekStartDate
       ),
     };
     changed = true;
@@ -98,15 +102,26 @@ export function loadProgramState(): ProgramState {
   const currentWeek = clampWeek(
     Number(getString(STORAGE_KEYS.CURRENT_WEEK, "1"))
   );
+  const storedWeekStart = getString(STORAGE_KEYS.CURRENT_WEEK_START, "");
+  const currentWeekStartDate =
+    storedWeekStart || getDefaultCurrentWeekStartDate();
 
   const rawHistory = getItem<Record<string, WorkoutExecutionRecord>>(
     STORAGE_KEYS.EXECUTION_HISTORY,
     {}
   );
-  const executionHistory = backfillScheduledDates(rawHistory, currentWeek);
+  const executionHistory = backfillScheduledDates(
+    rawHistory,
+    currentWeek,
+    currentWeekStartDate
+  );
 
   if (executionHistory !== rawHistory) {
     setItem(STORAGE_KEYS.EXECUTION_HISTORY, executionHistory);
+  }
+
+  if (!storedWeekStart) {
+    setItem(STORAGE_KEYS.CURRENT_WEEK_START, currentWeekStartDate);
   }
 
   const legacyPlanning = getString(STORAGE_KEYS.PLANNING_WEEK, "");
@@ -116,6 +131,7 @@ export function loadProgramState(): ProgramState {
 
   return {
     currentWeek,
+    currentWeekStartDate,
     planningWeek,
     plannerByWeek: getItem(STORAGE_KEYS.WEEKLY_PLANNER, {}),
     scheduleSnapshotsByWeek: getItem(STORAGE_KEYS.SCHEDULE_SNAPSHOTS, {}),
@@ -126,6 +142,7 @@ export function loadProgramState(): ProgramState {
 
 export function saveProgramState(state: ProgramState): void {
   setItem(STORAGE_KEYS.CURRENT_WEEK, String(state.currentWeek));
+  setItem(STORAGE_KEYS.CURRENT_WEEK_START, state.currentWeekStartDate);
   setItem(STORAGE_KEYS.PLANNING_WEEK, String(state.planningWeek));
   setItem(STORAGE_KEYS.WEEKLY_PLANNER, state.plannerByWeek);
   setItem(STORAGE_KEYS.SCHEDULE_SNAPSHOTS, state.scheduleSnapshotsByWeek);
