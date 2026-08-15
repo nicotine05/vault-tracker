@@ -34,6 +34,7 @@ export function useVaultLogState() {
   const [stepRefs, setStepRefs] =
     useState<VaultStepReferences>(EMPTY_STEP_REFS);
   const [runPRs, setRunPRs] = useState<RunPRs>(EMPTY_RUN_PRS);
+  const [lastSavedRunPRs, setLastSavedRunPRs] = useState<RunPRs>(EMPTY_RUN_PRS);
   const [prHistory, setPrHistory] = useState<HeightPREntry[]>([]);
   const [keys, setKeys] = useState<string[]>([""]);
   const [jumps, setJumps] = useState<Jump[]>([]);
@@ -44,6 +45,7 @@ export function useVaultLogState() {
       setSessions(loadVaultSessions());
       setStepRefs(loadVaultStepReferences());
       setRunPRs(loadVaultRunPRs());
+      setLastSavedRunPRs(loadVaultRunPRs());
       setPrHistory(loadVaultPRHistory());
     } catch (error) {
       console.error("Failed to load vault logs", error);
@@ -106,7 +108,18 @@ export function useVaultLogState() {
   }
 
   function saveHeightPRs() {
-    setPrHistory((prev) => appendHeightPREntry(prev, runPRs));
+    const { history, changed } = appendHeightPREntry(
+      prHistory,
+      lastSavedRunPRs,
+      runPRs
+    );
+
+    if (!changed) {
+      return;
+    }
+
+    setPrHistory(history);
+    setLastSavedRunPRs(runPRs);
   }
 
   function updateRunPRField(key: keyof RunPRs, value: string) {

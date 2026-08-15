@@ -18,6 +18,15 @@ export const VAULT_RUN_STEPS = [
 export type VaultRunStepKey =
   (typeof VAULT_RUN_STEPS)[number][1];
 
+export const VAULT_HEIGHT_PR_KEYS = VAULT_RUN_STEPS.map(
+  ([, key]) => key
+) as VaultRunStepKey[];
+
+function normalizeRunPRValue(value: string): string {
+  const trimmed = value.trim();
+  return trimmed === "" ? "" : normalizeVaultPR(trimmed);
+}
+
 export function getGradeEmoji(grade: string): string {
   if (grade === "green") return "🟢";
   if (grade === "yellow") return "🟡";
@@ -133,15 +142,38 @@ export function updateRunPR(
 
 export function appendHeightPREntry(
   prHistory: HeightPREntry[],
-  runPRs: RunPRs
-): HeightPREntry[] {
-  return [
-    {
-      date: new Date().toLocaleDateString(),
-      ...runPRs,
-    },
-    ...prHistory,
-  ];
+  previousRunPRs: RunPRs,
+  nextRunPRs: RunPRs
+): { history: HeightPREntry[]; changed: boolean } {
+  const entry: HeightPREntry = {
+    date: new Date().toLocaleDateString(),
+    threeL: "",
+    fourL: "",
+    fiveL: "",
+    sixL: "",
+    sevenL: "",
+  };
+
+  let hasChanges = false;
+
+  for (const key of VAULT_HEIGHT_PR_KEYS) {
+    const previous = normalizeRunPRValue(previousRunPRs[key]);
+    const next = normalizeRunPRValue(nextRunPRs[key]);
+
+    if (next !== "" && next !== previous) {
+      entry[key] = next;
+      hasChanges = true;
+    }
+  }
+
+  if (!hasChanges) {
+    return { history: prHistory, changed: false };
+  }
+
+  return {
+    history: [entry, ...prHistory],
+    changed: true,
+  };
 }
 
 export function emptyJumpForm(): {

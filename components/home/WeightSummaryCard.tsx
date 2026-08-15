@@ -10,12 +10,12 @@ import type { WeightEntry } from "@/lib/domain/types";
 type WeightSummaryCardProps = {
   weightHistory: WeightEntry[];
   readOnly?: boolean;
-  showEditor: boolean;
-  newWeight: string;
-  onToggleEditor: () => void;
-  onNewWeightChange: (value: string) => void;
-  onSave: () => void;
   compact?: boolean;
+  showEditor?: boolean;
+  newWeight?: string;
+  onToggleEditor?: () => void;
+  onNewWeightChange?: (value: string) => void;
+  onSave?: () => void;
 };
 
 export default function WeightSummaryCard({
@@ -73,7 +73,7 @@ export default function WeightSummaryCard({
         )}
       </div>
 
-      {!readOnly && (
+      {!readOnly && onToggleEditor && (
         <button
           type="button"
           onClick={onToggleEditor}
@@ -83,12 +83,12 @@ export default function WeightSummaryCard({
         </button>
       )}
 
-      {showEditor && !readOnly && (
+      {showEditor && !readOnly && onNewWeightChange && onSave && (
         <div className="mt-3 space-y-2">
           <input
             type="number"
             step="0.1"
-            value={newWeight}
+            value={newWeight ?? ""}
             onChange={(event) => onNewWeightChange(event.target.value)}
             placeholder="182.4"
             className="w-full rounded-xl border p-2"

@@ -2,6 +2,7 @@
 
 import type { RunPRs, VaultStepReferences } from "@/lib/domain/types";
 import { VAULT_RUN_STEPS } from "@/lib/domain/vaultLog";
+import VaultHeightInput from "@/components/vault/VaultHeightInput";
 
 type VaultStepReferencePanelProps = {
   readOnly: boolean;
@@ -79,17 +80,16 @@ export default function VaultStepReferencePanel({
             <p className="font-semibold">PR by Step</p>
 
             {VAULT_RUN_STEPS.map(([label, key]) => (
-              <div key={label} className="flex items-center justify-between">
-                <span>{label}</span>
+              <div key={label} className="flex items-center justify-between gap-2">
+                <span className="shrink-0">{label}</span>
 
-                <input
+                <VaultHeightInput
                   value={runPRs[key]}
-                  onChange={(event) => onRunPRChange(key, event.target.value)}
-                  placeholder="xxft xin"
-                  className="w-24 rounded border px-2 py-1 text-right"
+                  onChange={(value) => onRunPRChange(key, value)}
+                  onCommit={onSaveHeightPRs}
                 />
 
-                <span className="text-xs text-gray-500">
+                <span className="w-20 shrink-0 text-right text-xs text-gray-500">
                   {runPRs[`${key}Date` as keyof RunPRs] as string}
                 </span>
               </div>

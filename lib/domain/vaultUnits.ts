@@ -28,7 +28,7 @@ export function parseVaultHeight(
   const clean = value.trim().replace(/,/g, "").toLowerCase();
   if (!clean) return null;
 
-  const match = clean.match(/(\d+(?:\.\d+)?)ft\s*(\d+(?:\.\d+)?)in/i);
+  const match = clean.match(/(\d+)ft\s*(\d+)in/i);
   if (match) {
     return {
       feet: Number(match[1] || "0"),
@@ -36,7 +36,7 @@ export function parseVaultHeight(
     };
   }
 
-  const ftOnlyMatch = clean.match(/(\d+(?:\.\d+)?)ft/i);
+  const ftOnlyMatch = clean.match(/(\d+)ft/i);
   if (ftOnlyMatch) {
     return {
       feet: Number(ftOnlyMatch[1] || "0"),
@@ -47,12 +47,40 @@ export function parseVaultHeight(
   return null;
 }
 
+export function splitVaultHeightParts(value: string): {
+  feet: string;
+  inches: string;
+} {
+  const parsed = parseVaultHeight(value);
+  if (!parsed) {
+    return { feet: "", inches: "" };
+  }
+
+  return {
+    feet: String(parsed.feet),
+    inches: String(parsed.inches),
+  };
+}
+
+export function formatVaultHeightCanonical(feet: number, inches: number): string {
+  return `${feet}ft ${inches}in`;
+}
+
+export function composeVaultHeight(feet: string, inches: string): string {
+  const feetTrimmed = feet.trim();
+  if (!feetTrimmed) {
+    return "";
+  }
+
+  const inchValue = inches.trim() === "" ? "0" : inches.trim();
+  return formatVaultHeightCanonical(Number(feetTrimmed), Number(inchValue));
+}
+
 export function formatFeetInches(totalInches: number): string {
   const feet = Math.floor(totalInches / 12);
   const inches = Math.round(totalInches - feet * 12);
 
-  if (inches === 0) return `${feet}ft`;
-  return `${feet}ft ${inches}in`;
+  return formatVaultHeightCanonical(feet, inches);
 }
 
 export function metersToFeetInches(meters: number): string {
@@ -60,16 +88,14 @@ export function metersToFeetInches(meters: number): string {
   const feet = Math.floor(totalInches / 12);
   const inches = Math.round(totalInches - feet * 12);
 
-  if (inches === 0) return `${feet}ft`;
-  return `${feet}ft ${inches}in`;
+  return formatVaultHeightCanonical(feet, inches);
 }
 
 export function normalizeVaultPR(value: string): string {
   const parsed = parseVaultHeight(value);
   if (!parsed) return value.trim();
 
-  const totalInches = parsed.feet * 12 + parsed.inches;
-  return formatFeetInches(totalInches);
+  return formatVaultHeightCanonical(parsed.feet, parsed.inches);
 }
 
 export function highestVaultPRMeters(

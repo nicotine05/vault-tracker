@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import AccountSettings from "@/components/AccountSettings";
 import Card from "@/components/Card";
 import { useAuth } from "@/components/AuthProvider";
@@ -24,18 +24,18 @@ export default function SettingsPage() {
 
   const [viewingWeek, setViewingWeek] = useState(currentWeek);
 
-  useEffect(() => {
-    setViewingWeek(planningWeek);
-  }, [planningWeek]);
-
   const viewingPhase = getPhaseNameForWeek(viewingWeek);
   const maxWeek = maxViewableWeek(currentWeek);
   const isActiveWeek = viewingWeek === currentWeek;
   const isFutureWeek = viewingWeek > currentWeek;
+  const isProgramOnFutureWeek = planningWeek > currentWeek;
   const canPlanAhead =
     isFutureWeek && viewingWeek <= currentWeek + MAX_PLAN_AHEAD_WEEKS;
   const canFinishWeek =
     isActiveWeek && currentWeek < program.totalWeeks;
+  const showReturnToActiveWeek =
+    !isCoachReadOnly &&
+    (!isActiveWeek || isProgramOnFutureWeek);
 
   function handlePreviousWeek() {
     setViewingWeek((prev) => Math.max(1, prev - 1));
@@ -127,7 +127,7 @@ export default function SettingsPage() {
           </button>
         )}
 
-        {!isActiveWeek && viewingWeek < currentWeek && !isCoachReadOnly && (
+        {showReturnToActiveWeek && (
           <button
             type="button"
             onClick={handleReturnToActiveWeek}
@@ -137,7 +137,7 @@ export default function SettingsPage() {
           </button>
         )}
 
-        {planningWeek > currentWeek && isActiveWeek && (
+        {isProgramOnFutureWeek && isActiveWeek && !showReturnToActiveWeek && (
           <p className="mt-3 text-center text-xs text-amber-700">
             Program tab is showing planned Week {planningWeek}.
           </p>

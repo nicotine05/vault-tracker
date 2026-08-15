@@ -3,21 +3,18 @@
 import Link from "next/link";
 import MealPlanCard from "@/components/home/MealPlanCard";
 import TodayTrainingCard from "@/components/home/TodayTrainingCard";
-import VaultGoalCard from "@/components/home/VaultGoalCard";
 import WeightSummaryCard from "@/components/home/WeightSummaryCard";
 import Card from "@/components/Card";
 import { useAuth } from "@/components/AuthProvider";
 import { program } from "@/lib/data";
 import { getMealPlanKeyForWeek, getPhaseNameForWeek } from "@/lib/domain/programWeek";
 import { useProgramState } from "@/lib/hooks/useProgramState";
-import { useVaultRunPRs } from "@/lib/hooks/useVaultRunPRs";
 import { useWeightHistory } from "@/lib/hooks/useWeightHistory";
 import { getPhaseBadgeClass } from "@/lib/ui/phaseStyles";
 
 export default function Home() {
   const { isCoachReadOnly } = useAuth();
   const { currentWeek, scheduleSnapshotsByWeek } = useProgramState();
-  const runPRs = useVaultRunPRs();
   const {
     weightHistory,
     showEditor,
@@ -57,8 +54,6 @@ export default function Home() {
       <div className="mb-4">
         <MealPlanCard planKey={planKey} />
       </div>
-
-      <VaultGoalCard runPRs={runPRs} />
 
       <div className="grid grid-cols-2 gap-4">
         <TodayTrainingCard

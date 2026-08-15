@@ -64,12 +64,14 @@ export default function VaultPRChart({
                 tickFormatter={(value) =>
                   metersToFeetInches(Number(value))
                 }
+                width={72}
               />
               <Tooltip
                 formatter={(value) => [
                   metersToFeetInches(Number(value)),
                   "PR",
                 ]}
+                labelFormatter={(label) => `Date: ${label}`}
               />
               <Line
                 type="monotone"

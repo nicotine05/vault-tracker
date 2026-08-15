@@ -6,7 +6,6 @@ import TrainingCalendar from "@/components/TrainingCalendar";
 import VaultGoalCard from "@/components/home/VaultGoalCard";
 import WeightSummaryCard from "@/components/home/WeightSummaryCard";
 import VaultPRChart from "@/components/progress/VaultPRChart";
-import { useAuth } from "@/components/AuthProvider";
 import type { HeightPREntry } from "@/lib/domain/types";
 import type { VaultRunChartKey } from "@/lib/domain/vaultProgress";
 import { useWeightHistory } from "@/lib/hooks/useWeightHistory";
@@ -14,18 +13,10 @@ import { useVaultRunPRs } from "@/lib/hooks/useVaultRunPRs";
 import { loadVaultPRHistory, subscribeVaultRunPRs } from "@/lib/storage/logStore";
 
 export default function ProgressPage() {
-  const { isCoachReadOnly } = useAuth();
   const runPRs = useVaultRunPRs();
   const [prHistory, setPrHistory] = useState<HeightPREntry[]>([]);
   const [selectedRun, setSelectedRun] = useState<VaultRunChartKey>("sevenL");
-  const {
-    weightHistory,
-    showEditor,
-    setShowEditor,
-    newWeight,
-    setNewWeight,
-    saveWeight,
-  } = useWeightHistory();
+  const { weightHistory } = useWeightHistory();
 
   useEffect(() => {
     const refreshHistory = () => setPrHistory(loadVaultPRHistory());
@@ -39,15 +30,7 @@ export default function ProgressPage() {
     <main className="max-w-md mx-auto p-4 pb-20">
       <h1 className="mb-4 text-3xl font-bold">Progress</h1>
 
-      <WeightSummaryCard
-        weightHistory={weightHistory}
-        readOnly={isCoachReadOnly}
-        showEditor={showEditor}
-        newWeight={newWeight}
-        onToggleEditor={() => setShowEditor(!showEditor)}
-        onNewWeightChange={setNewWeight}
-        onSave={saveWeight}
-      />
+      <WeightSummaryCard weightHistory={weightHistory} readOnly />
 
       <VaultGoalCard runPRs={runPRs} />
 

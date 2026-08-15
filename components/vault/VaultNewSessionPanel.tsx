@@ -55,7 +55,7 @@ export default function VaultNewSessionPanel({
                 updated[index] = event.target.value;
                 onKeysChange(updated);
               }}
-              placeholder={`Daily Key #${index + 1}`}
+              placeholder="Key"
               className="w-full rounded-xl border p-3"
             />
           ))}
@@ -80,7 +80,7 @@ export default function VaultNewSessionPanel({
               onChange={(event) =>
                 onJumpFormChange({ ...jumpForm, run: event.target.value })
               }
-              placeholder="Run (7L)"
+              placeholder="Run"
               className="w-full rounded-xl border p-3"
             />
 
@@ -89,7 +89,7 @@ export default function VaultNewSessionPanel({
               onChange={(event) =>
                 onJumpFormChange({ ...jumpForm, grip: event.target.value })
               }
-              placeholder="Grip (13'6)"
+              placeholder="Grip"
               className="w-full rounded-xl border p-3"
             />
 
@@ -98,31 +98,43 @@ export default function VaultNewSessionPanel({
               onChange={(event) =>
                 onJumpFormChange({ ...jumpForm, takeoff: event.target.value })
               }
-              placeholder="Takeoff (-1)"
+              placeholder="Takeoff"
               className="w-full rounded-xl border p-3"
             />
 
-            <select
-              value={jumpForm.grade}
-              onChange={(event) =>
-                onJumpFormChange({
-                  ...jumpForm,
-                  grade: event.target.value as Jump["grade"],
-                })
-              }
-              className="w-full rounded-xl border p-3"
-            >
-              <option value="green">🟢</option>
-              <option value="yellow">🟡</option>
-              <option value="red">🔴</option>
-            </select>
+            <div className="grid grid-cols-3 gap-2">
+              {(["green", "yellow", "red"] as const).map((grade) => {
+                const selected = jumpForm.grade === grade;
+
+                return (
+                  <button
+                    key={grade}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() =>
+                      onJumpFormChange({
+                        ...jumpForm,
+                        grade,
+                      })
+                    }
+                    className={`rounded-xl border p-3 text-2xl transition ${
+                      selected
+                        ? "border-gray-900 bg-white ring-2 ring-gray-900"
+                        : "border-gray-200 bg-white hover:bg-gray-50"
+                    }`}
+                  >
+                    {getGradeEmoji(grade)}
+                  </button>
+                );
+              })}
+            </div>
 
             <input
               value={jumpForm.comment}
               onChange={(event) =>
                 onJumpFormChange({ ...jumpForm, comment: event.target.value })
               }
-              placeholder="Quick comment"
+              placeholder="Comment"
               className="w-full rounded-xl border p-3"
             />
 

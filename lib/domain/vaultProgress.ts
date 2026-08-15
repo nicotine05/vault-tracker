@@ -1,6 +1,7 @@
 import type { HeightPREntry, RunPRs } from "@/lib/domain/types";
 import {
   highestVaultPRMeters,
+  normalizeVaultPR,
   parseVaultPRToMeters,
 } from "@/lib/domain/vaultUnits";
 import { getVaultHeightPRValues } from "@/lib/storage/logStore";
@@ -21,14 +22,15 @@ export type VaultPRChartPoint = {
 };
 
 export function getHighestPRDisplay(runPRs: RunPRs): string {
-  return (
+  const highest =
     getVaultHeightPRValues(runPRs)
       .sort((a, b) => {
         const aMeters = parseVaultPRToMeters(a) || 0;
         const bMeters = parseVaultPRToMeters(b) || 0;
         return bMeters - aMeters;
-      })[0] || ""
-  );
+      })[0] || "";
+
+  return highest ? normalizeVaultPR(highest) : "";
 }
 
 export function computeVaultGoalProgress(runPRs: RunPRs): number {
