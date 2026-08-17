@@ -57,6 +57,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions = {}) {
     }
 
     try {
+      video.muted = true;
       await video.play();
       setIsPlaying(true);
     } catch {

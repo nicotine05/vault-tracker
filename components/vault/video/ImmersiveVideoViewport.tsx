@@ -346,6 +346,7 @@ export default function ImmersiveVideoViewport({
           src={videoUrl}
           className="max-h-full max-w-full object-contain"
           playsInline
+          muted
           preload="auto"
         />
 

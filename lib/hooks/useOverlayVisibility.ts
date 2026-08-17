@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-const DEFAULT_TIMEOUT_MS = 1000;
+const DEFAULT_TIMEOUT_MS = 2500;
 
 export function useOverlayVisibility(timeoutMs = DEFAULT_TIMEOUT_MS) {
   const [visible, setVisible] = useState(true);

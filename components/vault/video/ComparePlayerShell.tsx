@@ -216,21 +216,20 @@ export default function ComparePlayerShell({
   );
 
   const handleTogglePlay = useCallback(async () => {
-    if (isSynced) {
-      const playing = playerA.isPlaying || playerB.isPlaying;
-      if (playing) {
-        playerA.pause();
-        playerB.pause();
-        return;
-      }
+    const playing = playerA.isPlaying || playerB.isPlaying;
 
-      applySyncOffset(syncOffset);
-      await Promise.all([playerA.play(), playerB.play()]);
+    if (playing) {
+      playerA.pause();
+      playerB.pause();
       return;
     }
 
-    await activePlayer.togglePlay();
-  }, [activePlayer, applySyncOffset, isSynced, playerA, playerB, syncOffset]);
+    if (isSynced) {
+      applySyncOffset(syncOffset);
+    }
+
+    await Promise.all([playerA.play(), playerB.play()]);
+  }, [applySyncOffset, isSynced, playerA, playerB, syncOffset]);
 
   const setSyncPointForActive = (label: SyncPointLabel) => {
     const point = { label, frame: activePlayer.currentFrame };
@@ -464,47 +463,50 @@ export default function ComparePlayerShell({
             Compare
           </p>
 
-          <button
-            type="button"
-            className={`${glassButtonClassName} h-10 w-10 text-base`}
-            onClick={() => {
-              overlay.notifyActivity();
-              setOptionsOpen((current) => !current);
-            }}
-          >
-            •••
-          </button>
+          <div className="relative">
+            <button
+              type="button"
+              className={`${glassButtonClassName} h-10 w-10 text-base`}
+              onClick={() => {
+                overlay.notifyActivity();
+                setSyncMenuOpen(false);
+                setOptionsOpen((current) => !current);
+              }}
+            >
+              •••
+            </button>
+
+            {optionsOpen && controlsVisible && (
+              <div
+                className={`absolute right-0 top-full z-50 mt-2 min-w-[190px] rounded-2xl ${glassPanelClassName} p-2 shadow-xl`}
+              >
+                {(["side", "stack", "swipe"] as CompareLayoutMode[]).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    className={`block w-full rounded-xl px-3 py-2 text-left text-sm capitalize text-white hover:bg-white/10 ${
+                      layoutMode === mode ? "bg-white/10 font-semibold" : ""
+                    }`}
+                    onClick={() => {
+                      setLayoutMode(mode);
+                      setOptionsOpen(false);
+                      overlay.notifyActivity();
+                    }}
+                  >
+                    {mode === "side"
+                      ? "Side-by-Side"
+                      : mode === "stack"
+                        ? "Vertical Stack"
+                        : "Swipe Compare"}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
-        {optionsOpen && controlsVisible && (
-          <div
-            className={`pointer-events-auto absolute right-4 top-16 min-w-[190px] rounded-2xl ${glassPanelClassName} p-2`}
-          >
-            {(["side", "stack", "swipe"] as CompareLayoutMode[]).map((mode) => (
-              <button
-                key={mode}
-                type="button"
-                className={`block w-full rounded-xl px-3 py-2 text-left text-sm capitalize text-white hover:bg-white/10 ${
-                  layoutMode === mode ? "bg-white/10 font-semibold" : ""
-                }`}
-                onClick={() => {
-                  setLayoutMode(mode);
-                  setOptionsOpen(false);
-                  overlay.notifyActivity();
-                }}
-              >
-                {mode === "side"
-                  ? "Side-by-Side"
-                  : mode === "stack"
-                    ? "Vertical Stack"
-                    : "Swipe Compare"}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {!isSynced && controlsVisible && (
-          <div className="pointer-events-auto absolute left-1/2 top-16 z-20 -translate-x-1/2">
+        {!isSynced && controlsVisible && !optionsOpen && (
+          <div className="pointer-events-auto absolute left-1/2 top-[max(4.5rem,calc(env(safe-area-inset-top)+3.5rem))] z-30 -translate-x-1/2">
             <div className="flex gap-2">
               {(["A", "B"] as ActiveVideo[]).map((video) => (
                 <button
@@ -562,8 +564,8 @@ export default function ComparePlayerShell({
           </div>
         )}
 
-        {isSynced && controlsVisible && (
-          <p className="pointer-events-none absolute left-1/2 top-16 -translate-x-1/2 text-xs font-medium text-white/80">
+        {isSynced && controlsVisible && !optionsOpen && (
+          <p className="pointer-events-none absolute left-1/2 top-[max(4.5rem,calc(env(safe-area-inset-top)+3.5rem))] z-30 -translate-x-1/2 text-xs font-medium text-white/80">
             Synced · {syncPointA?.label} = frame 0
           </p>
         )}
