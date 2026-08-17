@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { AnnotationTool, VideoAnnotation } from "@/lib/domain/videoAnalysis";
-import { createAnnotationId } from "@/lib/domain/videoAnalysis";
+import { createAnnotationId, ANNOTATION_COLOR } from "@/lib/domain/videoAnalysis";
 import {
   createDraftAnnotation,
   normalizePointer,
@@ -109,7 +109,7 @@ export default function VideoViewport({
     isDrawingRef.current = true;
     event.currentTarget.setPointerCapture(event.pointerId);
     const point = normalizePointer(event.clientX, event.clientY, rect);
-    setDraft(createDraftAnnotation(activeTool, point));
+    setDraft(createDraftAnnotation(activeTool, point, 0, ANNOTATION_COLOR));
   };
 
   const handlePointerMove = (event: React.PointerEvent<HTMLCanvasElement>) => {

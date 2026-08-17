@@ -9,48 +9,70 @@ import {
   type ReactNode,
 } from "react";
 
-type VideoFocusModeContextValue = {
-  focusMode: boolean;
-  setFocusMode: (value: boolean) => void;
-  toggleFocusMode: () => void;
+type VideoImmersiveContextValue = {
+  isImmersive: boolean;
+  setImmersive: (value: boolean) => void;
 };
 
-const VideoFocusModeContext = createContext<VideoFocusModeContextValue | null>(
+const VideoImmersiveContext = createContext<VideoImmersiveContextValue | null>(
   null,
 );
 
+/** @deprecated Use VideoImmersiveProvider semantics via focusMode alias */
 export function VideoFocusModeProvider({ children }: { children: ReactNode }) {
-  const [focusMode, setFocusMode] = useState(false);
-
-  const toggleFocusMode = useCallback(() => {
-    setFocusMode((current) => !current);
-  }, []);
+  const [isImmersive, setImmersive] = useState(false);
 
   const value = useMemo(
     () => ({
-      focusMode,
-      setFocusMode,
-      toggleFocusMode,
+      isImmersive,
+      setImmersive,
+      focusMode: isImmersive,
+      setFocusMode: setImmersive,
+      toggleFocusMode: () => setImmersive((current) => !current),
     }),
-    [focusMode, toggleFocusMode],
+    [isImmersive],
   );
 
   return (
-    <VideoFocusModeContext.Provider value={value}>
+    <VideoImmersiveContext.Provider value={value}>
       {children}
-    </VideoFocusModeContext.Provider>
+    </VideoImmersiveContext.Provider>
   );
 }
 
-export function useVideoFocusMode() {
-  const context = useContext(VideoFocusModeContext);
+export function useVideoImmersive() {
+  const context = useContext(VideoImmersiveContext);
   if (!context) {
-    throw new Error("useVideoFocusMode must be used within VideoFocusModeProvider");
+    throw new Error("useVideoImmersive must be used within VideoFocusModeProvider");
   }
 
   return context;
 }
 
+export function useOptionalVideoImmersive() {
+  return useContext(VideoImmersiveContext);
+}
+
+/** @deprecated */
+export function useVideoFocusMode() {
+  const { isImmersive, setImmersive } = useVideoImmersive();
+  return {
+    focusMode: isImmersive,
+    setFocusMode: setImmersive,
+    toggleFocusMode: () => setImmersive(!isImmersive),
+  };
+}
+
+/** @deprecated */
 export function useOptionalVideoFocusMode() {
-  return useContext(VideoFocusModeContext);
+  const context = useOptionalVideoImmersive();
+  if (!context) {
+    return null;
+  }
+
+  return {
+    focusMode: context.isImmersive,
+    setFocusMode: context.setImmersive,
+    toggleFocusMode: () => context.setImmersive(!context.isImmersive),
+  };
 }

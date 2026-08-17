@@ -1,38 +1,60 @@
 export type AnnotationTool = "arrow" | "line" | "circle" | "draw";
 
+export type SyncPointLabel =
+  | "Takeoff"
+  | "Pole Strike"
+  | "Top Hand Plant"
+  | "Maximum Bend"
+  | "Inversion"
+  | "Clearance";
+
+export const SYNC_POINT_LABELS: SyncPointLabel[] = [
+  "Takeoff",
+  "Pole Strike",
+  "Top Hand Plant",
+  "Maximum Bend",
+  "Inversion",
+  "Clearance",
+];
+
+export type SyncPoint = {
+  label: SyncPointLabel;
+  frame: number;
+};
+
+export type CompareLayoutMode = "side" | "stack" | "swipe";
+
 export type NormalizedPoint = {
   x: number;
   y: number;
 };
 
+type AnnotationBase = {
+  id: string;
+  frame: number;
+  color: string;
+};
+
 export type VideoAnnotation =
-  | {
-      id: string;
+  | (AnnotationBase & {
       type: "arrow";
       start: NormalizedPoint;
       end: NormalizedPoint;
-      color: string;
-    }
-  | {
-      id: string;
+    })
+  | (AnnotationBase & {
       type: "line";
       start: NormalizedPoint;
       end: NormalizedPoint;
-      color: string;
-    }
-  | {
-      id: string;
+    })
+  | (AnnotationBase & {
       type: "circle";
       center: NormalizedPoint;
       radius: number;
-      color: string;
-    }
-  | {
-      id: string;
+    })
+  | (AnnotationBase & {
       type: "draw";
       points: NormalizedPoint[];
-      color: string;
-    };
+    });
 
 export const ANNOTATION_COLOR = "#34C759";
 export const DEFAULT_FPS = 30;
@@ -60,6 +82,25 @@ export function clampFrame(frame: number, totalFrames: number): number {
   return Math.max(0, Math.min(totalFrames, frame));
 }
 
+export function seekToTime(
+  video: HTMLVideoElement,
+  time: number,
+): void {
+  const duration = video.duration;
+  if (!Number.isFinite(duration)) {
+    return;
+  }
+
+  const clamped = Math.max(0, Math.min(duration, time));
+  video.pause();
+
+  if (typeof video.fastSeek === "function") {
+    video.fastSeek(clamped);
+  } else {
+    video.currentTime = clamped;
+  }
+}
+
 export function seekToFrame(
   video: HTMLVideoElement,
   frame: number,
@@ -67,8 +108,7 @@ export function seekToFrame(
 ): void {
   const totalFrames = getTotalFrames(video.duration, fps);
   const clamped = clampFrame(frame, totalFrames);
-  video.pause();
-  video.currentTime = frameToTime(clamped, fps);
+  seekToTime(video, frameToTime(clamped, fps));
 }
 
 export function stepVideoFrames(

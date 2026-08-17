@@ -106,12 +106,13 @@ export function normalizePointer(
 export function createDraftAnnotation(
   type: VideoAnnotation["type"],
   start: NormalizedPoint,
+  frame: number,
+  color: string,
 ): VideoAnnotation {
-  const color = ANNOTATION_COLOR;
-
   if (type === "draw") {
     return {
       id: "draft",
+      frame,
       type: "draw",
       points: [start],
       color,
@@ -121,6 +122,7 @@ export function createDraftAnnotation(
   if (type === "circle") {
     return {
       id: "draft",
+      frame,
       type: "circle",
       center: start,
       radius: 0,
@@ -130,6 +132,7 @@ export function createDraftAnnotation(
 
   return {
     id: "draft",
+    frame,
     type,
     start,
     end: start,

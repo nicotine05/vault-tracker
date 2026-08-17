@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   DEFAULT_FPS,
   getTotalFrames,
+  seekToTime,
   stepVideoFrames,
   timeToFrame,
 } from "@/lib/domain/videoAnalysis";
@@ -123,8 +124,8 @@ export function useVideoPlayer(options: UseVideoPlayerOptions = {}) {
     setIsScrubbing(true);
   }, [isPlaying]);
 
-  const scrubToFrame = useCallback(
-    (frame: number) => {
+  const scrubToTime = useCallback(
+    (time: number) => {
       const video = videoRef.current;
       if (!video) {
         return;
@@ -132,12 +133,22 @@ export function useVideoPlayer(options: UseVideoPlayerOptions = {}) {
 
       video.pause();
       setIsPlaying(false);
-      const clamped = Math.max(0, Math.min(totalFrames, frame));
-      video.currentTime = clamped / fps;
-      setCurrentFrame(clamped);
-      options.onFrameChange?.(clamped);
+      seekToTime(video, time);
+      const frame = timeToFrame(
+        Math.max(0, Math.min(duration || 0, time)),
+        fps,
+      );
+      setCurrentFrame(frame);
+      options.onFrameChange?.(frame);
     },
-    [fps, options.onFrameChange, totalFrames],
+    [duration, fps, options.onFrameChange],
+  );
+
+  const scrubToFrame = useCallback(
+    (frame: number) => {
+      scrubToTime(frame / fps);
+    },
+    [fps, scrubToTime],
   );
 
   const endScrub = useCallback(() => {
@@ -197,6 +208,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions = {}) {
     stepFrames,
     beginScrub,
     scrubToFrame,
+    scrubToTime,
     endScrub,
     syncFrameFromVideo,
   };
