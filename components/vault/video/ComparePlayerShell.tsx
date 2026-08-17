@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ImmersiveVideoViewport from "@/components/vault/video/ImmersiveVideoViewport";
 import VideoDrawingMenu from "@/components/vault/video/VideoDrawingMenu";
 import VideoFilmstripTimeline from "@/components/vault/video/VideoFilmstripTimeline";
+import VideoInlineUploadPane from "@/components/vault/video/VideoInlineUploadPane";
 import { useVideoImmersive } from "@/components/vault/video/VideoFocusModeContext";
 import {
   glassButtonClassName,
@@ -28,14 +29,17 @@ import {
   seekToTime,
 } from "@/lib/domain/videoAnalysis";
 import { useFilmstripThumbnails } from "@/lib/hooks/useFilmstripThumbnails";
+import { useOrientationLayout } from "@/lib/hooks/useOrientationLayout";
 import { useOverlayVisibility } from "@/lib/hooks/useOverlayVisibility";
 import { useVideoPlayer } from "@/lib/hooks/useVideoPlayer";
 
 type ComparePlayerShellProps = {
-  videoUrlA: string;
-  videoUrlB: string;
+  videoUrlA: string | null;
+  videoUrlB: string | null;
   titleA: string;
   titleB: string;
+  onUploadA: (file: File) => void;
+  onUploadB: (file: File) => void;
   backHref?: string;
 };
 
@@ -46,24 +50,26 @@ export default function ComparePlayerShell({
   videoUrlB,
   titleA,
   titleB,
+  onUploadA,
+  onUploadB,
   backHref = "/vault/video-analysis",
 }: ComparePlayerShellProps) {
   const { setImmersive } = useVideoImmersive();
   const playerA = useVideoPlayer();
   const playerB = useVideoPlayer();
   const overlay = useOverlayVisibility();
+  const orientationLayout = useOrientationLayout();
   const lastAnnotationTarget = useRef<ActiveVideo>("A");
+  const syncOffsetRef = useRef(0);
 
-  const { thumbnails: thumbnailsA } = useFilmstripThumbnails(
-    videoUrlA,
-    playerA.videoRef,
-  );
+  const bothVideosReady = Boolean(videoUrlA && videoUrlB);
 
   const [annotationsA, setAnnotationsA] = useState<VideoAnnotation[]>([]);
   const [annotationsB, setAnnotationsB] = useState<VideoAnnotation[]>([]);
   const [activeTool, setActiveTool] = useState<AnnotationTool | null>(null);
-  const [annotationColor, setAnnotationColor] = useState(ANNOTATION_COLOR);
-  const [layoutMode, setLayoutMode] = useState<CompareLayoutMode>("side");
+  const [layoutOverride, setLayoutOverride] = useState<CompareLayoutMode | null>(
+    null,
+  );
   const [swipePosition, setSwipePosition] = useState(50);
   const [activeVideo, setActiveVideo] = useState<ActiveVideo>("A");
   const [syncPointA, setSyncPointA] = useState<SyncPoint | null>(null);
@@ -72,6 +78,16 @@ export default function ComparePlayerShell({
   const [syncOffset, setSyncOffset] = useState(0);
   const [syncMenuOpen, setSyncMenuOpen] = useState(false);
   const [optionsOpen, setOptionsOpen] = useState(false);
+
+  const layoutMode = layoutOverride ?? orientationLayout;
+
+  const filmstripUrl = isSynced
+    ? videoUrlA
+    : activeVideo === "A"
+      ? videoUrlA
+      : videoUrlB;
+
+  const { thumbnails } = useFilmstripThumbnails(filmstripUrl);
 
   const drawingEnabled = activeTool !== null;
   const isScrubbing = playerA.isScrubbing || playerB.isScrubbing;
@@ -85,6 +101,10 @@ export default function ComparePlayerShell({
     setImmersive(true);
     return () => setImmersive(false);
   }, [setImmersive]);
+
+  useEffect(() => {
+    syncOffsetRef.current = syncOffset;
+  }, [syncOffset]);
 
   const syncBounds = useMemo(() => {
     if (!syncPointA || !syncPointB || syncPointA.label !== syncPointB.label) {
@@ -113,6 +133,7 @@ export default function ComparePlayerShell({
         playerB.totalFrames,
       );
 
+      syncOffsetRef.current = clamped;
       setSyncOffset(clamped);
 
       if (playerA.videoRef.current) {
@@ -143,6 +164,7 @@ export default function ComparePlayerShell({
         playerB.totalFrames,
       );
 
+      syncOffsetRef.current = clamped;
       setSyncOffset(clamped);
 
       if (playerA.videoRef.current) {
@@ -195,7 +217,7 @@ export default function ComparePlayerShell({
 
   const handleScrubEnd = useCallback(() => {
     if (isSynced) {
-      applySyncOffset(syncOffset);
+      applySyncOffset(syncOffsetRef.current);
     }
 
     playerA.endScrub();
@@ -204,21 +226,25 @@ export default function ComparePlayerShell({
     playerB.pause();
     playerA.syncTimeFromVideo();
     playerB.syncTimeFromVideo();
-  }, [applySyncOffset, isSynced, playerA, playerB, syncOffset]);
+  }, [applySyncOffset, isSynced, playerA, playerB]);
 
   const handleStep = useCallback(
     (delta: number) => {
       if (isSynced) {
-        applySyncOffset(syncOffset + delta);
+        applySyncOffset(syncOffsetRef.current + delta);
         return;
       }
 
       activePlayer.stepFrames(delta);
     },
-    [activePlayer, applySyncOffset, isSynced, syncOffset],
+    [activePlayer, applySyncOffset, isSynced],
   );
 
   const handleTogglePlay = useCallback(async () => {
+    if (!bothVideosReady) {
+      return;
+    }
+
     const playing = playerA.isPlaying || playerB.isPlaying;
 
     if (playing) {
@@ -228,15 +254,17 @@ export default function ComparePlayerShell({
     }
 
     if (isSynced) {
-      applySyncOffset(syncOffset);
+      applySyncOffset(syncOffsetRef.current);
     }
 
-    // Play sequentially so mobile browsers don't steal the decoder from video A.
     await playerA.play();
     await playerB.play();
-  }, [applySyncOffset, isSynced, playerA, playerB, syncOffset]);
+  }, [applySyncOffset, bothVideosReady, isSynced, playerA, playerB]);
 
   const setSyncPointForActive = (label: SyncPointLabel) => {
+    playerA.pause();
+    playerB.pause();
+
     const point = { label, frame: activePlayer.currentFrame };
 
     if (activeVideo === "A") {
@@ -249,19 +277,32 @@ export default function ComparePlayerShell({
     overlay.notifyActivity();
   };
 
-  const handleSync = () => {
-    if (
-      !syncPointA ||
-      !syncPointB ||
-      syncPointA.label !== syncPointB.label
-    ) {
-      return;
-    }
-
-    setIsSynced(true);
-    applySyncOffset(0);
-    setSyncMenuOpen(false);
+  const openSyncMenu = () => {
+    playerA.pause();
+    playerB.pause();
+    setSyncMenuOpen((current) => !current);
+    overlay.notifyActivity();
   };
+
+  const unsync = () => {
+    setIsSynced(false);
+    setSyncOffset(0);
+    syncOffsetRef.current = 0;
+    setOptionsOpen(false);
+    overlay.notifyActivity();
+  };
+
+  useEffect(() => {
+    if (
+      !isSynced &&
+      syncPointA &&
+      syncPointB &&
+      syncPointA.label === syncPointB.label
+    ) {
+      setIsSynced(true);
+      applySyncOffset(0);
+    }
+  }, [applySyncOffset, isSynced, syncPointA, syncPointB]);
 
   const updateAnnotationsA = (next: VideoAnnotation[]) => {
     if (next.length > annotationsA.length) {
@@ -326,44 +367,61 @@ export default function ComparePlayerShell({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [handleStep, handleTogglePlay, overlay]);
 
-  const renderViewport = (
+  const renderPane = (
     video: ActiveVideo,
-    url: string,
+    url: string | null,
     player: ReturnType<typeof useVideoPlayer>,
     label: string,
     annotations: VideoAnnotation[],
     onAnnotationsChange: (next: VideoAnnotation[]) => void,
+    onUpload: (file: File) => void,
   ) => (
     <div
       className={`relative h-full min-h-0 ${
         layoutMode === "side" ? "flex-1" : "w-full flex-1"
       }`}
-      onPointerDown={() => setActiveVideo(video)}
+      onPointerDown={() => {
+        if (url) {
+          setActiveVideo(video);
+        }
+      }}
     >
-      <div className="absolute left-3 top-3 z-10">
-        <span className={glassPillClassName}>{label}</span>
-      </div>
-      <ImmersiveVideoViewport
-        videoUrl={url}
-        videoRef={player.videoRef}
-        annotations={annotations}
-        currentFrame={player.currentFrame}
-        activeTool={activeTool}
-        annotationColor={annotationColor}
-        drawingEnabled={drawingEnabled && activeVideo === video}
-        onAnnotationsChange={onAnnotationsChange}
-        onSingleTap={overlay.toggleControls}
-        onDoubleTapLeft={() => handleStep(-5)}
-        onDoubleTapRight={() => handleStep(5)}
-        onInteraction={overlay.notifyActivity}
-      />
+      {url ? (
+        <>
+          <div className="absolute left-3 top-3 z-10">
+            <span
+              className={`${glassPillClassName} ${
+                activeVideo === video && bothVideosReady ? "bg-white/20" : ""
+              }`}
+            >
+              {label}
+            </span>
+          </div>
+          <ImmersiveVideoViewport
+            videoUrl={url}
+            videoRef={player.videoRef}
+            annotations={annotations}
+            currentFrame={player.currentFrame}
+            activeTool={activeTool}
+            annotationColor={ANNOTATION_COLOR}
+            drawingEnabled={drawingEnabled && activeVideo === video}
+            onAnnotationsChange={onAnnotationsChange}
+            onSingleTap={overlay.toggleControls}
+            onDoubleTapLeft={() => handleStep(-5)}
+            onDoubleTapRight={() => handleStep(5)}
+            onInteraction={overlay.notifyActivity}
+          />
+        </>
+      ) : (
+        <VideoInlineUploadPane label={label} onFileSelected={onUpload} />
+      )}
     </div>
   );
 
   return (
     <div className="fixed inset-0 z-[100] bg-black">
       <div
-        className={`absolute inset-0 pt-[max(3rem,calc(env(safe-area-inset-top)+2.5rem))] pb-[max(8.5rem,calc(env(safe-area-inset-bottom)+7rem))] ${
+        className={`absolute inset-0 pb-[max(7.5rem,calc(env(safe-area-inset-bottom)+6rem))] pt-[max(3rem,calc(env(safe-area-inset-top)+2.5rem))] ${
           layoutMode === "side"
             ? "flex flex-row gap-0.5"
             : layoutMode === "stack"
@@ -371,7 +429,7 @@ export default function ComparePlayerShell({
               : "relative overflow-hidden"
         }`}
       >
-        {layoutMode === "swipe" ? (
+        {layoutMode === "swipe" && bothVideosReady && videoUrlA && videoUrlB ? (
           <>
             <div className="absolute inset-0">
               <ImmersiveVideoViewport
@@ -380,7 +438,7 @@ export default function ComparePlayerShell({
                 annotations={annotationsB}
                 currentFrame={playerB.currentFrame}
                 activeTool={activeTool}
-                annotationColor={annotationColor}
+                annotationColor={ANNOTATION_COLOR}
                 drawingEnabled={drawingEnabled && activeVideo === "B"}
                 onAnnotationsChange={updateAnnotationsB}
                 onSingleTap={overlay.toggleControls}
@@ -399,7 +457,7 @@ export default function ComparePlayerShell({
                 annotations={annotationsA}
                 currentFrame={playerA.currentFrame}
                 activeTool={activeTool}
-                annotationColor={annotationColor}
+                annotationColor={ANNOTATION_COLOR}
                 drawingEnabled={drawingEnabled && activeVideo === "A"}
                 onAnnotationsChange={updateAnnotationsA}
                 onSingleTap={overlay.toggleControls}
@@ -430,21 +488,23 @@ export default function ComparePlayerShell({
           </>
         ) : (
           <>
-            {renderViewport(
+            {renderPane(
               "A",
               videoUrlA,
               playerA,
               titleA,
               annotationsA,
               updateAnnotationsA,
+              onUploadA,
             )}
-            {renderViewport(
+            {renderPane(
               "B",
               videoUrlB,
               playerB,
               titleB,
               annotationsB,
               updateAnnotationsB,
+              onUploadB,
             )}
           </>
         )}
@@ -485,199 +545,175 @@ export default function ComparePlayerShell({
               <div
                 className={`absolute right-0 top-full z-50 mt-2 min-w-[190px] rounded-2xl ${glassPanelClassName} p-2 shadow-xl`}
               >
-                {(["side", "stack", "swipe"] as CompareLayoutMode[]).map((mode) => (
+                {(["side", "stack", "swipe"] as CompareLayoutMode[]).map(
+                  (mode) => (
+                    <button
+                      key={mode}
+                      type="button"
+                      className={`block w-full rounded-xl px-3 py-2 text-left text-sm capitalize text-white hover:bg-white/10 ${
+                        layoutMode === mode ? "bg-white/10 font-semibold" : ""
+                      }`}
+                      onClick={() => {
+                        setLayoutOverride(mode);
+                        setOptionsOpen(false);
+                        overlay.notifyActivity();
+                      }}
+                    >
+                      {mode === "side"
+                        ? "Side-by-Side"
+                        : mode === "stack"
+                          ? "Vertical Stack"
+                          : "Swipe Compare"}
+                    </button>
+                  ),
+                )}
+                {isSynced && (
                   <button
-                    key={mode}
                     type="button"
-                    className={`block w-full rounded-xl px-3 py-2 text-left text-sm capitalize text-white hover:bg-white/10 ${
-                      layoutMode === mode ? "bg-white/10 font-semibold" : ""
-                    }`}
-                    onClick={() => {
-                      setLayoutMode(mode);
-                      setOptionsOpen(false);
-                      overlay.notifyActivity();
-                    }}
+                    className="block w-full rounded-xl px-3 py-2 text-left text-sm text-white hover:bg-white/10"
+                    onClick={unsync}
                   >
-                    {mode === "side"
-                      ? "Side-by-Side"
-                      : mode === "stack"
-                        ? "Vertical Stack"
-                        : "Swipe Compare"}
+                    Unsync Videos
                   </button>
-                ))}
+                )}
               </div>
             )}
           </div>
         </div>
 
-        {!isSynced && controlsVisible && !optionsOpen && (
+        {bothVideosReady && controlsVisible && !optionsOpen && (
           <div className="pointer-events-auto absolute left-1/2 top-[max(4.5rem,calc(env(safe-area-inset-top)+3.5rem))] z-30 -translate-x-1/2">
-            <div className="flex gap-2">
-              {(["A", "B"] as ActiveVideo[]).map((video) => (
-                <button
-                  key={video}
-                  type="button"
-                  className={`${glassPillClassName} ${
-                    activeVideo === video ? "bg-white/20" : ""
-                  }`}
-                  onClick={() => {
-                    setActiveVideo(video);
-                    overlay.notifyActivity();
-                  }}
-                >
-                  Video {video}
-                </button>
-              ))}
-              <button
-                type="button"
-                className={`${glassPillClassName} bg-white/20`}
-                onClick={() => {
-                  setSyncMenuOpen((current) => !current);
-                  overlay.notifyActivity();
-                }}
-              >
-                Set Sync Point
-              </button>
-            </div>
-
-            {syncMenuOpen && (
-              <div
-                className={`mt-2 overflow-hidden rounded-2xl ${glassPanelClassName}`}
-              >
-                {SYNC_POINT_LABELS.map((label) => (
+            {!isSynced ? (
+              <>
+                <div className="flex flex-wrap justify-center gap-2">
+                  {(["A", "B"] as ActiveVideo[]).map((video) => (
+                    <button
+                      key={video}
+                      type="button"
+                      className={`${glassPillClassName} ${
+                        activeVideo === video ? "bg-white/20" : ""
+                      }`}
+                      onClick={() => {
+                        setActiveVideo(video);
+                        overlay.notifyActivity();
+                      }}
+                    >
+                      Video {video}
+                    </button>
+                  ))}
                   <button
-                    key={label}
                     type="button"
-                    className="block w-full px-4 py-2.5 text-left text-sm text-white hover:bg-white/10"
-                    onClick={() => setSyncPointForActive(label)}
+                    className={`${glassPillClassName} bg-white/20`}
+                    onClick={openSyncMenu}
                   >
-                    {label}
+                    Set Sync
                   </button>
-                ))}
-              </div>
-            )}
+                </div>
 
-            {syncPointA && syncPointB && syncPointA.label === syncPointB.label && (
-              <button
-                type="button"
-                className="mt-2 w-full rounded-full bg-white px-4 py-2 text-sm font-semibold text-black"
-                onClick={handleSync}
-              >
-                Sync at {syncPointA.label}
-              </button>
+                {syncMenuOpen && (
+                  <div
+                    className={`mt-2 overflow-hidden rounded-2xl ${glassPanelClassName}`}
+                  >
+                    {SYNC_POINT_LABELS.map((label) => (
+                      <button
+                        key={label}
+                        type="button"
+                        className="block w-full px-4 py-2.5 text-left text-sm text-white hover:bg-white/10"
+                        onClick={() => setSyncPointForActive(label)}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {(syncPointA || syncPointB) && (
+                  <p className="mt-2 text-center text-xs text-white/70">
+                    {syncPointA
+                      ? `A: ${syncPointA.label} · frame ${syncPointA.frame}`
+                      : "A: not set"}
+                    {" · "}
+                    {syncPointB
+                      ? `B: ${syncPointB.label} · frame ${syncPointB.frame}`
+                      : "B: not set"}
+                  </p>
+                )}
+              </>
+            ) : (
+              <p className={`${glassPillClassName} bg-white/15`}>
+                Synced at {syncPointA?.label} · scrub moves both
+              </p>
             )}
           </div>
-        )}
-
-        {isSynced && controlsVisible && !optionsOpen && (
-          <p className="pointer-events-none absolute left-1/2 top-[max(4.5rem,calc(env(safe-area-inset-top)+3.5rem))] z-30 -translate-x-1/2 text-xs font-medium text-white/80">
-            Synced · {syncPointA?.label} = frame 0
-          </p>
         )}
 
         <div className="pointer-events-auto mt-auto">
-          <VideoFilmstripTimeline
-            currentTime={timelineTime}
-            duration={timelineDuration}
-            thumbnails={thumbnailsA}
-            visible={controlsVisible && !drawingEnabled}
-            disabled={drawingEnabled}
-            onScrubStart={handleScrubStart}
-            onScrub={handleScrub}
-            onScrubEnd={handleScrubEnd}
-            onInteraction={overlay.notifyActivity}
-            frameLabel={
-              isSynced
-                ? `Frame ${syncOffset} · takeoff = 0`
-                : `Video ${activeVideo} · Frame ${activePlayer.currentFrame}`
-            }
-          />
+          {bothVideosReady && (
+            <>
+              <VideoFilmstripTimeline
+                currentTime={timelineTime}
+                duration={timelineDuration}
+                thumbnails={thumbnails}
+                visible={controlsVisible && !drawingEnabled}
+                disabled={drawingEnabled}
+                onScrubStart={handleScrubStart}
+                onScrub={handleScrub}
+                onScrubEnd={handleScrubEnd}
+                onInteraction={overlay.notifyActivity}
+                frameLabel={
+                  isSynced
+                    ? `Frame ${syncOffset} · ${syncPointA?.label} = 0`
+                    : `Video ${activeVideo} · Frame ${activePlayer.currentFrame}`
+                }
+              />
 
-          <div
-            className={`flex items-center justify-center gap-8 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2 ${overlayFadeClass(
-              controlsVisible && !drawingEnabled,
-            )}`}
-          >
-            <button
-              type="button"
-              className={`${glassButtonClassName} h-9 w-9 text-sm`}
-              onClick={() => {
-                overlay.notifyActivity();
-                handleStep(-1);
-              }}
-            >
-              ◀
-            </button>
-            <button
-              type="button"
-              className={`${glassButtonClassName} h-10 w-10 text-base`}
-              onClick={() => {
-                overlay.notifyActivity();
-                handleStep(-5);
-              }}
-            >
-              ⏪
-            </button>
-            <button
-              type="button"
-              className={`${glassButtonClassName} h-14 w-14 text-2xl`}
-              onClick={() => {
-                overlay.notifyActivity();
-                void handleTogglePlay();
-              }}
-            >
-              {playerA.isPlaying || playerB.isPlaying ? "⏸" : "▶️"}
-            </button>
-            <button
-              type="button"
-              className={`${glassButtonClassName} h-10 w-10 text-base`}
-              onClick={() => {
-                overlay.notifyActivity();
-                handleStep(5);
-              }}
-            >
-              ⏩
-            </button>
-            <button
-              type="button"
-              className={`${glassButtonClassName} h-9 w-9 text-sm`}
-              onClick={() => {
-                overlay.notifyActivity();
-                handleStep(1);
-              }}
-            >
-              ▶
-            </button>
-          </div>
+              <div
+                className={`flex items-center justify-center px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2 ${overlayFadeClass(
+                  controlsVisible && !drawingEnabled,
+                )}`}
+              >
+                <button
+                  type="button"
+                  className={`${glassButtonClassName} h-14 w-14 text-2xl`}
+                  onClick={() => {
+                    overlay.notifyActivity();
+                    void handleTogglePlay();
+                  }}
+                >
+                  {playerA.isPlaying || playerB.isPlaying ? "⏸" : "▶️"}
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
-      <VideoDrawingMenu
-        activeTool={activeTool}
-        annotationColor={annotationColor}
-        controlsVisible={controlsVisible}
-        onToolChange={(tool) => {
-          playerA.pause();
-          playerB.pause();
-          setActiveTool(tool);
-        }}
-        onColorChange={setAnnotationColor}
-        onUndo={handleUndo}
-        onClear={() => {
-          if (lastAnnotationTarget.current === "A") {
-            setAnnotationsA((current) =>
-              current.filter((a) => a.frame !== playerA.currentFrame),
-            );
-          } else {
-            setAnnotationsB((current) =>
-              current.filter((a) => a.frame !== playerB.currentFrame),
-            );
-          }
-        }}
-        canUndo={canUndo}
-        canClear={canUndo}
-        onInteraction={overlay.notifyActivity}
-      />
+      {bothVideosReady && (
+        <VideoDrawingMenu
+          activeTool={activeTool}
+          controlsVisible={controlsVisible}
+          onToolChange={(tool) => {
+            playerA.pause();
+            playerB.pause();
+            setActiveTool(tool);
+          }}
+          onUndo={handleUndo}
+          onClear={() => {
+            if (lastAnnotationTarget.current === "A") {
+              setAnnotationsA((current) =>
+                current.filter((a) => a.frame !== playerA.currentFrame),
+              );
+            } else {
+              setAnnotationsB((current) =>
+                current.filter((a) => a.frame !== playerB.currentFrame),
+              );
+            }
+          }}
+          canUndo={canUndo}
+          canClear={canUndo}
+          onInteraction={overlay.notifyActivity}
+        />
+      )}
     </div>
   );
 }

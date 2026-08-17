@@ -2,13 +2,10 @@
 
 import { useCallback, useEffect, useState } from "react";
 import ComparePlayerShell from "@/components/vault/video/ComparePlayerShell";
-import VideoUploadZone from "@/components/vault/video/VideoUploadZone";
 import {
   createVideoObjectUrl,
   revokeVideoObjectUrl,
 } from "@/lib/domain/videoAnalysis";
-import Link from "next/link";
-import { linkTextClassName } from "@/lib/ui/componentStyles";
 
 export default function CompareVideoWorkspace() {
   const [videoUrlA, setVideoUrlA] = useState<string | null>(null);
@@ -41,32 +38,14 @@ export default function CompareVideoWorkspace() {
     [videoUrlB],
   );
 
-  if (videoUrlA && videoUrlB) {
-    return (
-      <ComparePlayerShell
-        videoUrlA={videoUrlA}
-        videoUrlB={videoUrlB}
-        titleA={fileNameA}
-        titleB={fileNameB}
-      />
-    );
-  }
-
   return (
-    <main className="mx-auto max-w-md space-y-4 p-4 pb-20">
-      <Link href="/vault/video-analysis" className={linkTextClassName}>
-        ← Back
-      </Link>
-      <h1 className="text-2xl font-bold text-foreground">Compare Videos</h1>
-
-      {!videoUrlA ? (
-        <VideoUploadZone label="Upload Video A" onFileSelected={handleUploadA} />
-      ) : (
-        <VideoUploadZone
-          label={`${fileNameA} ready — upload Video B`}
-          onFileSelected={handleUploadB}
-        />
-      )}
-    </main>
+    <ComparePlayerShell
+      videoUrlA={videoUrlA}
+      videoUrlB={videoUrlB}
+      titleA={fileNameA}
+      titleB={fileNameB}
+      onUploadA={handleUploadA}
+      onUploadB={handleUploadB}
+    />
   );
 }

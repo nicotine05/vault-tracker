@@ -96,6 +96,29 @@ export default function ImmersiveVideoViewport({
   }, [paint, currentFrame]);
 
   useEffect(() => {
+    const video = videoRef.current;
+    if (!video) {
+      return;
+    }
+
+    const revealFirstFrame = () => {
+      video.pause();
+      if (video.currentTime < 0.001) {
+        video.currentTime = 0.001;
+      }
+    };
+
+    video.addEventListener("loadeddata", revealFirstFrame, { once: true });
+    if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+      revealFirstFrame();
+    }
+
+    return () => {
+      video.removeEventListener("loadeddata", revealFirstFrame);
+    };
+  }, [videoUrl, videoRef]);
+
+  useEffect(() => {
     const container = containerRef.current;
     if (!container) {
       return;
@@ -269,6 +292,23 @@ export default function ImmersiveVideoViewport({
       return;
     }
 
+    if (event.touches.length === 1 && drawingEnabled && activeTool) {
+      onInteraction();
+      const touch = event.touches[0];
+      const rect = containerRef.current?.getBoundingClientRect();
+      if (!rect) {
+        return;
+      }
+
+      isDrawingRef.current = true;
+      touchStartRef.current = null;
+      const point = normalizePointer(touch.clientX, touch.clientY, rect);
+      setDraft(
+        createDraftAnnotation(activeTool, point, currentFrame, annotationColor),
+      );
+      return;
+    }
+
     if (event.touches.length === 1) {
       const touch = event.touches[0];
       touchStartRef.current = {
@@ -280,6 +320,34 @@ export default function ImmersiveVideoViewport({
   };
 
   const handleTouchMove = (event: React.TouchEvent<HTMLDivElement>) => {
+    if (
+      isDrawingRef.current &&
+      draft &&
+      activeTool &&
+      event.touches.length === 1
+    ) {
+      const touch = event.touches[0];
+      const rect = containerRef.current?.getBoundingClientRect();
+      if (!rect) {
+        return;
+      }
+
+      onInteraction();
+      const point = normalizePointer(touch.clientX, touch.clientY, rect);
+
+      if (draft.type === "draw") {
+        const last = draft.points[draft.points.length - 1];
+        if (Math.hypot(point.x - last.x, point.y - last.y) < 0.004) {
+          return;
+        }
+      }
+
+      setDraft((current) =>
+        current ? updateDraftAnnotation(current, point) : current,
+      );
+      return;
+    }
+
     if (event.touches.length === 2) {
       onInteraction();
       zoom.handlePinchMove(getTouchDistance(event.touches));
@@ -304,6 +372,29 @@ export default function ImmersiveVideoViewport({
 
   const handleTouchEnd = (event: React.TouchEvent<HTMLDivElement>) => {
     zoom.handlePanEnd();
+
+    if (isDrawingRef.current) {
+      isDrawingRef.current = false;
+
+      if (draft) {
+        if (draft.type === "circle" && draft.radius < 0.01) {
+          setDraft(null);
+        } else if (
+          (draft.type === "arrow" || draft.type === "line") &&
+          Math.hypot(draft.end.x - draft.start.x, draft.end.y - draft.start.y) <
+            0.01
+        ) {
+          setDraft(null);
+        } else if (draft.type === "draw" && draft.points.length < 2) {
+          setDraft(null);
+        } else {
+          finishDraft(draft);
+        }
+      }
+
+      touchStartRef.current = null;
+      return;
+    }
 
     if (drawingEnabled || event.touches.length > 0) {
       touchStartRef.current = null;

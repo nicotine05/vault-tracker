@@ -159,8 +159,9 @@ export function useVideoPlayer(options: UseVideoPlayerOptions = {}) {
       setIsPlaying(false);
       seekToTime(video, clamped, { smooth: isScrubbingRef.current });
       setCurrentTime(clamped);
+      setCurrentFrame(timeToFrame(clamped, fps));
     },
-    [duration],
+    [duration, fps],
   );
 
   const scrubToFrame = useCallback(
@@ -192,7 +193,9 @@ export function useVideoPlayer(options: UseVideoPlayerOptions = {}) {
 
     const onSeeking = () => {
       if (isScrubbingRef.current) {
-        setCurrentTime(activeVideo.currentTime);
+        const time = activeVideo.currentTime;
+        setCurrentTime(time);
+        setCurrentFrame(timeToFrame(time, fps));
       }
     };
 

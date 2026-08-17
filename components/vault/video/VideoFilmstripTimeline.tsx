@@ -100,33 +100,18 @@ export default function VideoFilmstripTimeline({
   };
 
   return (
-    <div
-      className={`px-4 pb-2 pt-3 ${overlayFadeClass(visible)}`}
-      onPointerDown={() => onInteraction()}
-    >
+    <div className={`px-4 pb-2 pt-3 ${overlayFadeClass(visible)}`}>
       {frameLabel && (
         <p className="mb-2 text-center text-[11px] font-medium tabular-nums text-white/70">
           {frameLabel}
         </p>
       )}
 
-      {thumbnails.length > 0 && (
-        <div className="mb-2 flex gap-0.5 overflow-hidden rounded-lg opacity-80">
-          {thumbnails.map((thumbnail, index) => (
-            <img
-              key={`${thumbnail.slice(0, 24)}-${index}`}
-              src={thumbnail}
-              alt=""
-              className="h-8 flex-1 object-cover"
-              draggable={false}
-            />
-          ))}
-        </div>
-      )}
-
       <div
         ref={trackRef}
-        className={`relative h-8 ${disabled ? "opacity-40" : "cursor-pointer touch-none"}`}
+        className={`relative h-14 overflow-hidden rounded-xl bg-white/10 ${
+          disabled ? "opacity-40" : "cursor-pointer touch-none"
+        }`}
         onPointerDown={(event) => {
           if (disabled) {
             return;
@@ -149,13 +134,34 @@ export default function VideoFilmstripTimeline({
         onPointerUp={finishScrub}
         onPointerCancel={finishScrub}
       >
-        <div className="absolute inset-x-0 top-1/2 h-1 -translate-y-1/2 rounded-full bg-white/25" />
+        {thumbnails.length > 0 ? (
+          <div className="absolute inset-0 flex">
+            {thumbnails.map((thumbnail, index) => (
+              <img
+                key={`${thumbnail.slice(0, 24)}-${index}`}
+                src={thumbnail}
+                alt=""
+                className="h-full flex-1 object-cover"
+                draggable={false}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-white/5 to-white/10" />
+        )}
+
         <div
-          className="absolute top-1/2 h-1 -translate-y-1/2 rounded-full bg-white will-change-[width]"
+          className="absolute inset-y-0 left-0 bg-black/45"
           style={{ width: `${progress * 100}%` }}
         />
+
         <div
-          className="absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-white shadow-md will-change-[left]"
+          className="absolute inset-y-0 w-0.5 -translate-x-1/2 bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)]"
+          style={{ left: `${progress * 100}%` }}
+        />
+
+        <div
+          className="absolute top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-white/95 shadow-md"
           style={{ left: `${progress * 100}%` }}
         />
       </div>

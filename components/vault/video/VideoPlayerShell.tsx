@@ -30,12 +30,11 @@ export default function VideoPlayerShell({
 }: VideoPlayerShellProps) {
   const { setImmersive } = useVideoImmersive();
   const player = useVideoPlayer();
-  const { thumbnails } = useFilmstripThumbnails(videoUrl, player.videoRef);
+  const { thumbnails } = useFilmstripThumbnails(videoUrl);
   const overlay = useOverlayVisibility();
 
   const [annotations, setAnnotations] = useState<VideoAnnotation[]>([]);
   const [activeTool, setActiveTool] = useState<AnnotationTool | null>(null);
-  const [annotationColor, setAnnotationColor] = useState(ANNOTATION_COLOR);
   const [menuOpen, setMenuOpen] = useState(false);
 
   const drawingEnabled = activeTool !== null;
@@ -130,7 +129,7 @@ export default function VideoPlayerShell({
         annotations={annotations}
         currentFrame={player.currentFrame}
         activeTool={activeTool}
-        annotationColor={annotationColor}
+        annotationColor={ANNOTATION_COLOR}
         drawingEnabled={drawingEnabled}
         onAnnotationsChange={setAnnotations}
         onSingleTap={overlay.toggleControls}
@@ -172,7 +171,7 @@ export default function VideoPlayerShell({
         </div>
 
         {menuOpen && controlsVisible && (
-          <div className="pointer-events-auto absolute right-4 top-16 min-w-[180px] rounded-2xl bg-black/45 p-2 backdrop-blur-2xl border border-white/10">
+          <div className="pointer-events-auto absolute right-4 top-16 min-w-[180px] rounded-2xl border border-white/10 bg-black/45 p-2 backdrop-blur-2xl">
             <button
               type="button"
               className="block w-full rounded-xl px-3 py-2 text-left text-sm text-white hover:bg-white/10"
@@ -207,38 +206,14 @@ export default function VideoPlayerShell({
             onScrub={handleScrub}
             onScrubEnd={handleScrubEnd}
             onInteraction={overlay.notifyActivity}
-            frameLabel={`Frame ${Math.round(player.currentTime * player.fps)}`}
+            frameLabel={`Frame ${player.currentFrame}`}
           />
 
           <div
-            className={`flex items-center justify-center gap-8 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2 ${overlayFadeClass(
+            className={`flex items-center justify-center px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2 ${overlayFadeClass(
               controlsVisible && !drawingEnabled,
             )}`}
           >
-            <button
-              type="button"
-              aria-label="Previous frame"
-              className={`${glassButtonClassName} h-9 w-9 text-sm`}
-              onClick={() => {
-                overlay.notifyActivity();
-                player.stepFrames(-1);
-              }}
-            >
-              ◀
-            </button>
-
-            <button
-              type="button"
-              aria-label="Jump back"
-              className={`${glassButtonClassName} h-10 w-10 text-base`}
-              onClick={() => {
-                overlay.notifyActivity();
-                player.stepFrames(-5);
-              }}
-            >
-              ⏪
-            </button>
-
             <button
               type="button"
               aria-label={player.isPlaying ? "Pause" : "Play"}
@@ -250,40 +225,14 @@ export default function VideoPlayerShell({
             >
               {player.isPlaying ? "⏸" : "▶️"}
             </button>
-
-            <button
-              type="button"
-              aria-label="Jump forward"
-              className={`${glassButtonClassName} h-10 w-10 text-base`}
-              onClick={() => {
-                overlay.notifyActivity();
-                player.stepFrames(5);
-              }}
-            >
-              ⏩
-            </button>
-
-            <button
-              type="button"
-              aria-label="Next frame"
-              className={`${glassButtonClassName} h-9 w-9 text-sm`}
-              onClick={() => {
-                overlay.notifyActivity();
-                player.stepFrames(1);
-              }}
-            >
-              ▶
-            </button>
           </div>
         </div>
       </div>
 
       <VideoDrawingMenu
         activeTool={activeTool}
-        annotationColor={annotationColor}
         controlsVisible={controlsVisible}
         onToolChange={handleToolChange}
-        onColorChange={setAnnotationColor}
         onUndo={handleUndo}
         onClear={() =>
           setAnnotations((current) =>

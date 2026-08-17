@@ -1,44 +1,11 @@
 "use client";
 
-import { useEffect, useState, type RefObject } from "react";
+import { useEffect, useState } from "react";
 import { seekToTime } from "@/lib/domain/videoAnalysis";
 
-const THUMBNAIL_COUNT = 14;
+const THUMBNAIL_COUNT = 16;
 
-async function waitForVideoElement(
-  videoRef: RefObject<HTMLVideoElement | null>,
-  isCancelled: () => boolean,
-): Promise<HTMLVideoElement | null> {
-  for (let attempt = 0; attempt < 120; attempt += 1) {
-    if (isCancelled()) {
-      return null;
-    }
-
-    const video = videoRef.current;
-    if (video) {
-      if (video.readyState >= 1) {
-        return video;
-      }
-
-      await new Promise<void>((resolve) => {
-        video.addEventListener("loadedmetadata", () => resolve(), { once: true });
-      });
-
-      return video;
-    }
-
-    await new Promise<void>((resolve) => {
-      requestAnimationFrame(() => resolve());
-    });
-  }
-
-  return null;
-}
-
-export function useFilmstripThumbnails(
-  videoUrl: string | null,
-  sourceVideoRef?: RefObject<HTMLVideoElement | null>,
-) {
+export function useFilmstripThumbnails(videoUrl: string | null) {
   const [thumbnails, setThumbnails] = useState<string[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -49,26 +16,26 @@ export function useFilmstripThumbnails(
     }
 
     let cancelled = false;
-    const isCancelled = () => cancelled;
-
-    const ownedVideo = sourceVideoRef ? null : document.createElement("video");
-    if (ownedVideo) {
-      ownedVideo.src = videoUrl;
-      ownedVideo.muted = true;
-      ownedVideo.playsInline = true;
-      ownedVideo.preload = "auto";
-    }
+    const video = document.createElement("video");
+    video.src = videoUrl;
+    video.muted = true;
+    video.playsInline = true;
+    video.preload = "auto";
 
     const generate = async () => {
       setIsGenerating(true);
 
-      const video = sourceVideoRef
-        ? await waitForVideoElement(sourceVideoRef, isCancelled)
-        : ownedVideo;
+      await new Promise<void>((resolve) => {
+        if (video.readyState >= 1) {
+          resolve();
+          return;
+        }
+
+        video.addEventListener("loadedmetadata", () => resolve(), { once: true });
+      });
 
       if (
-        !video ||
-        isCancelled() ||
+        cancelled ||
         !Number.isFinite(video.duration) ||
         video.duration <= 0
       ) {
@@ -76,33 +43,19 @@ export function useFilmstripThumbnails(
         return;
       }
 
-      const savedTime = video.currentTime;
-      const wasPaused = video.paused;
-
-      const onPlay = () => {
-        cancelled = true;
-      };
-
-      if (sourceVideoRef) {
-        video.addEventListener("play", onPlay);
-      }
-
       const canvas = document.createElement("canvas");
       const context = canvas.getContext("2d");
       if (!context) {
-        if (sourceVideoRef) {
-          video.removeEventListener("play", onPlay);
-        }
         setIsGenerating(false);
         return;
       }
 
-      canvas.width = 96;
-      canvas.height = 54;
+      canvas.width = 128;
+      canvas.height = 72;
       const frames: string[] = [];
 
       for (let index = 0; index < THUMBNAIL_COUNT; index += 1) {
-        if (isCancelled()) {
+        if (cancelled) {
           break;
         }
 
@@ -119,28 +72,16 @@ export function useFilmstripThumbnails(
           seekToTime(video, time);
         });
 
-        if (isCancelled()) {
-          break;
-        }
-
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
-        frames.push(canvas.toDataURL("image/jpeg", 0.65));
-      }
+        frames.push(canvas.toDataURL("image/jpeg", 0.7));
 
-      if (sourceVideoRef) {
-        video.removeEventListener("play", onPlay);
-      }
-
-      if (!isCancelled()) {
-        setThumbnails(frames);
-      }
-
-      if (sourceVideoRef && !isCancelled()) {
-        seekToTime(video, savedTime);
-        if (!wasPaused) {
-          video.muted = true;
-          void video.play();
+        if (!cancelled && frames.length % 4 === 0) {
+          setThumbnails([...frames]);
         }
+      }
+
+      if (!cancelled) {
+        setThumbnails(frames);
       }
 
       setIsGenerating(false);
@@ -150,11 +91,9 @@ export function useFilmstripThumbnails(
 
     return () => {
       cancelled = true;
-      if (ownedVideo) {
-        ownedVideo.src = "";
-      }
+      video.src = "";
     };
-  }, [videoUrl, sourceVideoRef]);
+  }, [videoUrl]);
 
   return { thumbnails, isGenerating };
 }

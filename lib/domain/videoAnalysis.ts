@@ -2,19 +2,21 @@ export type AnnotationTool = "arrow" | "line" | "circle" | "draw";
 
 export type SyncPointLabel =
   | "Takeoff"
+  | "Plant"
   | "Pole Strike"
-  | "Top Hand Plant"
-  | "Maximum Bend"
+  | "Max Bend"
   | "Inversion"
-  | "Clearance";
+  | "Clearance"
+  | "Custom";
 
 export const SYNC_POINT_LABELS: SyncPointLabel[] = [
   "Takeoff",
+  "Plant",
   "Pole Strike",
-  "Top Hand Plant",
-  "Maximum Bend",
+  "Max Bend",
   "Inversion",
   "Clearance",
+  "Custom",
 ];
 
 export type SyncPoint = {
