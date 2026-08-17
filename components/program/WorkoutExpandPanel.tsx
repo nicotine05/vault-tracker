@@ -1,4 +1,9 @@
 import {
+  getPrescriptionsForWeek,
+  isDeloadWeek,
+} from "@/lib/domain/strengthPrescriptions";
+import { STRENGTH_CATEGORY_LABELS } from "@/lib/catalogs/strengthCatalog";
+import {
   getPhaseConfig,
   type DetailedWorkout,
 } from "@/lib/trainingProgram";
@@ -19,27 +24,34 @@ export default function WorkoutExpandPanel({
         <>
           {(() => {
             const phase = getPhaseConfig(planningWeek);
-            const phaseNameLower = phase.name.toLowerCase() as
-              | "rebuild"
-              | "build"
-              | "specific";
-            const prescriptions = workout.phaseModifications[phaseNameLower];
+            const prescriptions = getPrescriptionsForWeek(workout, planningWeek);
+            const deload = isDeloadWeek(planningWeek);
 
             return (
               <>
-                <div className={`mb-2 inline-block ${todayBadgeClassName}`}>
-                  {phase.name.toUpperCase()}
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                  <span className={todayBadgeClassName}>
+                    {phase.name.toUpperCase()}
+                  </span>
+                  <span className="rounded-full border border-border bg-surface-muted px-2 py-0.5 text-[10px] font-semibold text-muted">
+                    {STRENGTH_CATEGORY_LABELS[workout.category]}
+                  </span>
+                  {deload && (
+                    <span className="rounded-full border border-amber-300/60 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-800 [data-theme=dark]:text-amber-200">
+                      DELOAD
+                    </span>
+                  )}
                 </div>
 
                 <div className="space-y-1 pt-2">
                   <div>
-                    <span className="font-semibold text-accent-text">Primary</span>
+                    <span className="font-semibold text-accent-text">Main Lift</span>
                     <div className="text-foreground">
                       {workout.primaryLift} — {prescriptions.primary}
                     </div>
                   </div>
                   <div>
-                    <span className="font-semibold text-accent-text">Secondary</span>
+                    <span className="font-semibold text-accent-text">Secondary Lift</span>
                     <div className="text-foreground">
                       {workout.secondaryLift} — {prescriptions.secondary}
                     </div>

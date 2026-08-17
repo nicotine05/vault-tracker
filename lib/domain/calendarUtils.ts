@@ -38,6 +38,21 @@ export function shiftWeekStartDate(
   return toLocalDateKey(date);
 }
 
+export function getCalendarWeeksElapsed(
+  weekStartDate: string,
+  fromDate: Date = new Date()
+): number {
+  const programWeekStart = new Date(`${weekStartDate}T00:00:00`);
+  const todayWeekStart = getCalendarWeekStart(fromDate);
+  const diffMs = todayWeekStart.getTime() - programWeekStart.getTime();
+
+  if (diffMs <= 0) {
+    return 0;
+  }
+
+  return Math.floor(diffMs / (7 * 24 * 60 * 60 * 1000));
+}
+
 export function getWeekDateKeys(weekStart: Date): string[] {
   return Array.from({ length: 7 }, (_, index) => {
     const date = new Date(weekStart);

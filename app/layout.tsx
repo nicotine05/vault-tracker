@@ -1,6 +1,7 @@
 import "./globals.css";
-import Navigation from "./Navigation";
+import NavigationGate from "@/components/NavigationGate";
 import { AuthProvider } from "@/components/AuthProvider";
+import { VideoFocusModeProvider } from "@/components/vault/video/VideoFocusModeContext";
 import CoachReadOnlyBanner from "@/components/CoachReadOnlyBanner";
 import { ProgramStateProvider } from "@/components/ProgramStateProvider";
 import SyncConflictBanner from "@/components/SyncConflictBanner";
@@ -24,11 +25,13 @@ export default function RootLayout({
         <AuthProvider>
           <ProgramStateProvider>
             <ThemeProvider>
-              <CoachReadOnlyBanner />
-              <SyncConflictBanner />
-              <main className="pb-24">{children}</main>
+              <VideoFocusModeProvider>
+                <CoachReadOnlyBanner />
+                <SyncConflictBanner />
+                <main className="pb-24">{children}</main>
 
-              <Navigation />
+                <NavigationGate />
+              </VideoFocusModeProvider>
             </ThemeProvider>
           </ProgramStateProvider>
         </AuthProvider>

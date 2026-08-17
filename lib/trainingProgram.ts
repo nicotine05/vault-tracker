@@ -1,4 +1,8 @@
-import { strengthCatalog, type StrengthWorkout } from "./catalogs/strengthCatalog";
+import {
+  strengthCatalog,
+  type StrengthCategory,
+  type StrengthWorkout,
+} from "./catalogs/strengthCatalog";
 import { sprintCatalog, type SprintWorkout } from "./catalogs/sprintCatalog";
 import { vaultCatalog, type VaultWorkout } from "./catalogs/vaultCatalog";
 
@@ -13,7 +17,7 @@ export type DailySchedule = {
 
 export type GeneratedWeekSchedule = Record<string, DailySchedule>;
 
-export const ENGINE_VERSION = 1;
+export const ENGINE_VERSION = 2;
 
 export type PlannerDay = {
   vault: boolean;
@@ -68,12 +72,20 @@ export const trafficLightThresholds = {
 
 // Helper: Convert catalog workouts to SessionOption format
 function vaultToSession(vault: VaultWorkout): SessionOption {
+  const tags: string[] = [];
+  if (vault.id === "VD4") {
+    tags.push("competition");
+  }
+  if (vault.id === "VD5") {
+    tags.push("long-run");
+  }
+
   return {
     id: vault.id,
     type: "vault",
     name: vault.name,
     load: vault.load,
-    tags: [],
+    tags,
     phase: vault.phase,
     jumpVolume: vault.jumpVolume,
     focus: `${vault.runLength} - ${vault.jumpVolume} jumps`,
@@ -86,7 +98,7 @@ function strengthToSession(strength: StrengthWorkout): SessionOption {
     type: "strength",
     name: strength.name,
     load: strength.load,
-    tags: [],
+    tags: [strength.category],
     phase: strength.phase,
     exercises: [strength.primaryLift, strength.secondaryLift],
   };
@@ -113,21 +125,12 @@ export function getCatalogWorkout(id: string): DetailedWorkout | undefined {
   return sprintCatalog.find((s) => s.id === id);
 }
 
-// Phase definitions with phase-based session assignments
-// REBUILD: VD2, VD3 | ST1, ST5, ST2, ST6 | S2, S1, S3
-// BUILD: VD3, VD5 | ST1, ST3, ST2, ST4 | S2, S5, S3, S6
-// SPECIFIC: VD5, VD4 | ST3, ST7, ST8 | S5, S6, S8, S9
+// Phase definitions with phase-based vault and sprint assignments.
+// Strength is assigned dynamically by category priority in the training engine.
 
 const rebuildVaults = [
   vaultToSession(vaultCatalog.find((v) => v.id === "VD2")!),
   vaultToSession(vaultCatalog.find((v) => v.id === "VD3")!),
-];
-
-const rebuildStrength = [
-  strengthToSession(strengthCatalog.find((s) => s.id === "ST1")!),
-  strengthToSession(strengthCatalog.find((s) => s.id === "ST5")!),
-  strengthToSession(strengthCatalog.find((s) => s.id === "ST2")!),
-  strengthToSession(strengthCatalog.find((s) => s.id === "ST6")!),
 ];
 
 const rebuildSprints = [
@@ -141,13 +144,6 @@ const buildVaults = [
   vaultToSession(vaultCatalog.find((v) => v.id === "VD5")!),
 ];
 
-const buildStrength = [
-  strengthToSession(strengthCatalog.find((s) => s.id === "ST1")!),
-  strengthToSession(strengthCatalog.find((s) => s.id === "ST3")!),
-  strengthToSession(strengthCatalog.find((s) => s.id === "ST2")!),
-  strengthToSession(strengthCatalog.find((s) => s.id === "ST4")!),
-];
-
 const buildSprints = [
   sprintToSession(sprintCatalog.find((s) => s.id === "S2")!),
   sprintToSession(sprintCatalog.find((s) => s.id === "S5")!),
@@ -158,12 +154,6 @@ const buildSprints = [
 const specificVaults = [
   vaultToSession(vaultCatalog.find((v) => v.id === "VD5")!),
   vaultToSession(vaultCatalog.find((v) => v.id === "VD4")!),
-];
-
-const specificStrength = [
-  strengthToSession(strengthCatalog.find((s) => s.id === "ST3")!),
-  strengthToSession(strengthCatalog.find((s) => s.id === "ST7")!),
-  strengthToSession(strengthCatalog.find((s) => s.id === "ST8")!),
 ];
 
 const specificSprints = [
@@ -182,7 +172,7 @@ export const phases: Record<string, PhaseDefinition> = {
       speed: 2,
     },
     vault: rebuildVaults,
-    strength: rebuildStrength,
+    strength: [],
     sprint: rebuildSprints,
   },
   Build: {
@@ -193,7 +183,7 @@ export const phases: Record<string, PhaseDefinition> = {
       speed: 2,
     },
     vault: buildVaults,
-    strength: buildStrength,
+    strength: [],
     sprint: buildSprints,
   },
   Specific: {
@@ -204,7 +194,7 @@ export const phases: Record<string, PhaseDefinition> = {
       speed: 2,
     },
     vault: specificVaults,
-    strength: specificStrength,
+    strength: [],
     sprint: specificSprints,
   },
 };
@@ -259,11 +249,65 @@ function getPhasePool(phase: PhaseDefinition, type: TrainingType) {
   return phase.sprint;
 }
 
+const STRENGTH_CATEGORY_PRIORITY: Record<string, StrengthCategory[]> = {
+  Rebuild: ["LS", "US", "AS", "PC", "TBP"],
+  Build: ["TBP", "LS", "US", "PC", "AS"],
+  Specific: ["TBP", "PC", "US", "AS", "LS"],
+};
+
+function getWorkoutsByCategory(category: StrengthCategory): StrengthWorkout[] {
+  return strengthCatalog
+    .filter((workout) => workout.category === category)
+    .sort((a, b) => a.id.localeCompare(b.id));
+}
+
+function assignStrengthWorkout(
+  category: StrengthCategory,
+  weekNumber: number
+): StrengthWorkout {
+  const pool = getWorkoutsByCategory(category);
+  const index = (weekNumber - 1) % pool.length;
+  return pool[index] ?? pool[0];
+}
+
+function buildStrengthAssignments(
+  plannerWeek: Partial<Record<string, PlannerDay>>,
+  weekNumber: number
+): Map<string, SessionOption> {
+  const phase = getPhaseConfig(weekNumber);
+  const priority =
+    STRENGTH_CATEGORY_PRIORITY[phase.name] ?? STRENGTH_CATEGORY_PRIORITY.Rebuild;
+  const strengthDays = plannerDays.filter((day) => plannerWeek[day]?.strength);
+  const categories = priority.slice(0, strengthDays.length);
+  const assignments = new Map<string, SessionOption>();
+
+  strengthDays.forEach((day, index) => {
+    const category = categories[index];
+    if (!category) {
+      return;
+    }
+
+    const workout = assignStrengthWorkout(category, weekNumber);
+    assignments.set(day, strengthToSession(workout));
+  });
+
+  return assignments;
+}
+
+export function getStrengthCategoryPriority(
+  phaseName: string
+): StrengthCategory[] {
+  return (
+    STRENGTH_CATEGORY_PRIORITY[phaseName] ?? STRENGTH_CATEGORY_PRIORITY.Rebuild
+  );
+}
+
 export function generateScheduleForWeek(
   plannerWeek: Partial<Record<string, PlannerDay>>,
   weekNumber: number
 ): GeneratedWeekSchedule {
   const phase = getPhaseConfig(weekNumber);
+  const strengthAssignments = buildStrengthAssignments(plannerWeek, weekNumber);
 
   return plannerDays.reduce((acc, day, dayIndex) => {
     const entry = plannerWeek[day] || { vault: false, strength: false, speed: false };
@@ -275,8 +319,10 @@ export function generateScheduleForWeek(
     }
 
     if (entry.strength) {
-      const pool = getPhasePool(phase, "strength");
-      assignedSessions.push(pool[dayIndex % pool.length] ?? pool[0]);
+      const strengthSession = strengthAssignments.get(day);
+      if (strengthSession) {
+        assignedSessions.push(strengthSession);
+      }
     }
 
     if (entry.speed) {
@@ -338,6 +384,11 @@ export function getPlannerWarnings(
 
   plannerDays.forEach((day) => {
     const planned = plannerWeek[day] || { vault: false, strength: false, speed: false };
+    const dailyLoad = scheduled[day]?.load ?? 0;
+
+    if (dailyLoad >= 18) {
+      warnings.add("Stacked High-Stress Day");
+    }
 
     if (planned.vault && planned.speed) {
       warnings.add("Vault should occur before Speed on the same day.");
@@ -349,7 +400,7 @@ export function getPlannerWarnings(
       (session) => session.type === "vault" && session.tags.includes("competition")
     );
     const heavyStrength = scheduled[day]?.sessions.find(
-      (session) => session.type === "strength" && session.load >= 5
+      (session) => session.type === "strength" && session.load >= 7
     );
 
     if (vaultSession && heavyStrength) {
@@ -357,7 +408,7 @@ export function getPlannerWarnings(
     }
 
     const longRun = scheduled[day]?.sessions.find(
-      (session) => session.type === "speed" && session.tags.includes("long-run")
+      (session) => session.type === "vault" && session.tags.includes("long-run")
     );
     if (longRun && heavyStrength) {
       warnings.add("Long Run Day + Heavy Strength same day");

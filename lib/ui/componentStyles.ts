@@ -52,6 +52,15 @@ export const todayCardClassName =
 export const todayBadgeClassName =
   "rounded-full border border-accent/30 bg-accent-soft px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-accent-text";
 
+export const programWeekHeaderActiveClassName =
+  "border-border-accent bg-gradient-to-br from-surface via-surface-muted to-surface-accent";
+
+export const programWeekHeaderPlanningClassName =
+  "border-accent/30 bg-gradient-to-br from-surface via-surface-accent to-accent-soft/40";
+
+export const programWeekHeaderInactiveClassName =
+  "border-border/60 bg-surface-muted/90 [data-theme=dark]:border-border/35 [data-theme=dark]:bg-surface-muted/50";
+
 export const coachBannerClassName =
   "border-b border-amber-200/80 bg-amber-500/10 px-4 py-2 text-center text-sm text-amber-900 [data-theme=dark]:border-amber-500/30 [data-theme=dark]:bg-amber-500/15 [data-theme=dark]:text-amber-200";
 

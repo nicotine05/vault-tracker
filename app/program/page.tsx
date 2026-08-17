@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import GeneratedScheduleCard from "@/components/program/GeneratedScheduleCard";
 import ProgramWeekHeader from "@/components/program/ProgramWeekHeader";
@@ -15,7 +15,10 @@ import {
 } from "@/lib/domain/plannerHealth";
 import { getPhaseNameForWeek } from "@/lib/domain/programWeek";
 import { useProgramState } from "@/lib/hooks/useProgramState";
-import { isWeekScheduleGenerated } from "@/lib/storage/programStore";
+import {
+  isWeekScheduleGenerated,
+  maxViewableWeek,
+} from "@/lib/storage/programStore";
 import { getPlannerWarnings, type TrainingType } from "@/lib/trainingProgram";
 
 export default function ProgramPage() {
@@ -31,6 +34,7 @@ export default function ProgramPage() {
 }
 
 function ProgramPageContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const { isCoachReadOnly } = useAuth();
   const {
@@ -50,6 +54,7 @@ function ProgramPageContent() {
 
   const [confirmingKey, setConfirmingKey] = useState<string | null>(null);
   const [scheduleWarnings, setScheduleWarnings] = useState<string[] | null>(null);
+  const maxWeek = maxViewableWeek(currentWeek);
 
   useEffect(() => {
     const weekParam = searchParams.get("week");
@@ -82,12 +87,28 @@ function ProgramPageContent() {
   const generated = isWeekScheduleGenerated(programState, planningWeek);
   const snapshot = scheduleSnapshotsByWeek[planningWeek];
   const generatedSchedule = snapshot?.schedule ?? {};
+  const isPastWeek = planningWeek < currentWeek;
+  const canModifySchedule = !isPastWeek && !isCoachReadOnly;
+
+  function navigateToWeek(week: number) {
+    const clampedWeek = Math.min(maxWeek, Math.max(1, week));
+    setPlanningWeek(clampedWeek);
+
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("week", String(clampedWeek));
+    const query = params.toString();
+    router.replace(query ? `/program?${query}` : "/program", { scroll: false });
+  }
 
   function togglePlanner(day: string, type: TrainingType) {
     updatePlannerDay(planningWeek, day, type);
   }
 
   function requestScheduleGeneration() {
+    if (isPastWeek) {
+      return;
+    }
+
     const warnings = getPlannerWarnings(weekPlanner, planningWeek);
 
     if (warnings.length > 0) {
@@ -114,6 +135,10 @@ function ProgramPageContent() {
         currentWeek={currentWeek}
         phaseName={phaseName}
         isPlanning={!generated}
+        maxWeek={maxWeek}
+        onPreviousWeek={() => navigateToWeek(planningWeek - 1)}
+        onNextWeek={() => navigateToWeek(planningWeek + 1)}
+        onReturnToActiveWeek={() => navigateToWeek(currentWeek)}
       />
 
       {!generated && (
@@ -121,12 +146,18 @@ function ProgramPageContent() {
           <TargetIndicators metrics={healthMetrics} />
 
           <WeeklyPlannerCard
-            readOnly={isCoachReadOnly}
+            readOnly={isCoachReadOnly || isPastWeek}
             weekPlanner={weekPlanner}
             onToggle={togglePlanner}
           />
 
-          {plannerComplete && !isCoachReadOnly && (
+          {isPastWeek && (
+            <p className="text-center text-sm text-muted">
+              Past weeks are view-only. Schedules cannot be generated retroactively.
+            </p>
+          )}
+
+          {plannerComplete && canModifySchedule && (
             <button
               type="button"
               onClick={requestScheduleGeneration}
@@ -141,6 +172,7 @@ function ProgramPageContent() {
       {generated && (
         <GeneratedScheduleCard
           readOnly={isCoachReadOnly}
+          canModifySchedule={canModifySchedule}
           planningWeek={planningWeek}
           currentWeek={currentWeek}
           generatedSchedule={generatedSchedule}

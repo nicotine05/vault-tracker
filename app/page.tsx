@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import MealPlanCard from "@/components/home/MealPlanCard";
 import HomeGreeting from "@/components/home/HomeGreeting";
 import TodayTrainingCard from "@/components/home/TodayTrainingCard";
@@ -32,7 +31,7 @@ export default function Home() {
 
   return (
     <main className="max-w-md mx-auto p-4 pb-20">
-      <div className="mb-6 flex items-start justify-between gap-3">
+      <div className="mb-6">
         <div className="min-w-0">
           <h1 className="text-[1.65rem] font-bold leading-none tracking-tight text-foreground">
             Vault{" "}
@@ -70,14 +69,6 @@ export default function Home() {
             </span>
           </div>
         </div>
-
-        <Link
-          href="/settings"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border bg-surface text-lg transition hover:bg-surface-muted"
-          aria-label="Settings"
-        >
-          ⚙️
-        </Link>
       </div>
 
       <HomeGreeting />

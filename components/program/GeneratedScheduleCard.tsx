@@ -29,6 +29,7 @@ import {
 
 type GeneratedScheduleCardProps = {
   readOnly: boolean;
+  canModifySchedule?: boolean;
   planningWeek: number;
   currentWeek: number;
   generatedSchedule: GeneratedWeekSchedule;
@@ -45,6 +46,7 @@ type GeneratedScheduleCardProps = {
 
 export default function GeneratedScheduleCard({
   readOnly,
+  canModifySchedule = true,
   planningWeek,
   currentWeek,
   generatedSchedule,
@@ -141,7 +143,7 @@ export default function GeneratedScheduleCard({
           })}
         </div>
 
-        {!readOnly && (
+        {!readOnly && canModifySchedule && (
           <button
             type="button"
             onClick={() => setShowEditWeek(true)}

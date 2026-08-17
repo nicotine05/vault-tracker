@@ -20,6 +20,7 @@ import {
   loadProgramState,
   saveProgramState,
   subscribeProgramState,
+  syncProgramWeekToCalendar,
   type ProgramState,
 } from "@/lib/storage/programStore";
 import { isCoachReadOnly } from "@/lib/sync/readOnly";
@@ -44,7 +45,6 @@ type ProgramStateContextValue = ProgramState & {
   ) => void;
   generateWeekSchedule: (weekNumber: number) => void;
   resetWeekPlanner: (weekNumber: number) => void;
-  advanceToNextWeek: () => void;
   completeWorkout: (params: WorkoutToggleParams) => void;
 };
 
@@ -60,13 +60,33 @@ export function ProgramStateProvider({
   const skipNextSave = useRef(false);
 
   useEffect(() => {
-    setState(loadProgramState());
+    setState(syncProgramWeekToCalendar(loadProgramState()));
     setLoaded(true);
 
     return subscribeProgramState(() => {
       skipNextSave.current = true;
-      setState(loadProgramState());
+      setState(syncProgramWeekToCalendar(loadProgramState()));
     });
+  }, []);
+
+  useEffect(() => {
+    function syncWeekFromCalendar() {
+      setState((prev) => {
+        const synced = syncProgramWeekToCalendar(prev);
+        return synced === prev ? prev : synced;
+      });
+    }
+
+    function handleVisibilityChange() {
+      if (document.visibilityState === "visible") {
+        syncWeekFromCalendar();
+      }
+    }
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, []);
 
   useEffect(() => {
@@ -106,22 +126,6 @@ export function ProgramStateProvider({
     }));
   }, []);
 
-  const advanceToNextWeek = useCallback(() => {
-    if (isCoachReadOnly()) return;
-    setState((prev) => {
-      const nextWeek = Math.min(12, prev.currentWeek + 1);
-      const anchor =
-        prev.currentWeekStartDate || getDefaultCurrentWeekStartDate();
-
-      return {
-        ...prev,
-        currentWeek: nextWeek,
-        currentWeekStartDate: shiftWeekStartDate(anchor, 1),
-        planningWeek: nextWeek,
-      };
-    });
-  }, []);
-
   const planAhead = useCallback((week: number) => {
     if (isCoachReadOnly()) return;
     setState((prev) => ({
@@ -134,6 +138,10 @@ export function ProgramStateProvider({
     (weekNumber: number, day: string, type: keyof PlannerDay) => {
       if (isCoachReadOnly()) return;
       setState((prev) => {
+        if (weekNumber < prev.currentWeek) {
+          return prev;
+        }
+
         const weekPlanner = prev.plannerByWeek[weekNumber] ?? {};
         const dayPlanner = weekPlanner[day] ?? {
           vault: false,
@@ -162,6 +170,10 @@ export function ProgramStateProvider({
   const generateWeekSchedule = useCallback((weekNumber: number) => {
     if (isCoachReadOnly()) return;
     setState((prev) => {
+      if (weekNumber < prev.currentWeek) {
+        return prev;
+      }
+
       const planner = prev.plannerByWeek[weekNumber] ?? {};
       const snapshot = generateScheduleSnapshot(weekNumber, planner);
 
@@ -178,6 +190,10 @@ export function ProgramStateProvider({
   const resetWeekPlanner = useCallback((weekNumber: number) => {
     if (isCoachReadOnly()) return;
     setState((prev) => {
+      if (weekNumber < prev.currentWeek) {
+        return prev;
+      }
+
       const nextSnapshots = { ...prev.scheduleSnapshotsByWeek };
       delete nextSnapshots[weekNumber];
 
@@ -247,7 +263,6 @@ export function ProgramStateProvider({
       updatePlannerDay,
       generateWeekSchedule,
       resetWeekPlanner,
-      advanceToNextWeek,
       completeWorkout,
     }),
     [
@@ -259,7 +274,6 @@ export function ProgramStateProvider({
       updatePlannerDay,
       generateWeekSchedule,
       resetWeekPlanner,
-      advanceToNextWeek,
       completeWorkout,
     ]
   );

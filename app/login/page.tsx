@@ -30,10 +30,10 @@ export default function LoginPage() {
             You&apos;re signed in as {user.name} ({user.role}).
           </p>
           <Link
-            href="/settings"
+            href="/more"
             className={`block text-center ${primaryButtonClassName}`}
           >
-            Go to Settings
+            Go to More
           </Link>
         </Card>
       </main>
@@ -53,7 +53,7 @@ export default function LoginPage() {
     if (result) {
       setError(result);
     } else {
-      router.push("/settings");
+      router.push("/more");
     }
 
     setSubmitting(false);

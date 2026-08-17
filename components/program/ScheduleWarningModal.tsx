@@ -7,6 +7,10 @@ type ScheduleWarningModalProps = {
 };
 
 function formatWarningMessage(warning: string): string {
+  if (warning === "Stacked High-Stress Day") {
+    return "This day combines multiple high-fatigue sessions. Consider moving one session to improve recovery and performance.";
+  }
+
   if (warning === "Consecutive vault days") {
     return "Consecutive vault days detected.";
   }

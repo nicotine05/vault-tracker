@@ -5,7 +5,7 @@ import {
   type PlannerDay,
 } from "@/lib/trainingProgram";
 import type { WorkoutExecutionRecord } from "@/lib/domain/types";
-import { getCalendarDateForProgramDay, getDefaultCurrentWeekStartDate } from "@/lib/domain/calendarUtils";
+import { getCalendarDateForProgramDay, getDefaultCurrentWeekStartDate, getCalendarWeeksElapsed, shiftWeekStartDate } from "@/lib/domain/calendarUtils";
 import { getItem, getString, setItem } from "@/lib/storage/localStore";
 import { STORAGE_EVENTS, STORAGE_KEYS } from "@/lib/storage/keys";
 import { runStorageMigrations } from "@/lib/storage/migrations";
@@ -55,6 +55,39 @@ export function clampPlanningWeek(
 
 export function maxViewableWeek(currentWeek: number): number {
   return Math.min(12, currentWeek + MAX_PLAN_AHEAD_WEEKS);
+}
+
+export function syncProgramWeekToCalendar(state: ProgramState): ProgramState {
+  const weeksElapsed = getCalendarWeeksElapsed(state.currentWeekStartDate);
+  if (weeksElapsed <= 0) {
+    return state;
+  }
+
+  const newCurrentWeek = Math.min(12, state.currentWeek + weeksElapsed);
+  const actualElapsed = newCurrentWeek - state.currentWeek;
+  if (actualElapsed <= 0) {
+    return state;
+  }
+
+  const newStartDate = shiftWeekStartDate(
+    state.currentWeekStartDate,
+    actualElapsed
+  );
+
+  let newPlanningWeek = state.planningWeek;
+  if (state.planningWeek >= state.currentWeek) {
+    newPlanningWeek = clampPlanningWeek(
+      state.planningWeek + actualElapsed,
+      newCurrentWeek
+    );
+  }
+
+  return {
+    ...state,
+    currentWeek: newCurrentWeek,
+    currentWeekStartDate: newStartDate,
+    planningWeek: newPlanningWeek,
+  };
 }
 
 function createSnapshot(
@@ -129,7 +162,7 @@ export function loadProgramState(): ProgramState {
   const rawPlanning = legacyPlanning || legacySelected || String(currentWeek);
   const planningWeek = clampPlanningWeek(Number(rawPlanning), currentWeek);
 
-  return {
+  return syncProgramWeekToCalendar({
     currentWeek,
     currentWeekStartDate,
     planningWeek,
@@ -137,7 +170,7 @@ export function loadProgramState(): ProgramState {
     scheduleSnapshotsByWeek: getItem(STORAGE_KEYS.SCHEDULE_SNAPSHOTS, {}),
     completedWorkouts: getItem(STORAGE_KEYS.COMPLETED_WORKOUTS, {}),
     executionHistory,
-  };
+  });
 }
 
 export function saveProgramState(state: ProgramState): void {
