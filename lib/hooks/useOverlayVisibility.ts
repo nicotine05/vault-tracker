@@ -39,10 +39,13 @@ export function useOverlayVisibility(timeoutMs = DEFAULT_TIMEOUT_MS) {
         return false;
       }
 
-      scheduleHide();
+      clearTimer();
+      timerRef.current = setTimeout(() => {
+        setVisible(false);
+      }, timeoutMs);
       return true;
     });
-  }, [clearTimer, scheduleHide]);
+  }, [clearTimer, timeoutMs]);
 
   useEffect(() => {
     scheduleHide();

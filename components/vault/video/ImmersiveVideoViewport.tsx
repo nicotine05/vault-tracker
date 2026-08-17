@@ -57,7 +57,9 @@ export default function ImmersiveVideoViewport({
   const [draft, setDraft] = useState<VideoAnnotation | null>(null);
   const isDrawingRef = useRef(false);
   const lastTapRef = useRef<{ time: number; x: number } | null>(null);
-  const activeTouches = useRef(0);
+  const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(
+    null,
+  );
   const zoom = useVideoZoom();
 
   const frameAnnotations = annotations.filter(
@@ -128,7 +130,7 @@ export default function ImmersiveVideoViewport({
     const now = Date.now();
     const lastTap = lastTapRef.current;
 
-    if (lastTap && now - lastTap.time < 280) {
+    if (lastTap && now - lastTap.time < 320) {
       const zone = (clientX - rect.left) / rect.width;
       if (zone < 0.35) {
         onDoubleTapLeft();
@@ -142,16 +144,14 @@ export default function ImmersiveVideoViewport({
     }
 
     lastTapRef.current = { time: now, x: clientX };
-
-    window.setTimeout(() => {
-      if (lastTapRef.current?.time === now) {
-        onSingleTap();
-        lastTapRef.current = null;
-      }
-    }, 280);
+    onSingleTap();
   };
 
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === "touch") {
+      return;
+    }
+
     onInteraction();
 
     if (drawingEnabled && activeTool) {
@@ -167,7 +167,27 @@ export default function ImmersiveVideoViewport({
       return;
     }
 
+    if (zoom.scale > 1 && event.buttons === 1) {
+      zoom.handlePanStart(event.clientX, event.clientY);
+    }
+  };
+
+  const handlePointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
     if (event.pointerType === "touch") {
+      return;
+    }
+
+    if (isDrawingRef.current) {
+      finishPointerDraw(event);
+      return;
+    }
+
+    if (zoom.scale > 1) {
+      zoom.handlePanEnd();
+      return;
+    }
+
+    if (drawingEnabled || activeTool) {
       return;
     }
 
@@ -176,12 +196,14 @@ export default function ImmersiveVideoViewport({
       return;
     }
 
-    if (zoom.scale > 1 && event.buttons === 1) {
-      zoom.handlePanStart(event.clientX, event.clientY);
-    }
+    handleTapGesture(event.clientX, rect);
   };
 
   const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === "touch") {
+      return;
+    }
+
     if (isDrawingRef.current && draft && activeTool) {
       const rect = containerRef.current?.getBoundingClientRect();
       if (!rect) {
@@ -208,7 +230,6 @@ export default function ImmersiveVideoViewport({
 
   const finishPointerDraw = (event: React.PointerEvent<HTMLDivElement>) => {
     if (!isDrawingRef.current) {
-      zoom.handlePanEnd();
       return;
     }
 
@@ -241,41 +262,67 @@ export default function ImmersiveVideoViewport({
   };
 
   const handleTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
-    onInteraction();
-    activeTouches.current = event.touches.length;
-
     if (event.touches.length === 2) {
+      onInteraction();
       zoom.handlePinchStart(getTouchDistance(event.touches));
+      touchStartRef.current = null;
       return;
     }
 
-    if (event.touches.length === 1 && !drawingEnabled) {
+    if (event.touches.length === 1) {
       const touch = event.touches[0];
-      const rect = containerRef.current?.getBoundingClientRect();
-      if (rect) {
-        handleTapGesture(touch.clientX, rect);
-      }
+      touchStartRef.current = {
+        x: touch.clientX,
+        y: touch.clientY,
+        time: Date.now(),
+      };
     }
   };
 
   const handleTouchMove = (event: React.TouchEvent<HTMLDivElement>) => {
     if (event.touches.length === 2) {
+      onInteraction();
       zoom.handlePinchMove(getTouchDistance(event.touches));
+      touchStartRef.current = null;
       return;
     }
 
-    if (event.touches.length === 2 && zoom.scale > 1) {
-      const centerX =
-        (event.touches[0].clientX + event.touches[1].clientX) / 2;
-      const centerY =
-        (event.touches[0].clientY + event.touches[1].clientY) / 2;
-      zoom.handlePanMove(centerX, centerY);
+    if (!touchStartRef.current || event.touches.length !== 1) {
+      return;
+    }
+
+    const touch = event.touches[0];
+    const moved = Math.hypot(
+      touch.clientX - touchStartRef.current.x,
+      touch.clientY - touchStartRef.current.y,
+    );
+
+    if (moved > 12) {
+      touchStartRef.current = null;
     }
   };
 
-  const handleTouchEnd = () => {
-    activeTouches.current = 0;
+  const handleTouchEnd = (event: React.TouchEvent<HTMLDivElement>) => {
     zoom.handlePanEnd();
+
+    if (drawingEnabled || event.touches.length > 0) {
+      touchStartRef.current = null;
+      return;
+    }
+
+    const start = touchStartRef.current;
+    touchStartRef.current = null;
+
+    if (!start) {
+      return;
+    }
+
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) {
+      return;
+    }
+
+    handleTapGesture(start.x, rect);
   };
 
   return (
@@ -284,8 +331,8 @@ export default function ImmersiveVideoViewport({
       className={`relative h-full w-full overflow-hidden bg-black touch-none ${className}`}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
-      onPointerUp={finishPointerDraw}
-      onPointerCancel={finishPointerDraw}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
