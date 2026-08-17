@@ -25,6 +25,7 @@ import {
   clampSyncOffset,
   getSyncOffsetBounds,
   seekToFrame,
+  seekToTime,
 } from "@/lib/domain/videoAnalysis";
 import { useFilmstripThumbnails } from "@/lib/hooks/useFilmstripThumbnails";
 import { useOverlayVisibility } from "@/lib/hooks/useOverlayVisibility";
@@ -50,7 +51,7 @@ export default function ComparePlayerShell({
   const { setImmersive } = useVideoImmersive();
   const playerA = useVideoPlayer();
   const playerB = useVideoPlayer();
-  const overlay = useOverlayVisibility(2500);
+  const overlay = useOverlayVisibility();
   const lastAnnotationTarget = useRef<ActiveVideo>("A");
 
   const { thumbnails: thumbnailsA } = useFilmstripThumbnails(videoUrlA);
@@ -70,6 +71,12 @@ export default function ComparePlayerShell({
   const [optionsOpen, setOptionsOpen] = useState(false);
 
   const drawingEnabled = activeTool !== null;
+  const isScrubbing = playerA.isScrubbing || playerB.isScrubbing;
+  const controlsVisible =
+    overlay.controlsVisible ||
+    isScrubbing ||
+    optionsOpen ||
+    syncMenuOpen;
 
   useEffect(() => {
     setImmersive(true);
@@ -119,11 +126,46 @@ export default function ComparePlayerShell({
     [playerA, playerB, syncPointA, syncPointB],
   );
 
+  const applySyncOffsetSmooth = useCallback(
+    (offset: number) => {
+      if (!syncPointA || !syncPointB) {
+        return;
+      }
+
+      const clamped = clampSyncOffset(
+        offset,
+        syncPointA.frame,
+        syncPointB.frame,
+        playerA.totalFrames,
+        playerB.totalFrames,
+      );
+
+      setSyncOffset(clamped);
+
+      if (playerA.videoRef.current) {
+        seekToTime(
+          playerA.videoRef.current,
+          (syncPointA.frame + clamped) / playerA.fps,
+          { smooth: true },
+        );
+      }
+
+      if (playerB.videoRef.current) {
+        seekToTime(
+          playerB.videoRef.current,
+          (syncPointB.frame + clamped) / playerB.fps,
+          { smooth: true },
+        );
+      }
+    },
+    [playerA, playerB, syncPointA, syncPointB],
+  );
+
   const activePlayer = activeVideo === "A" ? playerA : playerB;
 
   const timelineTime = isSynced
     ? (syncOffset - syncBounds.min) / activePlayer.fps
-    : activePlayer.currentFrame / activePlayer.fps;
+    : activePlayer.currentTime;
 
   const timelineDuration = isSynced
     ? (syncBounds.max - syncBounds.min) / activePlayer.fps
@@ -132,34 +174,34 @@ export default function ComparePlayerShell({
   const handleScrubStart = useCallback(() => {
     playerA.pause();
     playerB.pause();
-
-    if (!isSynced) {
-      activePlayer.beginScrub();
-    }
-  }, [activePlayer, isSynced, playerA, playerB]);
+    playerA.beginScrub();
+    playerB.beginScrub();
+  }, [playerA, playerB]);
 
   const handleScrub = useCallback(
     (time: number) => {
       if (isSynced) {
-        applySyncOffset(Math.round(time * activePlayer.fps) + syncBounds.min);
+        applySyncOffsetSmooth(time * activePlayer.fps + syncBounds.min);
         return;
       }
 
       activePlayer.scrubToTime(time);
     },
-    [activePlayer, applySyncOffset, isSynced, syncBounds.min],
+    [activePlayer, applySyncOffsetSmooth, isSynced, syncBounds.min],
   );
 
   const handleScrubEnd = useCallback(() => {
-    if (!isSynced) {
-      activePlayer.endScrub();
+    if (isSynced) {
+      applySyncOffset(syncOffset);
     }
 
+    playerA.endScrub();
+    playerB.endScrub();
     playerA.pause();
     playerB.pause();
-    playerA.syncFrameFromVideo();
-    playerB.syncFrameFromVideo();
-  }, [activePlayer, isSynced, playerA, playerB]);
+    playerA.syncTimeFromVideo();
+    playerB.syncTimeFromVideo();
+  }, [applySyncOffset, isSynced, playerA, playerB, syncOffset]);
 
   const handleStep = useCallback(
     (delta: number) => {
@@ -407,7 +449,7 @@ export default function ComparePlayerShell({
       <div className="pointer-events-none absolute inset-0 flex flex-col justify-between">
         <div
           className={`pointer-events-auto flex items-center justify-between px-4 pb-2 pt-[max(0.75rem,env(safe-area-inset-top))] ${overlayFadeClass(
-            overlay.controlsVisible,
+            controlsVisible,
           )}`}
         >
           <Link
@@ -434,7 +476,7 @@ export default function ComparePlayerShell({
           </button>
         </div>
 
-        {optionsOpen && overlay.controlsVisible && (
+        {optionsOpen && controlsVisible && (
           <div
             className={`pointer-events-auto absolute right-4 top-16 min-w-[190px] rounded-2xl ${glassPanelClassName} p-2`}
           >
@@ -461,7 +503,7 @@ export default function ComparePlayerShell({
           </div>
         )}
 
-        {!isSynced && overlay.controlsVisible && (
+        {!isSynced && controlsVisible && (
           <div className="pointer-events-auto absolute left-1/2 top-16 z-20 -translate-x-1/2">
             <div className="flex gap-2">
               {(["A", "B"] as ActiveVideo[]).map((video) => (
@@ -520,7 +562,7 @@ export default function ComparePlayerShell({
           </div>
         )}
 
-        {isSynced && overlay.controlsVisible && (
+        {isSynced && controlsVisible && (
           <p className="pointer-events-none absolute left-1/2 top-16 -translate-x-1/2 text-xs font-medium text-white/80">
             Synced · {syncPointA?.label} = frame 0
           </p>
@@ -531,7 +573,7 @@ export default function ComparePlayerShell({
             currentTime={timelineTime}
             duration={timelineDuration}
             thumbnails={thumbnailsA}
-            visible={overlay.controlsVisible && !drawingEnabled}
+            visible={controlsVisible && !drawingEnabled}
             disabled={drawingEnabled}
             onScrubStart={handleScrubStart}
             onScrub={handleScrub}
@@ -546,7 +588,7 @@ export default function ComparePlayerShell({
 
           <div
             className={`flex items-center justify-center gap-8 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2 ${overlayFadeClass(
-              overlay.controlsVisible && !drawingEnabled,
+              controlsVisible && !drawingEnabled,
             )}`}
           >
             <button
@@ -606,7 +648,7 @@ export default function ComparePlayerShell({
       <VideoDrawingMenu
         activeTool={activeTool}
         annotationColor={annotationColor}
-        controlsVisible={overlay.controlsVisible}
+        controlsVisible={controlsVisible}
         onToolChange={(tool) => {
           playerA.pause();
           playerB.pause();

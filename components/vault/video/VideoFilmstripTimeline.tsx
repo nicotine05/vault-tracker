@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { overlayFadeClass } from "@/components/vault/video/videoStyles";
 
 type VideoFilmstripTimelineProps = {
@@ -30,8 +30,37 @@ export default function VideoFilmstripTimeline({
 }: VideoFilmstripTimelineProps) {
   const trackRef = useRef<HTMLDivElement>(null);
   const isScrubbingRef = useRef(false);
+  const pendingTimeRef = useRef<number | null>(null);
+  const rafRef = useRef<number | null>(null);
+  const [dragTime, setDragTime] = useState<number | null>(null);
+
   const maxDuration = Math.max(duration, 0.001);
-  const progress = Math.max(0, Math.min(1, currentTime / maxDuration));
+  const displayTime = dragTime ?? currentTime;
+  const progress = Math.max(0, Math.min(1, displayTime / maxDuration));
+
+  useEffect(() => {
+    return () => {
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+      }
+    };
+  }, []);
+
+  const queueScrub = (time: number) => {
+    pendingTimeRef.current = time;
+
+    if (rafRef.current !== null) {
+      return;
+    }
+
+    rafRef.current = requestAnimationFrame(() => {
+      rafRef.current = null;
+      if (pendingTimeRef.current !== null) {
+        onScrub(pendingTimeRef.current);
+        pendingTimeRef.current = null;
+      }
+    });
+  };
 
   const seekFromClientX = (clientX: number) => {
     const track = trackRef.current;
@@ -41,7 +70,33 @@ export default function VideoFilmstripTimeline({
 
     const rect = track.getBoundingClientRect();
     const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-    onScrub(ratio * maxDuration);
+    const time = ratio * maxDuration;
+
+    setDragTime(time);
+    queueScrub(time);
+  };
+
+  const finishScrub = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!isScrubbingRef.current) {
+      return;
+    }
+
+    isScrubbingRef.current = false;
+    setDragTime(null);
+
+    if (rafRef.current !== null) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+
+    if (pendingTimeRef.current !== null) {
+      onScrub(pendingTimeRef.current);
+      pendingTimeRef.current = null;
+    }
+
+    onScrubEnd();
+    onInteraction();
+    event.currentTarget.releasePointerCapture(event.pointerId);
   };
 
   return (
@@ -71,7 +126,7 @@ export default function VideoFilmstripTimeline({
 
       <div
         ref={trackRef}
-        className={`relative h-8 ${disabled ? "opacity-40" : "cursor-pointer"}`}
+        className={`relative h-8 ${disabled ? "opacity-40" : "cursor-pointer touch-none"}`}
         onPointerDown={(event) => {
           if (disabled) {
             return;
@@ -91,28 +146,16 @@ export default function VideoFilmstripTimeline({
           onInteraction();
           seekFromClientX(event.clientX);
         }}
-        onPointerUp={(event) => {
-          if (!isScrubbingRef.current) {
-            return;
-          }
-
-          isScrubbingRef.current = false;
-          onScrubEnd();
-          event.currentTarget.releasePointerCapture(event.pointerId);
-        }}
-        onPointerCancel={(event) => {
-          isScrubbingRef.current = false;
-          onScrubEnd();
-          event.currentTarget.releasePointerCapture(event.pointerId);
-        }}
+        onPointerUp={finishScrub}
+        onPointerCancel={finishScrub}
       >
         <div className="absolute inset-x-0 top-1/2 h-1 -translate-y-1/2 rounded-full bg-white/25" />
         <div
-          className="absolute top-1/2 h-1 -translate-y-1/2 rounded-full bg-white"
+          className="absolute top-1/2 h-1 -translate-y-1/2 rounded-full bg-white will-change-[width]"
           style={{ width: `${progress * 100}%` }}
         />
         <div
-          className="absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-white shadow-md"
+          className="absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-white shadow-md will-change-[left]"
           style={{ left: `${progress * 100}%` }}
         />
       </div>

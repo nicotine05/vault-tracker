@@ -85,6 +85,7 @@ export function clampFrame(frame: number, totalFrames: number): number {
 export function seekToTime(
   video: HTMLVideoElement,
   time: number,
+  options?: { smooth?: boolean },
 ): void {
   const duration = video.duration;
   if (!Number.isFinite(duration)) {
@@ -94,11 +95,13 @@ export function seekToTime(
   const clamped = Math.max(0, Math.min(duration, time));
   video.pause();
 
-  if (typeof video.fastSeek === "function") {
-    video.fastSeek(clamped);
-  } else {
+  // Direct assignment gives smoother scrub previews than fastSeek.
+  if (options?.smooth || typeof video.fastSeek !== "function") {
     video.currentTime = clamped;
+    return;
   }
+
+  video.fastSeek(clamped);
 }
 
 export function seekToFrame(

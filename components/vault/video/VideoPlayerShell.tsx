@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import ImmersiveVideoViewport from "@/components/vault/video/ImmersiveVideoViewport";
 import VideoDrawingMenu from "@/components/vault/video/VideoDrawingMenu";
 import VideoFilmstripTimeline from "@/components/vault/video/VideoFilmstripTimeline";
@@ -31,7 +31,7 @@ export default function VideoPlayerShell({
   const { setImmersive } = useVideoImmersive();
   const player = useVideoPlayer();
   const { thumbnails } = useFilmstripThumbnails(videoUrl);
-  const overlay = useOverlayVisibility(2500);
+  const overlay = useOverlayVisibility();
 
   const [annotations, setAnnotations] = useState<VideoAnnotation[]>([]);
   const [activeTool, setActiveTool] = useState<AnnotationTool | null>(null);
@@ -39,16 +39,13 @@ export default function VideoPlayerShell({
   const [menuOpen, setMenuOpen] = useState(false);
 
   const drawingEnabled = activeTool !== null;
+  const controlsVisible =
+    overlay.controlsVisible || player.isScrubbing || menuOpen;
 
   useEffect(() => {
     setImmersive(true);
     return () => setImmersive(false);
   }, [setImmersive]);
-
-  const currentTime = useMemo(
-    () => player.currentFrame / player.fps,
-    [player.currentFrame, player.fps],
-  );
 
   const handleScrubStart = useCallback(() => {
     player.pause();
@@ -145,7 +142,7 @@ export default function VideoPlayerShell({
       <div className="pointer-events-none absolute inset-0 flex flex-col justify-between">
         <div
           className={`pointer-events-auto flex items-center justify-between px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] ${overlayFadeClass(
-            overlay.controlsVisible,
+            controlsVisible,
           )}`}
         >
           <Link
@@ -174,7 +171,7 @@ export default function VideoPlayerShell({
           </button>
         </div>
 
-        {menuOpen && overlay.controlsVisible && (
+        {menuOpen && controlsVisible && (
           <div className="pointer-events-auto absolute right-4 top-16 min-w-[180px] rounded-2xl bg-black/45 p-2 backdrop-blur-2xl border border-white/10">
             <button
               type="button"
@@ -201,21 +198,21 @@ export default function VideoPlayerShell({
 
         <div className="pointer-events-auto mt-auto">
           <VideoFilmstripTimeline
-            currentTime={currentTime}
+            currentTime={player.currentTime}
             duration={player.duration}
             thumbnails={thumbnails}
-            visible={overlay.controlsVisible && !drawingEnabled}
+            visible={controlsVisible && !drawingEnabled}
             disabled={drawingEnabled}
             onScrubStart={handleScrubStart}
             onScrub={handleScrub}
             onScrubEnd={handleScrubEnd}
             onInteraction={overlay.notifyActivity}
-            frameLabel={`Frame ${player.currentFrame}`}
+            frameLabel={`Frame ${Math.round(player.currentTime * player.fps)}`}
           />
 
           <div
             className={`flex items-center justify-center gap-8 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2 ${overlayFadeClass(
-              overlay.controlsVisible && !drawingEnabled,
+              controlsVisible && !drawingEnabled,
             )}`}
           >
             <button
@@ -284,7 +281,7 @@ export default function VideoPlayerShell({
       <VideoDrawingMenu
         activeTool={activeTool}
         annotationColor={annotationColor}
-        controlsVisible={overlay.controlsVisible}
+        controlsVisible={controlsVisible}
         onToolChange={handleToolChange}
         onColorChange={setAnnotationColor}
         onUndo={handleUndo}
