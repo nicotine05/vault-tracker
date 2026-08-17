@@ -54,7 +54,10 @@ export default function ComparePlayerShell({
   const overlay = useOverlayVisibility();
   const lastAnnotationTarget = useRef<ActiveVideo>("A");
 
-  const { thumbnails: thumbnailsA } = useFilmstripThumbnails(videoUrlA);
+  const { thumbnails: thumbnailsA } = useFilmstripThumbnails(
+    videoUrlA,
+    playerA.videoRef,
+  );
 
   const [annotationsA, setAnnotationsA] = useState<VideoAnnotation[]>([]);
   const [annotationsB, setAnnotationsB] = useState<VideoAnnotation[]>([]);
@@ -228,7 +231,9 @@ export default function ComparePlayerShell({
       applySyncOffset(syncOffset);
     }
 
-    await Promise.all([playerA.play(), playerB.play()]);
+    // Play sequentially so mobile browsers don't steal the decoder from video A.
+    await playerA.play();
+    await playerB.play();
   }, [applySyncOffset, isSynced, playerA, playerB, syncOffset]);
 
   const setSyncPointForActive = (label: SyncPointLabel) => {

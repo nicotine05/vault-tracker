@@ -30,7 +30,7 @@ export default function VideoPlayerShell({
 }: VideoPlayerShellProps) {
   const { setImmersive } = useVideoImmersive();
   const player = useVideoPlayer();
-  const { thumbnails } = useFilmstripThumbnails(videoUrl);
+  const { thumbnails } = useFilmstripThumbnails(videoUrl, player.videoRef);
   const overlay = useOverlayVisibility();
 
   const [annotations, setAnnotations] = useState<VideoAnnotation[]>([]);

@@ -56,8 +56,21 @@ export function useVideoPlayer(options: UseVideoPlayerOptions = {}) {
       return;
     }
 
+    video.muted = true;
+    video.playsInline = true;
+
+    if (video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
+      await new Promise<void>((resolve) => {
+        if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+          resolve();
+          return;
+        }
+
+        video.addEventListener("loadeddata", () => resolve(), { once: true });
+      });
+    }
+
     try {
-      video.muted = true;
       await video.play();
       setIsPlaying(true);
     } catch {
@@ -164,10 +177,12 @@ export function useVideoPlayer(options: UseVideoPlayerOptions = {}) {
   }, [syncTimeFromVideo]);
 
   useEffect(() => {
-    const video = videoRef.current;
-    if (!video) {
+    const initialVideo = videoRef.current;
+    if (!initialVideo) {
       return;
     }
+
+    let activeVideo: HTMLVideoElement = initialVideo;
 
     const onTimeUpdate = () => {
       if (!isScrubbingRef.current) {
@@ -177,7 +192,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions = {}) {
 
     const onSeeking = () => {
       if (isScrubbingRef.current) {
-        setCurrentTime(video.currentTime);
+        setCurrentTime(activeVideo.currentTime);
       }
     };
 
@@ -193,20 +208,42 @@ export function useVideoPlayer(options: UseVideoPlayerOptions = {}) {
       syncTimeFromVideo();
     };
 
-    video.addEventListener("timeupdate", onTimeUpdate);
-    video.addEventListener("seeking", onSeeking);
-    video.addEventListener("play", onPlay);
-    video.addEventListener("pause", onPause);
-    video.addEventListener("ended", onEnded);
-    video.addEventListener("loadedmetadata", handleLoadedMetadata);
+    const attachListeners = (element: HTMLVideoElement) => {
+      element.addEventListener("timeupdate", onTimeUpdate);
+      element.addEventListener("seeking", onSeeking);
+      element.addEventListener("play", onPlay);
+      element.addEventListener("pause", onPause);
+      element.addEventListener("ended", onEnded);
+      element.addEventListener("loadedmetadata", handleLoadedMetadata);
+    };
+
+    const detachListeners = (element: HTMLVideoElement) => {
+      element.removeEventListener("timeupdate", onTimeUpdate);
+      element.removeEventListener("seeking", onSeeking);
+      element.removeEventListener("play", onPlay);
+      element.removeEventListener("pause", onPause);
+      element.removeEventListener("ended", onEnded);
+      element.removeEventListener("loadedmetadata", handleLoadedMetadata);
+    };
+
+    attachListeners(activeVideo);
+
+    const rafId = requestAnimationFrame(() => {
+      const nextVideo = videoRef.current;
+      if (nextVideo && nextVideo !== activeVideo) {
+        detachListeners(activeVideo);
+        activeVideo = nextVideo;
+        attachListeners(activeVideo);
+      }
+
+      if (activeVideo.readyState >= 1) {
+        handleLoadedMetadata();
+      }
+    });
 
     return () => {
-      video.removeEventListener("timeupdate", onTimeUpdate);
-      video.removeEventListener("seeking", onSeeking);
-      video.removeEventListener("play", onPlay);
-      video.removeEventListener("pause", onPause);
-      video.removeEventListener("ended", onEnded);
-      video.removeEventListener("loadedmetadata", handleLoadedMetadata);
+      cancelAnimationFrame(rafId);
+      detachListeners(activeVideo);
     };
   }, [handleLoadedMetadata, syncTimeFromVideo]);
 
