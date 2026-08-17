@@ -39,7 +39,7 @@ export default function ProgramWeekHeader({
 
         {isPlanning && (
           <p className="mt-3 text-sm text-muted">
-            Build your week below, then generate your schedule.
+            Pick your sessions, then generate your schedule.
           </p>
         )}
 

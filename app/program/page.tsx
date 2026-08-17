@@ -4,19 +4,19 @@ import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import GeneratedScheduleCard from "@/components/program/GeneratedScheduleCard";
-import PlannerHealthBar from "@/components/program/PlannerHealthBar";
 import ProgramWeekHeader from "@/components/program/ProgramWeekHeader";
+import ScheduleWarningModal from "@/components/program/ScheduleWarningModal";
+import TargetIndicators from "@/components/program/TargetIndicators";
 import WeeklyPlannerCard from "@/components/program/WeeklyPlannerCard";
 import {
   countPlannerSessions,
   getPlannerHealthMetrics,
-  getPlannerHealthWarnings,
   isPlannerComplete,
 } from "@/lib/domain/plannerHealth";
 import { getPhaseNameForWeek } from "@/lib/domain/programWeek";
 import { useProgramState } from "@/lib/hooks/useProgramState";
 import { isWeekScheduleGenerated } from "@/lib/storage/programStore";
-import type { TrainingType } from "@/lib/trainingProgram";
+import { getPlannerWarnings, type TrainingType } from "@/lib/trainingProgram";
 
 export default function ProgramPage() {
   return (
@@ -48,8 +48,8 @@ function ProgramPageContent() {
     setPlanningWeek,
   } = useProgramState();
 
-  const [expandedWorkouts, setExpandedWorkouts] = useState<Record<string, boolean>>({});
   const [confirmingKey, setConfirmingKey] = useState<string | null>(null);
+  const [scheduleWarnings, setScheduleWarnings] = useState<string[] | null>(null);
 
   useEffect(() => {
     const weekParam = searchParams.get("week");
@@ -68,11 +68,6 @@ function ProgramPageContent() {
   const counts = countPlannerSessions(weekPlanner);
   const plannerComplete = isPlannerComplete(counts, planningWeek);
   const healthMetrics = getPlannerHealthMetrics(counts, planningWeek);
-  const { healthWarnings, otherWarnings } = getPlannerHealthWarnings(
-    weekPlanner,
-    planningWeek,
-    counts
-  );
 
   const programState = {
     currentWeek,
@@ -92,11 +87,24 @@ function ProgramPageContent() {
     updatePlannerDay(planningWeek, day, type);
   }
 
-  function toggleExpanded(key: string) {
-    setExpandedWorkouts((prev) => ({
-      ...prev,
-      [key]: !prev[key],
-    }));
+  function requestScheduleGeneration() {
+    const warnings = getPlannerWarnings(weekPlanner, planningWeek);
+
+    if (warnings.length > 0) {
+      setScheduleWarnings(warnings);
+      return;
+    }
+
+    generateWeekSchedule(planningWeek);
+  }
+
+  function confirmScheduleGeneration() {
+    generateWeekSchedule(planningWeek);
+    setScheduleWarnings(null);
+  }
+
+  function cancelScheduleGeneration() {
+    setScheduleWarnings(null);
   }
 
   return (
@@ -110,11 +118,7 @@ function ProgramPageContent() {
 
       {!generated && (
         <div className="mt-4 space-y-4">
-          <PlannerHealthBar
-            metrics={healthMetrics}
-            healthWarnings={healthWarnings}
-            otherWarnings={otherWarnings}
-          />
+          <TargetIndicators metrics={healthMetrics} />
 
           <WeeklyPlannerCard
             readOnly={isCoachReadOnly}
@@ -123,23 +127,13 @@ function ProgramPageContent() {
           />
 
           {plannerComplete && !isCoachReadOnly && (
-            <div>
-              <button
-                type="button"
-                onClick={() => generateWeekSchedule(planningWeek)}
-                className="w-full rounded-2xl bg-accent p-4 font-bold text-white shadow-lg shadow-accent/20 transition hover:opacity-95"
-              >
-                Generate Schedule
-              </button>
-
-              <button
-                type="button"
-                onClick={() => resetWeekPlanner(planningWeek)}
-                className="mt-2 w-full rounded-2xl border border-border bg-surface p-2 text-sm text-muted transition hover:bg-surface-muted"
-              >
-                Reset
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={requestScheduleGeneration}
+              className="w-full rounded-2xl bg-accent p-4 font-bold text-white shadow-lg shadow-accent/20 transition hover:opacity-95"
+            >
+              Generate Schedule
+            </button>
           )}
         </div>
       )}
@@ -150,13 +144,23 @@ function ProgramPageContent() {
           planningWeek={planningWeek}
           currentWeek={currentWeek}
           generatedSchedule={generatedSchedule}
+          weekPlanner={weekPlanner}
+          plannerComplete={plannerComplete}
           completedWorkouts={completedWorkouts}
-          expandedWorkouts={expandedWorkouts}
           confirmingKey={confirmingKey}
-          onToggleExpanded={toggleExpanded}
           onConfirmWorkout={completeWorkout}
           onSetConfirmingKey={setConfirmingKey}
+          onTogglePlanner={togglePlanner}
+          onRegenerate={requestScheduleGeneration}
           onReset={() => resetWeekPlanner(planningWeek)}
+        />
+      )}
+
+      {scheduleWarnings && (
+        <ScheduleWarningModal
+          warnings={scheduleWarnings}
+          onContinue={confirmScheduleGeneration}
+          onCancel={cancelScheduleGeneration}
         />
       )}
     </main>

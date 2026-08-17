@@ -14,7 +14,7 @@ export default function WorkoutExpandPanel({
   planningWeek,
 }: WorkoutExpandPanelProps) {
   return (
-    <div className="mt-1 space-y-2 rounded-lg border border-border bg-surface p-3 text-xs">
+    <div className="mt-1 space-y-2 text-xs">
       {"primaryLift" in workout && (
         <>
           {(() => {

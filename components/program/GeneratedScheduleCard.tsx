@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import Card from "@/components/Card";
+import EditWeekPanel from "@/components/program/EditWeekPanel";
 import ScheduleDaySection from "@/components/program/ScheduleDaySection";
 import ScheduleWeekOverview from "@/components/program/ScheduleWeekOverview";
+import TodayWorkoutHero from "@/components/program/TodayWorkoutHero";
 import type { WorkoutToggleParams } from "@/lib/hooks/useProgramState";
+import { getTodayPlannerDayName } from "@/lib/domain/todayTraining";
 import {
   getAdjacentPlannerDay,
   getEmptyDailyPlan,
@@ -13,7 +15,12 @@ import {
   isPlannerDayName,
   type ScheduleViewMode,
 } from "@/lib/domain/programScheduleView";
-import { plannerDays, type GeneratedWeekSchedule } from "@/lib/trainingProgram";
+import {
+  plannerDays,
+  type GeneratedWeekSchedule,
+  type PlannerDay,
+  type TrainingType,
+} from "@/lib/trainingProgram";
 import {
   segmentedIdleClassName,
   segmentedSelectedClassName,
@@ -25,12 +32,14 @@ type GeneratedScheduleCardProps = {
   planningWeek: number;
   currentWeek: number;
   generatedSchedule: GeneratedWeekSchedule;
+  weekPlanner: Record<string, PlannerDay>;
+  plannerComplete: boolean;
   completedWorkouts: Record<string, boolean>;
-  expandedWorkouts: Record<string, boolean>;
   confirmingKey: string | null;
-  onToggleExpanded: (key: string) => void;
   onConfirmWorkout: (params: WorkoutToggleParams) => void;
   onSetConfirmingKey: (key: string | null) => void;
+  onTogglePlanner: (day: string, type: TrainingType) => void;
+  onRegenerate: () => void;
   onReset: () => void;
 };
 
@@ -39,19 +48,29 @@ export default function GeneratedScheduleCard({
   planningWeek,
   currentWeek,
   generatedSchedule,
+  weekPlanner,
+  plannerComplete,
   completedWorkouts,
-  expandedWorkouts,
   confirmingKey,
-  onToggleExpanded,
   onConfirmWorkout,
   onSetConfirmingKey,
+  onTogglePlanner,
+  onRegenerate,
   onReset,
 }: GeneratedScheduleCardProps) {
   const searchParams = useSearchParams();
-  const [viewMode, setViewMode] = useState<ScheduleViewMode>("week");
+  const [viewMode, setViewMode] = useState<ScheduleViewMode>("day");
   const [selectedDay, setSelectedDay] = useState(() =>
     getInitialScheduleViewDay(planningWeek, currentWeek, generatedSchedule)
   );
+  const [showEditWeek, setShowEditWeek] = useState(false);
+
+  const isCurrentWeek = planningWeek === currentWeek;
+  const todayName = isCurrentWeek ? getTodayPlannerDayName() : null;
+  const todayPlan =
+    todayName && generatedSchedule[todayName]
+      ? generatedSchedule[todayName]
+      : getEmptyDailyPlan();
 
   useEffect(() => {
     const view = searchParams.get("view");
@@ -80,11 +99,25 @@ export default function GeneratedScheduleCard({
     onSetConfirmingKey(null);
   }
 
+  function openTodayTraining() {
+    if (todayName) {
+      openDailyView(todayName);
+    }
+  }
+
   return (
-    <div className="mt-4">
-      <Card title="Generated Schedule">
-        <div className="mb-4 grid grid-cols-2 gap-2">
-          {(["week", "day"] as const).map((mode) => {
+    <div className="mt-4 space-y-4">
+      {isCurrentWeek && todayName && (
+        <TodayWorkoutHero
+          todayName={todayName}
+          dailyPlan={todayPlan}
+          onOpenTraining={openTodayTraining}
+        />
+      )}
+
+      <div className="flex items-center justify-between gap-2">
+        <div className="grid flex-1 grid-cols-2 gap-2">
+          {(["day", "week"] as const).map((mode) => {
             const selected = viewMode === mode;
 
             return (
@@ -96,84 +129,100 @@ export default function GeneratedScheduleCard({
                   onSetConfirmingKey(null);
                   setViewMode(mode);
                 }}
-                className={`rounded-xl border px-3 py-2 text-sm font-semibold capitalize transition ${
+                className={`rounded-xl border px-3 py-2 text-sm font-semibold transition ${
                   selected
                     ? segmentedSelectedClassName
                     : segmentedIdleClassName
                 }`}
               >
-                {mode === "week" ? "Weekly View" : "Daily View"}
+                {mode === "day" ? "Daily View" : "Weekly View"}
               </button>
             );
           })}
         </div>
 
-        {viewMode === "day" && (
-          <div className="mb-4 flex items-center justify-between rounded-xl border border-border bg-surface p-2">
-            <button
-              type="button"
-              onClick={() =>
-                setSelectedDay(getAdjacentPlannerDay(selectedDay, -1))
-              }
-              disabled={!canGoPrevious}
-              className={navButtonClassName}
-            >
-              ←
-            </button>
+        {!readOnly && (
+          <button
+            type="button"
+            onClick={() => setShowEditWeek(true)}
+            className="shrink-0 rounded-xl border border-border bg-surface px-3 py-2 text-sm font-semibold text-foreground transition hover:bg-surface-muted"
+          >
+            Edit Week
+          </button>
+        )}
+      </div>
 
-            <div className="text-center">
-              <p className="font-semibold text-foreground">{selectedDay}</p>
-              <p className="text-xs text-muted">
-                {selectedDailyPlan.sessions.length} workout
-                {selectedDailyPlan.sessions.length === 1 ? "" : "s"}
-              </p>
-            </div>
+      {viewMode === "day" && (
+        <div className="flex items-center justify-between rounded-xl border border-border bg-surface p-2">
+          <button
+            type="button"
+            onClick={() =>
+              setSelectedDay(getAdjacentPlannerDay(selectedDay, -1))
+            }
+            disabled={!canGoPrevious}
+            className={navButtonClassName}
+          >
+            ←
+          </button>
 
-            <button
-              type="button"
-              onClick={() =>
-                setSelectedDay(getAdjacentPlannerDay(selectedDay, 1))
-              }
-              disabled={!canGoNext}
-              className={navButtonClassName}
-            >
-              →
-            </button>
+          <div className="text-center">
+            <p className="font-semibold text-foreground">{selectedDay}</p>
+            <p className="text-xs text-muted">
+              {selectedDailyPlan.sessions.length} workout
+              {selectedDailyPlan.sessions.length === 1 ? "" : "s"}
+            </p>
           </div>
-        )}
 
-        {viewMode === "week" ? (
-          <ScheduleWeekOverview
-            planningWeek={planningWeek}
-            currentWeek={currentWeek}
-            generatedSchedule={generatedSchedule}
-            completedWorkouts={completedWorkouts}
-            onSelectDay={openDailyView}
-          />
-        ) : (
-          <ScheduleDaySection
-            day={selectedDay}
-            planningWeek={planningWeek}
-            dailyPlan={selectedDailyPlan}
-            readOnly={readOnly}
-            completedWorkouts={completedWorkouts}
-            expandedWorkouts={expandedWorkouts}
-            confirmingKey={confirmingKey}
-            onToggleExpanded={onToggleExpanded}
-            onConfirmWorkout={onConfirmWorkout}
-            onSetConfirmingKey={onSetConfirmingKey}
-          />
-        )}
-      </Card>
+          <button
+            type="button"
+            onClick={() =>
+              setSelectedDay(getAdjacentPlannerDay(selectedDay, 1))
+            }
+            disabled={!canGoNext}
+            className={navButtonClassName}
+          >
+            →
+          </button>
+        </div>
+      )}
 
-      {!readOnly && (
-        <button
-          type="button"
-          onClick={onReset}
-          className="mt-3 w-full rounded-xl border border-border bg-surface p-2 text-sm text-muted"
-        >
-          Reset
-        </button>
+      {viewMode === "week" ? (
+        <ScheduleWeekOverview
+          planningWeek={planningWeek}
+          currentWeek={currentWeek}
+          generatedSchedule={generatedSchedule}
+          completedWorkouts={completedWorkouts}
+          onSelectDay={openDailyView}
+        />
+      ) : (
+        <ScheduleDaySection
+          day={selectedDay}
+          planningWeek={planningWeek}
+          dailyPlan={selectedDailyPlan}
+          readOnly={readOnly}
+          completedWorkouts={completedWorkouts}
+          confirmingKey={confirmingKey}
+          onConfirmWorkout={onConfirmWorkout}
+          onSetConfirmingKey={onSetConfirmingKey}
+        />
+      )}
+
+      {showEditWeek && (
+        <EditWeekPanel
+          readOnly={readOnly}
+          weekPlanner={weekPlanner}
+          onToggle={onTogglePlanner}
+          onRegenerate={() => {
+            setShowEditWeek(false);
+            onRegenerate();
+          }}
+          onReset={() => {
+            setShowEditWeek(false);
+            onReset();
+          }}
+          onClose={() => setShowEditWeek(false)}
+          canRegenerate={plannerComplete}
+        />
       )}
     </div>
   );
