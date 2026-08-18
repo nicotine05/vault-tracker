@@ -29,7 +29,7 @@ export default function VideoPlayerShell({
   backHref = "/vault/video-analysis",
 }: VideoPlayerShellProps) {
   const { setImmersive } = useVideoImmersive();
-  const player = useVideoPlayer();
+  const player = useVideoPlayer({ videoUrl });
   const { thumbnails } = useFilmstripThumbnails(videoUrl);
   const overlay = useOverlayVisibility();
 
@@ -123,20 +123,22 @@ export default function VideoPlayerShell({
 
   return (
     <div className="fixed inset-0 z-[100] bg-black">
-      <ImmersiveVideoViewport
-        videoUrl={videoUrl}
-        videoRef={player.videoRef}
-        annotations={annotations}
-        currentFrame={player.currentFrame}
-        activeTool={activeTool}
-        annotationColor={ANNOTATION_COLOR}
-        drawingEnabled={drawingEnabled}
-        onAnnotationsChange={setAnnotations}
-        onSingleTap={overlay.toggleControls}
-        onDoubleTapLeft={() => player.stepFrames(-5)}
-        onDoubleTapRight={() => player.stepFrames(5)}
-        onInteraction={overlay.notifyActivity}
-      />
+      <div className="absolute inset-0">
+        <ImmersiveVideoViewport
+          videoUrl={videoUrl}
+          videoRef={player.videoRef}
+          annotations={annotations}
+          currentFrame={player.currentFrame}
+          activeTool={activeTool}
+          annotationColor={ANNOTATION_COLOR}
+          drawingEnabled={drawingEnabled}
+          onAnnotationsChange={setAnnotations}
+          onSingleTap={overlay.toggleControls}
+          onDoubleTapLeft={() => player.stepFrames(-5)}
+          onDoubleTapRight={() => player.stepFrames(5)}
+          onInteraction={overlay.notifyActivity}
+        />
+      </div>
 
       <div className="pointer-events-none absolute inset-0 flex flex-col justify-between">
         <div

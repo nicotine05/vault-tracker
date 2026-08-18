@@ -55,8 +55,8 @@ export default function ComparePlayerShell({
   backHref = "/vault/video-analysis",
 }: ComparePlayerShellProps) {
   const { setImmersive } = useVideoImmersive();
-  const playerA = useVideoPlayer();
-  const playerB = useVideoPlayer();
+  const playerA = useVideoPlayer({ videoUrl: videoUrlA });
+  const playerB = useVideoPlayer({ videoUrl: videoUrlB });
   const overlay = useOverlayVisibility();
   const orientationLayout = useOrientationLayout();
   const lastAnnotationTarget = useRef<ActiveVideo>("A");

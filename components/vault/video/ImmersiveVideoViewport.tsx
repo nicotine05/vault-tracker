@@ -96,29 +96,6 @@ export default function ImmersiveVideoViewport({
   }, [paint, currentFrame]);
 
   useEffect(() => {
-    const video = videoRef.current;
-    if (!video) {
-      return;
-    }
-
-    const revealFirstFrame = () => {
-      video.pause();
-      if (video.currentTime < 0.001) {
-        video.currentTime = 0.001;
-      }
-    };
-
-    video.addEventListener("loadeddata", revealFirstFrame, { once: true });
-    if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
-      revealFirstFrame();
-    }
-
-    return () => {
-      video.removeEventListener("loadeddata", revealFirstFrame);
-    };
-  }, [videoUrl, videoRef]);
-
-  useEffect(() => {
     const container = containerRef.current;
     if (!container) {
       return;
@@ -433,6 +410,7 @@ export default function ImmersiveVideoViewport({
         style={zoom.transformStyle}
       >
         <video
+          key={videoUrl}
           ref={videoRef}
           src={videoUrl}
           className="max-h-full max-w-full object-contain"
@@ -443,7 +421,7 @@ export default function ImmersiveVideoViewport({
 
         <canvas
           ref={canvasRef}
-          className={`absolute inset-0 m-auto max-h-full max-w-full ${
+          className={`pointer-events-none absolute inset-0 m-auto max-h-full max-w-full ${
             drawingEnabled && activeTool ? "cursor-crosshair" : ""
           }`}
           style={{ width: "100%", height: "100%" }}

@@ -11,11 +11,13 @@ import {
 
 type UseVideoPlayerOptions = {
   fps?: number;
+  videoUrl?: string | null;
   onFrameChange?: (frame: number) => void;
 };
 
 export function useVideoPlayer(options: UseVideoPlayerOptions = {}) {
   const fps = options.fps ?? DEFAULT_FPS;
+  const videoUrl = options.videoUrl ?? null;
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentFrame, setCurrentFrame] = useState(0);
@@ -178,12 +180,13 @@ export function useVideoPlayer(options: UseVideoPlayerOptions = {}) {
   }, [syncTimeFromVideo]);
 
   useEffect(() => {
-    const initialVideo = videoRef.current;
-    if (!initialVideo) {
+    if (!videoUrl) {
       return;
     }
 
-    let activeVideo: HTMLVideoElement = initialVideo;
+    let activeVideo: HTMLVideoElement | null = null;
+    let rafId = 0;
+    let cancelled = false;
 
     const onTimeUpdate = () => {
       if (!isScrubbingRef.current) {
@@ -192,7 +195,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions = {}) {
     };
 
     const onSeeking = () => {
-      if (isScrubbingRef.current) {
+      if (isScrubbingRef.current && activeVideo) {
         const time = activeVideo.currentTime;
         setCurrentTime(time);
         setCurrentFrame(timeToFrame(time, fps));
@@ -229,26 +232,49 @@ export function useVideoPlayer(options: UseVideoPlayerOptions = {}) {
       element.removeEventListener("loadedmetadata", handleLoadedMetadata);
     };
 
-    attachListeners(activeVideo);
+    const bindVideo = () => {
+      const video = videoRef.current;
+      if (!video) {
+        return false;
+      }
 
-    const rafId = requestAnimationFrame(() => {
-      const nextVideo = videoRef.current;
-      if (nextVideo && nextVideo !== activeVideo) {
-        detachListeners(activeVideo);
-        activeVideo = nextVideo;
+      if (video !== activeVideo) {
+        if (activeVideo) {
+          detachListeners(activeVideo);
+        }
+
+        activeVideo = video;
         attachListeners(activeVideo);
       }
 
       if (activeVideo.readyState >= 1) {
         handleLoadedMetadata();
       }
-    });
+
+      return true;
+    };
+
+    const tryBind = () => {
+      if (cancelled) {
+        return;
+      }
+
+      if (!bindVideo()) {
+        rafId = requestAnimationFrame(tryBind);
+      }
+    };
+
+    tryBind();
 
     return () => {
+      cancelled = true;
       cancelAnimationFrame(rafId);
-      detachListeners(activeVideo);
+
+      if (activeVideo) {
+        detachListeners(activeVideo);
+      }
     };
-  }, [handleLoadedMetadata, syncTimeFromVideo]);
+  }, [videoUrl, fps, handleLoadedMetadata, syncTimeFromVideo]);
 
   return {
     videoRef,
