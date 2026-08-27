@@ -15,8 +15,12 @@ export const STORAGE_KEYS = {
   STRENGTH_PR_HISTORY: "strengthPRHistory",
   VAULT_LOGS: "vaultLogs",
   VAULT_STEP_REFERENCES: "vaultStepReferences",
+  POLE_INVENTORY: "poleInventory",
+  POLE_BAGS: "poleBags",
+  RECENT_POLE_IDS: "recentPoleIds",
   EXECUTION_HISTORY: "workoutExecutionHistory",
   MIGRATION_V1: "vaultTracker_migration_v1",
+  MIGRATION_V2: "vaultTracker_migration_v2",
 } as const;
 
 export const STORAGE_EVENTS = {

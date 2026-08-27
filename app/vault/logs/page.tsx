@@ -27,6 +27,8 @@ export default function VaultLogsPage() {
     deleteSession,
     saveHeightPRs,
     updateRunPRField,
+    poles,
+    recentPoleIds,
   } = useVaultLogState();
 
   const [expandedSessionId, setExpandedSessionId] = useState<string | null>(
@@ -61,6 +63,7 @@ export default function VaultLogsPage() {
           <VaultSessionList
             sessions={sessions}
             stepRefs={stepRefs}
+            poles={poles}
             weekFilter={weekFilter}
             onWeekFilterChange={setWeekFilter}
             expandedSessionId={expandedSessionId}
@@ -79,6 +82,8 @@ export default function VaultLogsPage() {
             onJumpFormChange={setJumpForm}
             jumps={jumps}
             stepRefs={stepRefs}
+            poles={poles}
+            recentPoleIds={recentPoleIds}
             onAddJump={addJump}
             onRemoveJump={removeJump}
             onSaveSession={saveSession}

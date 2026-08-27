@@ -13,7 +13,7 @@ import { runStorageMigrations } from "@/lib/storage/migrations";
 export type WeekScheduleSnapshot = {
   weekNumber: number;
   generatedAt: string;
-  engineVersion: typeof ENGINE_VERSION;
+  engineVersion: number;
   planner: Record<string, PlannerDay>;
   schedule: GeneratedWeekSchedule;
 };

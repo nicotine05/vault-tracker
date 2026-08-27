@@ -1,6 +1,8 @@
 import type {
   HeightPREntry,
   Jump,
+  Pole,
+  PoleBag,
   SprintPREntry,
   StrengthPREntry,
   VaultSession,
@@ -28,6 +30,23 @@ function isArray(value: unknown): value is unknown[] {
 
 function isString(value: unknown): value is string {
   return typeof value === "string";
+}
+
+function isEngineVersion(value: unknown): value is number | string {
+  if (typeof value === "number") {
+    return Number.isFinite(value);
+  }
+
+  if (typeof value === "string") {
+    return value.length > 0 && Number.isFinite(Number(value));
+  }
+
+  return false;
+}
+
+function normalizeEngineVersion(value: unknown): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
 }
 
 function clampWeekValue(value: unknown): string {
@@ -85,6 +104,8 @@ function normalizeJump(value: unknown): Jump | null {
     takeoff: value.takeoff,
     grade,
     comment: value.comment,
+    poleId: isString(value.poleId) ? value.poleId : undefined,
+    poleLabel: isString(value.poleLabel) ? value.poleLabel : undefined,
   };
 }
 
@@ -205,6 +226,61 @@ function normalizeWeekPlanner(
   return next;
 }
 
+function normalizePole(value: unknown): Pole | null {
+  if (!isRecord(value) || !isString(value.id) || !isString(value.createdAt)) {
+    return null;
+  }
+
+  if (
+    !isString(value.brand) ||
+    !isString(value.model) ||
+    !isString(value.length)
+  ) {
+    return null;
+  }
+
+  const weightRating = Number(value.weightRating);
+  if (!Number.isFinite(weightRating)) {
+    return null;
+  }
+
+  return {
+    id: value.id,
+    brand: value.brand,
+    model: value.model,
+    length: value.length,
+    weightRating,
+    flex: isString(value.flex) ? value.flex : undefined,
+    notes: isString(value.notes) ? value.notes : undefined,
+    retired: Boolean(value.retired) || undefined,
+    createdAt: value.createdAt,
+  };
+}
+
+function normalizePoleBag(value: unknown): PoleBag | null {
+  if (!isRecord(value) || !isString(value.id) || !isString(value.name)) {
+    return null;
+  }
+
+  const poleIds = isArray(value.poleIds)
+    ? value.poleIds.filter(isString)
+    : [];
+
+  return {
+    id: value.id,
+    name: value.name,
+    poleIds,
+  };
+}
+
+function normalizeRecentPoleIds(value: unknown): string[] {
+  if (!isArray(value)) {
+    return [];
+  }
+
+  return value.filter(isString);
+}
+
 function normalizeScheduleSnapshots(
   value: unknown
 ): Record<number, WeekScheduleSnapshot> {
@@ -222,13 +298,17 @@ function normalizeScheduleSnapshots(
 
     if (
       !isString(snapshotValue.generatedAt) ||
-      !isString(snapshotValue.engineVersion) ||
+      !isEngineVersion(snapshotValue.engineVersion) ||
       !isRecord(snapshotValue.schedule)
     ) {
       continue;
     }
 
-    next[weekNumber] = snapshotValue as WeekScheduleSnapshot;
+    next[weekNumber] = {
+      ...(snapshotValue as WeekScheduleSnapshot),
+      weekNumber,
+      engineVersion: normalizeEngineVersion(snapshotValue.engineVersion),
+    };
   }
 
   return next;
@@ -371,6 +451,19 @@ export function normalizeSyncSnapshot(
     [STORAGE_KEYS.VAULT_STEP_REFERENCES]: mergeStringRecord(
       data[STORAGE_KEYS.VAULT_STEP_REFERENCES],
       EMPTY_STEP_REFS
+    ),
+    [STORAGE_KEYS.POLE_INVENTORY]: isArray(data[STORAGE_KEYS.POLE_INVENTORY])
+      ? (data[STORAGE_KEYS.POLE_INVENTORY] as unknown[])
+          .map(normalizePole)
+          .filter((pole): pole is Pole => pole !== null)
+      : [],
+    [STORAGE_KEYS.POLE_BAGS]: isArray(data[STORAGE_KEYS.POLE_BAGS])
+      ? (data[STORAGE_KEYS.POLE_BAGS] as unknown[])
+          .map(normalizePoleBag)
+          .filter((bag): bag is PoleBag => bag !== null)
+      : [],
+    [STORAGE_KEYS.RECENT_POLE_IDS]: normalizeRecentPoleIds(
+      data[STORAGE_KEYS.RECENT_POLE_IDS]
     ),
     [STORAGE_KEYS.MIGRATION_V1]: Boolean(
       data[STORAGE_KEYS.MIGRATION_V1] ?? defaults[STORAGE_KEYS.MIGRATION_V1]

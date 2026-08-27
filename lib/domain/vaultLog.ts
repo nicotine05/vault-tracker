@@ -102,6 +102,8 @@ export function createJump(params: {
   takeoff: string;
   grade: Jump["grade"];
   comment: string;
+  poleId?: string;
+  poleLabel?: string;
 }): Jump {
   return {
     id: crypto.randomUUID(),
@@ -110,6 +112,8 @@ export function createJump(params: {
     takeoff: params.takeoff,
     grade: params.grade,
     comment: params.comment,
+    poleId: params.poleId,
+    poleLabel: params.poleLabel,
   };
 }
 
@@ -182,6 +186,7 @@ export function emptyJumpForm(): {
   takeoff: string;
   grade: Jump["grade"];
   comment: string;
+  poleId?: string;
 } {
   return {
     run: "",
@@ -189,5 +194,6 @@ export function emptyJumpForm(): {
     takeoff: "",
     grade: "green",
     comment: "",
+    poleId: undefined,
   };
 }

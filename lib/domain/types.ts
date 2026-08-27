@@ -80,6 +80,24 @@ export type VaultStepReferences = {
   sevenL: string;
 };
 
+export type Pole = {
+  id: string;
+  brand: string;
+  model: string;
+  length: string;
+  weightRating: number;
+  flex?: string;
+  notes?: string;
+  retired?: boolean;
+  createdAt: string;
+};
+
+export type PoleBag = {
+  id: string;
+  name: string;
+  poleIds: string[];
+};
+
 export type Jump = {
   id: string;
   run: string;
@@ -87,6 +105,8 @@ export type Jump = {
   takeoff: string;
   grade: "green" | "yellow" | "red";
   comment: string;
+  poleId?: string;
+  poleLabel?: string;
 };
 
 export type VaultSession = {

@@ -15,6 +15,7 @@ import {
   emptyJumpForm,
   updateRunPR,
 } from "@/lib/domain/vaultLog";
+import { updateRecentPoleIds, formatPoleShortLabel, getPoleById } from "@/lib/domain/poleInventory";
 import {
   EMPTY_RUN_PRS,
   EMPTY_STEP_REFS,
@@ -27,6 +28,8 @@ import {
   saveVaultSessions,
   saveVaultStepReferences,
 } from "@/lib/storage/logStore";
+import { loadPoles, loadRecentPoleIds, saveRecentPoleIds } from "@/lib/storage/poleStore";
+import type { Pole } from "@/lib/domain/types";
 
 export function useVaultLogState() {
   const [loaded, setLoaded] = useState(false);
@@ -39,6 +42,8 @@ export function useVaultLogState() {
   const [keys, setKeys] = useState<string[]>([""]);
   const [jumps, setJumps] = useState<Jump[]>([]);
   const [jumpForm, setJumpForm] = useState(emptyJumpForm);
+  const [poles, setPoles] = useState<Pole[]>([]);
+  const [recentPoleIds, setRecentPoleIds] = useState<string[]>([]);
 
   useEffect(() => {
     try {
@@ -47,6 +52,8 @@ export function useVaultLogState() {
       setRunPRs(loadVaultRunPRs());
       setLastSavedRunPRs(loadVaultRunPRs());
       setPrHistory(loadVaultPRHistory());
+      setPoles(loadPoles());
+      setRecentPoleIds(loadRecentPoleIds());
     } catch (error) {
       console.error("Failed to load vault logs", error);
     }
@@ -75,7 +82,26 @@ export function useVaultLogState() {
   }, [prHistory, loaded]);
 
   function addJump() {
-    setJumps((prev) => [...prev, createJump(jumpForm)]);
+    const selectedPole = getPoleById(poles, jumpForm.poleId);
+
+    setJumps((prev) => [
+      ...prev,
+      createJump({
+        ...jumpForm,
+        poleLabel: selectedPole
+          ? formatPoleShortLabel(selectedPole)
+          : undefined,
+      }),
+    ]);
+
+    if (jumpForm.poleId) {
+      setRecentPoleIds((prev) => {
+        const next = updateRecentPoleIds(prev, jumpForm.poleId!);
+        saveRecentPoleIds(next);
+        return next;
+      });
+    }
+
     setJumpForm(emptyJumpForm());
   }
 
@@ -143,5 +169,7 @@ export function useVaultLogState() {
     deleteSession,
     saveHeightPRs,
     updateRunPRField,
+    poles,
+    recentPoleIds,
   };
 }

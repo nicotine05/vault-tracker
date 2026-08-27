@@ -1,7 +1,7 @@
 "use client";
 
 import Card from "@/components/Card";
-import type { Jump, VaultSession, VaultStepReferences } from "@/lib/domain/types";
+import type { Jump, Pole, VaultSession, VaultStepReferences } from "@/lib/domain/types";
 import {
   countJumpGrades,
   filterVaultSessionsByWeek,
@@ -9,10 +9,15 @@ import {
   getRunReference,
   getVaultWeekOptions,
 } from "@/lib/domain/vaultLog";
+import {
+  formatPoleShortLabel,
+  getPoleById,
+} from "@/lib/domain/poleInventory";
 
 type VaultSessionListProps = {
   sessions: VaultSession[];
   stepRefs: VaultStepReferences;
+  poles: Pole[];
   weekFilter: string;
   onWeekFilterChange: (week: string) => void;
   expandedSessionId: string | null;
@@ -24,6 +29,7 @@ type VaultSessionListProps = {
 export default function VaultSessionList({
   sessions,
   stepRefs,
+  poles,
   weekFilter,
   onWeekFilterChange,
   expandedSessionId,
@@ -98,6 +104,7 @@ export default function VaultSessionList({
                         key={jump.id}
                         jump={jump}
                         stepRefs={stepRefs}
+                        poles={poles}
                       />
                     ))}
                   </div>
@@ -124,15 +131,21 @@ export default function VaultSessionList({
 function JumpDetail({
   jump,
   stepRefs,
+  poles,
 }: {
   jump: Jump;
   stepRefs: VaultStepReferences;
+  poles: Pole[];
 }) {
   const reference = getRunReference(jump.run, stepRefs);
+  const pole = getPoleById(poles, jump.poleId);
+  const poleDisplay = pole
+    ? formatPoleShortLabel(pole)
+    : jump.poleLabel;
 
   return (
     <div className="rounded-lg border border-border bg-surface-muted p-3 text-foreground">
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <span>{getGradeEmoji(jump.grade)}</span>
         <span>{jump.run}</span>
         {reference && (
@@ -140,10 +153,33 @@ function JumpDetail({
         )}
         <span>{jump.grip}</span>
         <span>{jump.takeoff}</span>
+        {poleDisplay && (
+          <span className="text-xs text-muted">{poleDisplay}</span>
+        )}
       </div>
 
       {jump.comment && (
         <p className="mt-1 text-sm text-muted">{jump.comment}</p>
+      )}
+
+      {(pole || jump.poleLabel) && (
+        <div className="mt-3 rounded-lg border border-border/60 bg-surface px-3 py-2 text-sm">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+            Pole Used
+          </p>
+          {pole ? (
+            <>
+              <p className="mt-1 font-medium text-foreground">
+                {[pole.brand, pole.model].filter(Boolean).join(" ") ||
+                  formatPoleShortLabel(pole)}
+              </p>
+              <p className="text-muted">{formatPoleShortLabel(pole)}</p>
+              {pole.flex && <p className="text-muted">Flex {pole.flex}</p>}
+            </>
+          ) : (
+            <p className="mt-1 font-medium text-foreground">{jump.poleLabel}</p>
+          )}
+        </div>
       )}
     </div>
   );

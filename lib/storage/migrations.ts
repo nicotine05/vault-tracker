@@ -1,3 +1,4 @@
+import { countPlannerSessions, isPlannerComplete } from "@/lib/domain/plannerHealth";
 import { STORAGE_KEYS } from "@/lib/storage/keys";
 import type { PlannerDay } from "@/lib/trainingProgram";
 import {
@@ -99,9 +100,72 @@ function migrateSprintStrengthPRHistory(): void {
   }
 }
 
+/** Restore schedule snapshots lost when sync stripped numeric engineVersion. */
+function restoreMissingScheduleSnapshots(): void {
+  if (readJson<boolean>(STORAGE_KEYS.MIGRATION_V2, false)) {
+    return;
+  }
+
+  const snapshots = readJson<Record<number, WeekScheduleSnapshot>>(
+    STORAGE_KEYS.SCHEDULE_SNAPSHOTS,
+    {}
+  );
+
+  const planner = readJson<Record<number, Record<string, PlannerDay>>>(
+    STORAGE_KEYS.WEEKLY_PLANNER,
+    {}
+  );
+
+  const legacyGenerated = readJson<Record<number, boolean>>(
+    STORAGE_KEYS.GENERATED_SCHEDULES,
+    {}
+  );
+
+  const completedWorkouts = readJson<Record<string, boolean>>(
+    STORAGE_KEYS.COMPLETED_WORKOUTS,
+    {}
+  );
+
+  let changed = false;
+
+  for (const [weekKey, weekPlanner] of Object.entries(planner)) {
+    const weekNumber = Number(weekKey);
+    if (!Number.isFinite(weekNumber) || snapshots[weekNumber]) {
+      continue;
+    }
+
+    if (!weekPlanner || Object.keys(weekPlanner).length === 0) {
+      continue;
+    }
+
+    const hadCompletedWorkouts = Object.keys(completedWorkouts).some((key) =>
+      key.startsWith(`${weekNumber}-`)
+    );
+
+    const hadGeneratedSchedule =
+      legacyGenerated[weekNumber] ||
+      hadCompletedWorkouts ||
+      isPlannerComplete(countPlannerSessions(weekPlanner), weekNumber);
+
+    if (!hadGeneratedSchedule) {
+      continue;
+    }
+
+    snapshots[weekNumber] = generateScheduleSnapshot(weekNumber, weekPlanner);
+    changed = true;
+  }
+
+  if (changed) {
+    writeJson(STORAGE_KEYS.SCHEDULE_SNAPSHOTS, snapshots);
+  }
+
+  writeJson(STORAGE_KEYS.MIGRATION_V2, true);
+}
+
 const MIGRATIONS: Migration[] = [
   { id: "legacy-generated-schedules", run: migrateLegacyGeneratedSchedules },
   { id: "sprint-strength-pr-history", run: migrateSprintStrengthPRHistory },
+  { id: "restore-missing-schedule-snapshots", run: restoreMissingScheduleSnapshots },
 ];
 
 let migrationsRan = false;

@@ -26,6 +26,9 @@ export function getDefaultSyncSnapshot(): Record<string, unknown> {
     [STORAGE_KEYS.STRENGTH_PR_HISTORY]: [],
     [STORAGE_KEYS.VAULT_LOGS]: [],
     [STORAGE_KEYS.VAULT_STEP_REFERENCES]: { ...EMPTY_STEP_REFS },
+    [STORAGE_KEYS.POLE_INVENTORY]: [],
+    [STORAGE_KEYS.POLE_BAGS]: [],
+    [STORAGE_KEYS.RECENT_POLE_IDS]: [],
     [STORAGE_KEYS.MIGRATION_V1]: true,
   };
 }

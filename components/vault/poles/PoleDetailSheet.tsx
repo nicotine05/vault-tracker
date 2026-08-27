@@ -1,0 +1,101 @@
+"use client";
+
+import type { Pole } from "@/lib/domain/types";
+import {
+  formatPoleShortLabel,
+  formatPoleTitle,
+} from "@/lib/domain/poleInventory";
+import {
+  destructiveOutlineButtonClassName,
+  primaryButtonClassName,
+} from "@/lib/ui/componentStyles";
+
+type PoleDetailSheetProps = {
+  pole: Pole;
+  readOnly: boolean;
+  onEdit: () => void;
+  onDelete: () => void;
+  onClose: () => void;
+};
+
+export default function PoleDetailSheet({
+  pole,
+  readOnly,
+  onEdit,
+  onDelete,
+  onClose,
+}: PoleDetailSheetProps) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
+      <div
+        role="dialog"
+        aria-modal="true"
+        className="w-full max-w-md rounded-2xl border border-border bg-surface p-5 shadow-xl"
+      >
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <div>
+            <p className="text-xl font-bold text-foreground">
+              {formatPoleTitle(pole)}
+            </p>
+            <p className="mt-1 text-sm text-muted">
+              {formatPoleShortLabel(pole)}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-sm text-muted transition hover:text-foreground"
+          >
+            Close
+          </button>
+        </div>
+
+        <dl className="space-y-3 text-sm">
+          <DetailRow label="Brand" value={pole.brand || "—"} />
+          <DetailRow label="Model" value={pole.model || "—"} />
+          <DetailRow label="Length" value={pole.length || "—"} />
+          <DetailRow label="Weight" value={String(pole.weightRating) || "—"} />
+          <DetailRow label="Flex" value={pole.flex || "—"} />
+          <DetailRow
+            label="Status"
+            value={pole.retired ? "Retired" : "Active"}
+          />
+          {pole.notes && (
+            <div>
+              <dt className="text-muted">Notes</dt>
+              <dd className="mt-1 text-foreground">{pole.notes}</dd>
+            </div>
+          )}
+        </dl>
+
+        {!readOnly && (
+          <div className="mt-5 space-y-2">
+            <button
+              type="button"
+              onClick={onEdit}
+              className={primaryButtonClassName}
+            >
+              Edit Pole
+            </button>
+            <button
+              type="button"
+              onClick={onDelete}
+              className={`${destructiveOutlineButtonClassName} w-full py-2.5 text-sm`}
+            >
+              Delete Pole
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function DetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-4 border-b border-border/60 pb-2">
+      <dt className="text-muted">{label}</dt>
+      <dd className="font-medium text-foreground">{value}</dd>
+    </div>
+  );
+}

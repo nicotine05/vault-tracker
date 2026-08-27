@@ -24,6 +24,13 @@ export default function VaultHubPage() {
           title="Video Analysis"
           description="Frame-by-frame review, comparison, and telestration tools."
         />
+
+        <HubLinkCard
+          href="/vault/poles"
+          icon="🎯"
+          title="Pole Inventory"
+          description="Manage your pole collection, build custom bags, and log which pole you used."
+        />
       </div>
     </main>
   );

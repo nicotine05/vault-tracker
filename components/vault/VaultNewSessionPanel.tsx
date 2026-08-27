@@ -1,7 +1,9 @@
 "use client";
 
-import type { Jump, VaultStepReferences } from "@/lib/domain/types";
+import type { Jump, Pole, VaultStepReferences } from "@/lib/domain/types";
 import { getGradeEmoji, getRunReference } from "@/lib/domain/vaultLog";
+import { formatPoleShortLabel, getPoleById } from "@/lib/domain/poleInventory";
+import PolePicker from "@/components/vault/poles/PolePicker";
 
 type JumpFormState = {
   run: string;
@@ -9,6 +11,7 @@ type JumpFormState = {
   takeoff: string;
   grade: Jump["grade"];
   comment: string;
+  poleId?: string;
 };
 
 type VaultNewSessionPanelProps = {
@@ -19,6 +22,8 @@ type VaultNewSessionPanelProps = {
   onJumpFormChange: (form: JumpFormState) => void;
   jumps: Jump[];
   stepRefs: VaultStepReferences;
+  poles: Pole[];
+  recentPoleIds: string[];
   onAddJump: () => void;
   onRemoveJump: (jumpId: string) => void;
   onSaveSession: () => void;
@@ -35,6 +40,8 @@ export default function VaultNewSessionPanel({
   onJumpFormChange,
   jumps,
   stepRefs,
+  poles,
+  recentPoleIds,
   onAddJump,
   onRemoveJump,
   onSaveSession,
@@ -141,6 +148,17 @@ export default function VaultNewSessionPanel({
               className={fieldClassName}
             />
 
+            {poles.length > 0 && (
+              <PolePicker
+                poles={poles}
+                recentPoleIds={recentPoleIds}
+                selectedPoleId={jumpForm.poleId}
+                onSelect={(poleId) =>
+                  onJumpFormChange({ ...jumpForm, poleId })
+                }
+              />
+            )}
+
             <button
               type="button"
               onClick={onAddJump}
@@ -160,6 +178,7 @@ export default function VaultNewSessionPanel({
             <div className="divide-y divide-border">
               {jumps.map((jump) => {
                 const reference = getRunReference(jump.run, stepRefs);
+                const pole = getPoleById(poles, jump.poleId);
 
                 return (
                   <div key={jump.id} className="bg-surface p-3 text-foreground">
@@ -180,6 +199,11 @@ export default function VaultNewSessionPanel({
                     )}
                     <p>Grip: {jump.grip}</p>
                     <p>Takeoff: {jump.takeoff}</p>
+                    {pole && (
+                      <p className="text-sm text-muted">
+                        Pole: {formatPoleShortLabel(pole)}
+                      </p>
+                    )}
                     {jump.comment && <p className="text-muted">{jump.comment}</p>}
                   </div>
                 );
