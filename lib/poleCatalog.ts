@@ -28,6 +28,7 @@ export const POLE_MODELS: PoleModel[] = [
   { id: "pacer-composite", brandId: "pacer", name: "Pacer Composite" },
   { id: "pacer-spirit", brandId: "pacer", name: "Pacer Spirit" },
   { id: "pacer-fiberglass", brandId: "pacer", name: "Pacer Fiberglass" },
+  { id: "pacer-mystic", brandId: "pacer", name: "Pacer Mystic" },
   { id: "pacer-other", brandId: "pacer", name: "Other" },
 
   { id: "ucs-spirit-spirit", brandId: "ucs-spirit", name: "Spirit" },
