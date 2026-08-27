@@ -7,6 +7,7 @@ import {
   formatPoleWeightRangeDisplay,
   formatWishlistBrandLabel,
   formatWishlistModelLabel,
+  isRetiredPole,
   isWishlistPole,
 } from "@/lib/domain/poleInventory";
 import { getBrandName, getModelName } from "@/lib/poleCatalog";
@@ -14,6 +15,7 @@ import PoleBrandAccent from "@/components/vault/poles/PoleBrandAccent";
 import {
   destructiveOutlineButtonClassName,
   primaryButtonClassName,
+  secondaryButtonClassName,
   todayBadgeClassName,
 } from "@/lib/ui/componentStyles";
 
@@ -22,6 +24,8 @@ type PoleDetailSheetProps = {
   readOnly: boolean;
   onEdit: () => void;
   onDelete: () => void;
+  onRetire?: () => void;
+  onUnretire?: () => void;
   onClose: () => void;
 };
 
@@ -30,24 +34,40 @@ export default function PoleDetailSheet({
   readOnly,
   onEdit,
   onDelete,
+  onRetire,
+  onUnretire,
   onClose,
 }: PoleDetailSheetProps) {
   const wishlist = isWishlistPole(pole);
+  const retired = isRetiredPole(pole);
 
   return (
     <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/40 p-4 sm:items-center">
       <div
         role="dialog"
         aria-modal="true"
-        className="w-full max-w-md rounded-2xl border border-border bg-surface p-5 shadow-xl"
+        className={`w-full max-w-md rounded-2xl border border-border bg-surface p-5 shadow-xl ${
+          retired ? "opacity-95" : ""
+        }`}
       >
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              {pole.brandId && <PoleBrandAccent brandId={pole.brandId} className="h-3 w-3" />}
-              <p className="text-xl font-bold text-foreground">
+              {pole.brandId && !retired && (
+                <PoleBrandAccent brandId={pole.brandId} className="h-3 w-3" />
+              )}
+              <p
+                className={`text-xl font-bold ${
+                  retired ? "text-muted" : "text-foreground"
+                }`}
+              >
                 {formatPoleTitle(pole)}
               </p>
+              {retired && (
+                <span className="rounded-full border border-border bg-surface-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted">
+                  Retired
+                </span>
+              )}
               {wishlist && (
                 <span className={`${todayBadgeClassName} normal-case`}>Wishlist</span>
               )}
@@ -98,6 +118,24 @@ export default function PoleDetailSheet({
             >
               {wishlist ? "Edit Wishlist Item" : "Edit Pole"}
             </button>
+            {!wishlist && !retired && onRetire && (
+              <button
+                type="button"
+                onClick={onRetire}
+                className={`${secondaryButtonClassName} py-2.5 text-sm`}
+              >
+                Retire Pole
+              </button>
+            )}
+            {!wishlist && retired && onUnretire && (
+              <button
+                type="button"
+                onClick={onUnretire}
+                className={`${secondaryButtonClassName} py-2.5 text-sm`}
+              >
+                Restore to Inventory
+              </button>
+            )}
             <button
               type="button"
               onClick={onDelete}

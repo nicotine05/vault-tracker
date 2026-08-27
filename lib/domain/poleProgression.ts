@@ -1,6 +1,10 @@
 import type { Pole } from "@/lib/domain/types";
 import { getBrandColor } from "@/lib/poleCatalog";
 
+function isRetiredPole(pole: Pole): boolean {
+  return pole.retired === true;
+}
+
 function isOwnedPole(pole: Pole): boolean {
   return pole.kind !== "wishlist";
 }
@@ -192,6 +196,10 @@ export function buildProgressionGrid(poles: Pole[]): ProgressionGrid {
 
   for (const pole of poles) {
     if (isOwnedPole(pole)) {
+      if (isRetiredPole(pole)) {
+        continue;
+      }
+
       const key = getOwnedProgressionCellKey(pole);
       if (!key) {
         continue;

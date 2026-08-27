@@ -8,6 +8,7 @@ import {
   createPoleBag,
   applyPoleFormValues,
   pruneBagPoleIds,
+  setPoleRetired,
   sortPolesForDisplay,
   type PoleFormValues,
 } from "@/lib/domain/poleInventory";
@@ -97,6 +98,29 @@ export function usePoleInventoryState() {
     setRecentPoleIds((prev) => prev.filter((id) => id !== poleId));
   }, []);
 
+  const retirePole = useCallback((poleId: string) => {
+    setPoles((prev) =>
+      prev.map((pole) =>
+        pole.id === poleId ? setPoleRetired(pole, true) : pole
+      )
+    );
+    setBags((prev) =>
+      prev.map((bag) => ({
+        ...bag,
+        poleIds: bag.poleIds.filter((id) => id !== poleId),
+      }))
+    );
+    setRecentPoleIds((prev) => prev.filter((id) => id !== poleId));
+  }, []);
+
+  const unretirePole = useCallback((poleId: string) => {
+    setPoles((prev) =>
+      prev.map((pole) =>
+        pole.id === poleId ? setPoleRetired(pole, false) : pole
+      )
+    );
+  }, []);
+
   const addBag = useCallback((name: string) => {
     setBags((prev) => [...prev, createPoleBag(name)]);
   }, []);
@@ -149,6 +173,8 @@ export function usePoleInventoryState() {
     addPole,
     updatePole,
     deletePole,
+    retirePole,
+    unretirePole,
     addBag,
     renameBag,
     deleteBag,

@@ -18,6 +18,7 @@ import {
   EMPTY_POLE_FILTERS,
   emptyPoleForm,
   getOwnedPoles,
+  isRetiredPole,
   isWishlistPole,
   poleToFormValues,
   type PoleSourceFilter,
@@ -50,6 +51,8 @@ export default function PoleInventoryPage() {
     addPole,
     updatePole,
     deletePole,
+    retirePole,
+    unretirePole,
     addBag,
     deleteBag,
     addPoleToBag,
@@ -133,6 +136,24 @@ export default function PoleInventoryPage() {
     }
 
     deletePole(pole.id);
+    setSheetMode(null);
+  }
+
+  function handleRetirePole(pole: Pole) {
+    if (
+      !confirm(
+        `Retire ${pole.length} ${pole.weightRating}? It will move to the bottom of your inventory and be removed from bags and the progression chart.`
+      )
+    ) {
+      return;
+    }
+
+    retirePole(pole.id);
+    setSheetMode(null);
+  }
+
+  function handleUnretirePole(pole: Pole) {
+    unretirePole(pole.id);
     setSheetMode(null);
   }
 
@@ -274,6 +295,16 @@ export default function PoleInventoryPage() {
           readOnly={isCoachReadOnly}
           onEdit={() => openEditPole(sheetMode.pole)}
           onDelete={() => handleDeletePole(sheetMode.pole)}
+          onRetire={
+            !isWishlistPole(sheetMode.pole) && !isRetiredPole(sheetMode.pole)
+              ? () => handleRetirePole(sheetMode.pole)
+              : undefined
+          }
+          onUnretire={
+            isRetiredPole(sheetMode.pole)
+              ? () => handleUnretirePole(sheetMode.pole)
+              : undefined
+          }
           onClose={() => setSheetMode(null)}
         />
       )}

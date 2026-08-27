@@ -76,6 +76,26 @@ export function isWishlistPole(pole: Pole): boolean {
   return pole.kind === "wishlist";
 }
 
+export function isRetiredPole(pole: Pole): boolean {
+  return pole.retired === true;
+}
+
+export function isActiveOwnedPole(pole: Pole): boolean {
+  return isOwnedPole(pole) && !isRetiredPole(pole);
+}
+
+export function getPoleDisplayTier(pole: Pole): number {
+  if (isRetiredPole(pole)) {
+    return 2;
+  }
+
+  if (isWishlistPole(pole)) {
+    return 1;
+  }
+
+  return 0;
+}
+
 export function filterPolesBySource(
   poles: Pole[],
   source: PoleSourceFilter
@@ -91,7 +111,7 @@ export function filterPolesBySource(
 }
 
 export function getOwnedPoles(poles: Pole[]): Pole[] {
-  return poles.filter(isOwnedPole);
+  return poles.filter(isActiveOwnedPole);
 }
 
 export function sanitizePoleFormDigits(value: string, maxLength: number): string {
@@ -437,6 +457,7 @@ export function formatPoleSearchText(pole: Pole): string {
     pole.flex ?? "",
     pole.notes ?? "",
     isWishlistPole(pole) ? "wishlist" : "",
+    isRetiredPole(pole) ? "retired" : "",
   ]
     .join(" ")
     .toLowerCase();
@@ -488,6 +509,7 @@ export function migrateLegacyPoleRecord(
         : undefined,
     flex: isString(value.flex) ? value.flex : undefined,
     notes: isString(value.notes) ? value.notes : undefined,
+    retired: value.retired === true ? true : undefined,
     createdAt: value.createdAt,
   };
 }
@@ -583,10 +605,9 @@ export function pruneBagPoleIds(
 
 export function sortPolesForDisplay(poles: Pole[]): Pole[] {
   return [...poles].sort((left, right) => {
-    const kindCompare =
-      Number(isWishlistPole(left)) - Number(isWishlistPole(right));
-    if (kindCompare !== 0) {
-      return kindCompare;
+    const tierCompare = getPoleDisplayTier(left) - getPoleDisplayTier(right);
+    if (tierCompare !== 0) {
+      return tierCompare;
     }
 
     const brandCompare = formatPoleTitle(left).localeCompare(
@@ -603,6 +624,17 @@ export function sortPolesForDisplay(poles: Pole[]): Pole[] {
 
     return left.weightRating - right.weightRating;
   });
+}
+
+export function setPoleRetired(pole: Pole, retired: boolean): Pole {
+  if (isWishlistPole(pole)) {
+    return pole;
+  }
+
+  return {
+    ...pole,
+    retired: retired ? true : undefined,
+  };
 }
 
 export function isPoleFormValid(values: PoleFormValues): boolean {

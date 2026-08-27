@@ -100,10 +100,10 @@ export type Pole = {
   weightMax?: number;
   flex?: string;
   notes?: string;
+  /** Retired owned poles stay in inventory but are hidden from bags, logs, and progression. */
+  retired?: boolean;
   /** @deprecated Removed in V3. Migrated away on load. */
   status?: "owned" | "wishlist" | "replace";
-  /** @deprecated Kept for migration only. */
-  retired?: boolean;
   createdAt: string;
 };
 
