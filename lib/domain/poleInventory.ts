@@ -1,5 +1,9 @@
 import type { Pole, PoleBag } from "@/lib/domain/types";
 import {
+  normalizeProgressionLength,
+  snapWeightToProgression,
+} from "@/lib/domain/poleProgression";
+import {
   getBrandModelName,
   getBrandName,
   getDefaultModelIdForBrand,
@@ -20,8 +24,9 @@ export type PoleFormValues = {
   length: string;
   weightRating: string;
   flex: string;
+  serialNumber: string;
+  carbonFiber: boolean;
   notes: string;
-  retired: boolean;
 };
 
 export type PoleFilters = {
@@ -45,9 +50,27 @@ export function emptyPoleForm(): PoleFormValues {
     length: "",
     weightRating: "",
     flex: "",
+    serialNumber: "",
+    carbonFiber: false,
     notes: "",
-    retired: false,
   };
+}
+
+function normalizePoleLength(length: string): string {
+  return normalizeProgressionLength(length);
+}
+
+function normalizePoleWeight(weightRating: string): number {
+  const parsed = Number(weightRating);
+  return snapWeightToProgression(parsed) ?? parsed;
+}
+
+function inferCarbonFiber(modelId: string, explicit?: boolean): boolean {
+  if (explicit !== undefined) {
+    return explicit;
+  }
+
+  return modelId.toLowerCase().includes("carbon");
 }
 
 export function createPole(values: PoleFormValues): Pole {
@@ -55,11 +78,12 @@ export function createPole(values: PoleFormValues): Pole {
     id: crypto.randomUUID(),
     brandId: values.brandId,
     modelId: values.modelId,
-    length: values.length.trim(),
-    weightRating: Number(values.weightRating) || 0,
+    length: normalizePoleLength(values.length),
+    weightRating: normalizePoleWeight(values.weightRating),
     flex: values.flex.trim() || undefined,
+    serialNumber: values.serialNumber.trim() || undefined,
+    carbonFiber: values.carbonFiber,
     notes: values.notes.trim() || undefined,
-    retired: values.retired || undefined,
     createdAt: new Date().toISOString(),
   };
 }
@@ -76,11 +100,12 @@ export function poleToFormValues(pole: Pole): PoleFormValues {
   return {
     brandId: pole.brandId,
     modelId: pole.modelId,
-    length: pole.length,
+    length: normalizeProgressionLength(pole.length),
     weightRating: String(pole.weightRating),
     flex: pole.flex ?? "",
+    serialNumber: pole.serialNumber ?? "",
+    carbonFiber: Boolean(pole.carbonFiber),
     notes: pole.notes ?? "",
-    retired: Boolean(pole.retired),
   };
 }
 
@@ -89,34 +114,56 @@ export function applyPoleFormValues(pole: Pole, values: PoleFormValues): Pole {
     ...pole,
     brandId: values.brandId,
     modelId: values.modelId,
-    length: values.length.trim(),
-    weightRating: Number(values.weightRating) || 0,
+    length: normalizePoleLength(values.length),
+    weightRating: normalizePoleWeight(values.weightRating),
     flex: values.flex.trim() || undefined,
+    serialNumber: values.serialNumber.trim() || undefined,
+    carbonFiber: values.carbonFiber,
     notes: values.notes.trim() || undefined,
-    retired: values.retired || undefined,
   };
 }
 
 export function formatPoleShortLabel(pole: Pole): string {
-  return `${pole.length} ${pole.weightRating}`;
+  return `${formatPoleLengthDisplay(pole.length)} ${pole.weightRating}`;
 }
 
 export function formatPoleTitle(pole: Pole): string {
   return getBrandModelName(pole.brandId, pole.modelId);
 }
 
+export function formatPoleBrandLabel(pole: Pole): string {
+  const brand = getBrandName(pole.brandId);
+  const model = getModelName(pole.modelId);
+
+  if (model.toLowerCase().includes(brand.toLowerCase())) {
+    return model;
+  }
+
+  return `${brand} ${model}`.trim();
+}
+
 export function formatPolePickerLabel(pole: Pole): string {
   return `${getBrandName(pole.brandId)} ${formatPoleShortLabel(pole)}`;
+}
+
+export function formatPoleLengthDisplay(length: string): string {
+  return normalizeProgressionLength(length);
+}
+
+export function formatPoleWeightDisplay(weightRating: number): string {
+  return `${weightRating}lbs`;
 }
 
 export function formatPoleSearchText(pole: Pole): string {
   return [
     getBrandName(pole.brandId),
     getModelName(pole.modelId),
+    pole.serialNumber ?? "",
     pole.length,
     String(pole.weightRating),
     pole.flex ?? "",
     pole.notes ?? "",
+    pole.carbonFiber ? "carbon fiber" : "",
   ]
     .join(" ")
     .toLowerCase();
@@ -145,15 +192,19 @@ export function migrateLegacyPoleRecord(
     );
   }
 
+  const explicitCarbon =
+    typeof value.carbonFiber === "boolean" ? value.carbonFiber : undefined;
+
   return {
     id: value.id,
     brandId,
     modelId,
-    length: value.length,
+    length: normalizeProgressionLength(value.length),
     weightRating,
     flex: isString(value.flex) ? value.flex : undefined,
+    serialNumber: isString(value.serialNumber) ? value.serialNumber : undefined,
+    carbonFiber: inferCarbonFiber(modelId, explicitCarbon),
     notes: isString(value.notes) ? value.notes : undefined,
-    retired: Boolean(value.retired) || undefined,
     createdAt: value.createdAt,
   };
 }
@@ -249,10 +300,6 @@ export function pruneBagPoleIds(
 
 export function sortPolesForDisplay(poles: Pole[]): Pole[] {
   return [...poles].sort((left, right) => {
-    if (Boolean(left.retired) !== Boolean(right.retired)) {
-      return left.retired ? 1 : -1;
-    }
-
     const brandCompare = getBrandName(left.brandId).localeCompare(
       getBrandName(right.brandId)
     );
@@ -284,10 +331,14 @@ export function withBrandSelection(
   values: PoleFormValues,
   brandId: string
 ): PoleFormValues {
+  const modelId = getDefaultModelIdForBrand(brandId);
+  const model = getModelsForBrand(brandId).find((entry) => entry.id === modelId);
+
   return {
     ...values,
     brandId,
-    modelId: getDefaultModelIdForBrand(brandId),
+    modelId,
+    carbonFiber: model?.name.toLowerCase().includes("carbon") ?? false,
   };
 }
 

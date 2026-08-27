@@ -15,7 +15,11 @@ import {
   emptyJumpForm,
   updateRunPR,
 } from "@/lib/domain/vaultLog";
-import { updateRecentPoleIds, formatPolePickerLabel, getPoleById } from "@/lib/domain/poleInventory";
+import {
+  formatPolePickerLabel,
+  getPoleById,
+  updateRecentPoleIds,
+} from "@/lib/domain/poleInventory";
 import {
   EMPTY_RUN_PRS,
   EMPTY_STEP_REFS,

@@ -7,6 +7,7 @@ import {
   formatPoleShortLabel,
   formatPoleTitle,
   getPoleById,
+  sortPolesForDisplay,
 } from "@/lib/domain/poleInventory";
 import PoleBrandAccent from "@/components/vault/poles/PoleBrandAccent";
 import { fieldClassNameSm } from "@/lib/ui/componentStyles";
@@ -40,20 +41,14 @@ export default function PolePicker({
   );
 
   const filteredPoles = useMemo(() => {
-    const activeFirst = [...poles].sort((left, right) => {
-      if (Boolean(left.retired) !== Boolean(right.retired)) {
-        return left.retired ? 1 : -1;
-      }
-
-      return left.length.localeCompare(right.length);
-    });
+    const sorted = sortPolesForDisplay(poles);
 
     if (!query.trim()) {
-      return activeFirst;
+      return sorted;
     }
 
     const normalized = query.trim().toLowerCase();
-    return activeFirst.filter((pole) =>
+    return sorted.filter((pole) =>
       formatPoleSearchText(pole).includes(normalized)
     );
   }, [poles, query]);
@@ -155,7 +150,7 @@ export default function PolePicker({
               onClick={() => onSelect(pole.id)}
               className={`flex w-full items-center justify-between rounded-lg px-2 py-2 text-left text-sm transition hover:bg-surface-muted ${
                 selected ? "bg-surface-accent font-medium" : ""
-              } ${pole.retired ? "opacity-60" : ""}`}
+              }`}
             >
               <span className="flex items-center gap-2 text-foreground">
                 <PoleBrandAccent brandId={pole.brandId} />
@@ -166,9 +161,6 @@ export default function PolePicker({
                   </span>
                 </span>
               </span>
-              {pole.retired && (
-                <span className="text-[10px] uppercase text-muted">Retired</span>
-              )}
             </button>
           );
         })}

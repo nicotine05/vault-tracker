@@ -87,7 +87,12 @@ export type Pole = {
   length: string;
   weightRating: number;
   flex?: string;
+  serialNumber?: string;
+  carbonFiber?: boolean;
   notes?: string;
+  /** @deprecated Removed in V3. Migrated away on load. */
+  status?: "owned" | "wishlist" | "replace";
+  /** @deprecated Kept for migration only. */
   retired?: boolean;
   createdAt: string;
 };

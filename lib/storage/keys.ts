@@ -22,6 +22,8 @@ export const STORAGE_KEYS = {
   MIGRATION_V1: "vaultTracker_migration_v1",
   MIGRATION_V2: "vaultTracker_migration_v2",
   MIGRATION_V3: "vaultTracker_migration_v3",
+  MIGRATION_V4: "vaultTracker_migration_v4",
+  MIGRATION_V5: "vaultTracker_migration_v5",
 } as const;
 
 export const STORAGE_EVENTS = {

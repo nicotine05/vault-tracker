@@ -13,14 +13,13 @@ export default function PoleEmptyState({
     <div className="rounded-2xl border border-dashed border-border-accent bg-surface-muted/60 px-6 py-10 text-center">
       <p className="text-lg font-bold text-foreground">No Poles Added Yet</p>
       <p className="mx-auto mt-2 max-w-xs text-sm text-muted">
-        Track your personal pole inventory, build custom pole bags, and associate
-        poles with vault logs.
+        Add your poles to track inventory, progression, and pole bags.
       </p>
       {!readOnly && (
         <button
           type="button"
           onClick={onAddFirstPole}
-          className={`${primaryButtonClassName} mt-5 max-w-xs mx-auto`}
+          className={`${primaryButtonClassName} mx-auto mt-5 max-w-xs`}
         >
           Add First Pole
         </button>

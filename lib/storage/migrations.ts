@@ -188,11 +188,66 @@ function migratePoleCatalogIds(): void {
   writeJson(STORAGE_KEYS.MIGRATION_V3, true);
 }
 
+/** Ensure all poles have status and normalized progression dimensions. */
+function migratePoleStatusFields(): void {
+  if (readJson<boolean>(STORAGE_KEYS.MIGRATION_V4, false)) {
+    return;
+  }
+
+  const rawPoles = readJson<unknown[]>(STORAGE_KEYS.POLE_INVENTORY, []);
+  const migrated: Pole[] = [];
+
+  for (const rawPole of rawPoles) {
+    if (typeof rawPole !== "object" || rawPole === null) {
+      continue;
+    }
+
+    const pole = migrateLegacyPoleRecord(rawPole as Record<string, unknown>);
+    if (pole) {
+      migrated.push(pole);
+    }
+  }
+
+  writeJson(STORAGE_KEYS.POLE_INVENTORY, migrated);
+  writeJson(STORAGE_KEYS.MIGRATION_V4, true);
+}
+
+/** Drop legacy status fields and wishlist poles; normalize carbon fiber. */
+function migratePoleCarbonFiberFields(): void {
+  if (readJson<boolean>(STORAGE_KEYS.MIGRATION_V5, false)) {
+    return;
+  }
+
+  const rawPoles = readJson<unknown[]>(STORAGE_KEYS.POLE_INVENTORY, []);
+  const migrated: Pole[] = [];
+
+  for (const rawPole of rawPoles) {
+    if (typeof rawPole !== "object" || rawPole === null) {
+      continue;
+    }
+
+    const record = rawPole as Record<string, unknown>;
+    if (record.status === "wishlist") {
+      continue;
+    }
+
+    const pole = migrateLegacyPoleRecord(record);
+    if (pole) {
+      migrated.push(pole);
+    }
+  }
+
+  writeJson(STORAGE_KEYS.POLE_INVENTORY, migrated);
+  writeJson(STORAGE_KEYS.MIGRATION_V5, true);
+}
+
 const MIGRATIONS: Migration[] = [
   { id: "legacy-generated-schedules", run: migrateLegacyGeneratedSchedules },
   { id: "sprint-strength-pr-history", run: migrateSprintStrengthPRHistory },
   { id: "restore-missing-schedule-snapshots", run: restoreMissingScheduleSnapshots },
   { id: "pole-catalog-ids", run: migratePoleCatalogIds },
+  { id: "pole-status-fields", run: migratePoleStatusFields },
+  { id: "pole-carbon-fiber-fields", run: migratePoleCarbonFiberFields },
 ];
 
 let migrationsRan = false;

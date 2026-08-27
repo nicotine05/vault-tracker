@@ -6,11 +6,14 @@ import {
   isPoleFormValid,
   withBrandSelection,
 } from "@/lib/domain/poleInventory";
-import { POLE_BRANDS } from "@/lib/poleCatalog";
-import PoleBrandAccent from "@/components/vault/poles/PoleBrandAccent";
 import {
-  fieldClassName,
-  primaryButtonClassName,
+  PROGRESSION_LENGTHS,
+  PROGRESSION_WEIGHTS,
+} from "@/lib/domain/poleProgression";
+import { POLE_BRANDS } from "@/lib/poleCatalog";
+import {
+  fieldClassNameSm,
+  primaryButtonClassNameSm,
   secondaryButtonClassName,
 } from "@/lib/ui/componentStyles";
 
@@ -22,6 +25,12 @@ type PoleFormSheetProps = {
   onClose: () => void;
   submitLabel?: string;
 };
+
+const compactFieldClassName =
+  "w-full rounded-lg border border-border bg-surface-muted px-2.5 py-2 text-sm text-foreground";
+
+const compactLabelClassName =
+  "mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-muted";
 
 export default function PoleFormSheet({
   title,
@@ -35,14 +44,14 @@ export default function PoleFormSheet({
   const models = values.brandId ? getModelsForBrand(values.brandId) : [];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
+    <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/40 sm:items-center sm:p-4">
       <div
         role="dialog"
         aria-modal="true"
-        className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl border border-border bg-surface p-5 shadow-xl"
+        className="flex max-h-[min(78dvh,calc(100dvh-5.5rem))] w-full max-w-md flex-col rounded-t-2xl border border-border bg-surface shadow-xl sm:max-h-[85vh] sm:rounded-2xl"
       >
-        <div className="mb-4 flex items-start justify-between gap-3">
-          <p className="text-lg font-bold text-foreground">{title}</p>
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border px-4 py-3">
+          <p className="text-base font-bold text-foreground">{title}</p>
           <button
             type="button"
             onClick={onClose}
@@ -52,119 +61,137 @@ export default function PoleFormSheet({
           </button>
         </div>
 
-        <fieldset className="m-0 space-y-3 border-0 p-0">
-          <label className="block">
-            <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">
-              Brand
-            </span>
-            <select
-              value={values.brandId}
-              onChange={(event) =>
-                onChange(withBrandSelection(values, event.target.value))
-              }
-              className={fieldClassName}
-            >
-              <option value="">Select brand</option>
-              {POLE_BRANDS.map((brand) => (
-                <option key={brand.id} value={brand.id}>
-                  {brand.name}
-                </option>
-              ))}
-            </select>
-          </label>
+        <fieldset className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
+          <div className="grid grid-cols-2 gap-2">
+            <label className="block">
+              <span className={compactLabelClassName}>Brand</span>
+              <select
+                value={values.brandId}
+                onChange={(event) =>
+                  onChange(withBrandSelection(values, event.target.value))
+                }
+                className={compactFieldClassName}
+              >
+                <option value="">Select</option>
+                {POLE_BRANDS.map((brand) => (
+                  <option key={brand.id} value={brand.id}>
+                    {brand.name}
+                  </option>
+                ))}
+              </select>
+            </label>
 
-          <label className="block">
-            <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">
-              Model
-            </span>
-            <select
-              value={values.modelId}
-              disabled={!values.brandId}
-              onChange={(event) =>
-                onChange({ ...values, modelId: event.target.value })
-              }
-              className={fieldClassName}
-            >
-              <option value="">Select model</option>
-              {models.map((model) => (
-                <option key={model.id} value={model.id}>
-                  {model.name}
-                </option>
-              ))}
-            </select>
-          </label>
+            <label className="block">
+              <span className={compactLabelClassName}>Model</span>
+              <select
+                value={values.modelId}
+                disabled={!values.brandId}
+                onChange={(event) =>
+                  onChange({ ...values, modelId: event.target.value })
+                }
+                className={compactFieldClassName}
+              >
+                <option value="">Select</option>
+                {models.map((model) => (
+                  <option key={model.id} value={model.id}>
+                    {model.name}
+                  </option>
+                ))}
+              </select>
+            </label>
 
-          {values.brandId && (
-            <div className="flex items-center gap-2 rounded-xl border border-border bg-surface-muted px-3 py-2 text-sm text-muted">
-              <PoleBrandAccent brandId={values.brandId} />
-              <span>Brand color preview</span>
-            </div>
-          )}
+            <label className="col-span-2 block">
+              <span className={compactLabelClassName}>Serial # (optional)</span>
+              <input
+                value={values.serialNumber}
+                onChange={(event) =>
+                  onChange({ ...values, serialNumber: event.target.value })
+                }
+                placeholder="123456"
+                className={compactFieldClassName}
+              />
+            </label>
 
-          <input
-            value={values.length}
-            onChange={(event) =>
-              onChange({ ...values, length: event.target.value })
-            }
-            placeholder="Length (e.g. 14')"
-            className={fieldClassName}
-          />
-          <input
-            value={values.weightRating}
-            onChange={(event) =>
-              onChange({ ...values, weightRating: event.target.value })
-            }
-            placeholder="Weight rating (e.g. 170)"
-            inputMode="numeric"
-            className={fieldClassName}
-          />
-          <input
-            value={values.flex}
-            onChange={(event) =>
-              onChange({ ...values, flex: event.target.value })
-            }
-            placeholder="Flex (optional, e.g. 18.0)"
-            className={fieldClassName}
-          />
-          <textarea
-            value={values.notes}
-            onChange={(event) =>
-              onChange({ ...values, notes: event.target.value })
-            }
-            placeholder="Notes (optional)"
-            rows={3}
-            className={fieldClassName}
-          />
+            <label className="block">
+              <span className={compactLabelClassName}>Length</span>
+              <select
+                value={values.length}
+                onChange={(event) =>
+                  onChange({ ...values, length: event.target.value })
+                }
+                className={compactFieldClassName}
+              >
+                <option value="">Select</option>
+                {PROGRESSION_LENGTHS.map((length) => (
+                  <option key={length} value={length}>
+                    {length}
+                  </option>
+                ))}
+              </select>
+            </label>
 
-          <label className="flex items-center gap-2 rounded-xl border border-border bg-surface-muted px-3 py-3 text-sm text-foreground">
+            <label className="block">
+              <span className={compactLabelClassName}>Weight</span>
+              <select
+                value={values.weightRating}
+                onChange={(event) =>
+                  onChange({ ...values, weightRating: event.target.value })
+                }
+                className={compactFieldClassName}
+              >
+                <option value="">Select</option>
+                {PROGRESSION_WEIGHTS.map((weight) => (
+                  <option key={weight} value={String(weight)}>
+                    {weight}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="col-span-2 block">
+              <span className={compactLabelClassName}>Flex (optional)</span>
+              <input
+                value={values.flex}
+                onChange={(event) =>
+                  onChange({ ...values, flex: event.target.value })
+                }
+                placeholder="18.0"
+                className={compactFieldClassName}
+              />
+            </label>
+          </div>
+
+          <label className="mt-2 flex items-center gap-2 rounded-lg border border-border bg-surface-muted px-2.5 py-2 text-sm text-foreground">
             <input
               type="checkbox"
-              checked={values.retired}
+              checked={values.carbonFiber}
               onChange={(event) =>
-                onChange({ ...values, retired: event.target.checked })
+                onChange({ ...values, carbonFiber: event.target.checked })
               }
               className="h-4 w-4 rounded border-border accent-accent"
             />
-            Mark as retired
+            Carbon fiber pole
           </label>
         </fieldset>
 
-        <div className="mt-5 grid grid-cols-2 gap-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className={secondaryButtonClassName}
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            disabled={!valid}
-            onClick={onSubmit}
-            className={primaryButtonClassName}
-          >
-            {submitLabel}
-          </button>
+        <div className="shrink-0 border-t border-border bg-surface px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className={`${secondaryButtonClassName} py-2 text-sm`}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={!valid}
+              onClick={onSubmit}
+              className={primaryButtonClassNameSm}
+            >
+              {submitLabel}
+            </button>
+          </div>
         </div>
       </div>
     </div>

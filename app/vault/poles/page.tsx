@@ -1,28 +1,34 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import PoleBagSection from "@/components/vault/poles/PoleBagSection";
-import PoleCard from "@/components/vault/poles/PoleCard";
+import PoleCellDetailSheet from "@/components/vault/poles/PoleCellDetailSheet";
 import PoleDetailSheet from "@/components/vault/poles/PoleDetailSheet";
 import PoleEmptyState from "@/components/vault/poles/PoleEmptyState";
 import PoleFormSheet from "@/components/vault/poles/PoleFormSheet";
-import PoleSearchFilters from "@/components/vault/poles/PoleSearchFilters";
+import PoleInventoryTabs, {
+  type PoleInventoryTab,
+} from "@/components/vault/poles/PoleInventoryTabs";
+import PoleInventoryView from "@/components/vault/poles/PoleInventoryView";
+import PoleProgressionGrid from "@/components/vault/poles/PoleProgressionGrid";
+import PoleProgressionSummary from "@/components/vault/poles/PoleProgressionSummary";
 import {
   EMPTY_POLE_FILTERS,
   emptyPoleForm,
-  filterPoles,
   poleToFormValues,
 } from "@/lib/domain/poleInventory";
+import { buildProgressionGrid } from "@/lib/domain/poleProgression";
 import type { Pole } from "@/lib/domain/types";
 import { usePoleInventoryState } from "@/lib/hooks/usePoleInventoryState";
-import { primaryButtonClassName } from "@/lib/ui/componentStyles";
+import { fieldClassNameSm } from "@/lib/ui/componentStyles";
 
 type SheetMode =
   | { type: "add" }
   | { type: "edit"; poleId: string }
-  | { type: "detail"; pole: Pole };
+  | { type: "detail"; pole: Pole }
+  | { type: "cell"; poles: Pole[] };
 
 export default function PoleInventoryPage() {
   const { isCoachReadOnly } = useAuth();
@@ -38,14 +44,29 @@ export default function PoleInventoryPage() {
     removePoleFromBag,
   } = usePoleInventoryState();
 
+  const [activeTab, setActiveTab] = useState<PoleInventoryTab>("inventory");
   const [filters, setFilters] = useState(EMPTY_POLE_FILTERS);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [sheetMode, setSheetMode] = useState<SheetMode | null>(null);
   const [formValues, setFormValues] = useState(emptyPoleForm());
 
-  const filteredPoles = useMemo(
-    () => filterPoles(poles, filters),
-    [poles, filters]
+  const gridHasEntries = useMemo(
+    () => buildProgressionGrid(poles).size > 0,
+    [poles]
   );
+
+  function toggleSearch() {
+    setSearchOpen((current) => {
+      const next = !current;
+      if (next) {
+        window.setTimeout(() => searchInputRef.current?.focus(), 0);
+      } else {
+        setFilters((currentFilters) => ({ ...currentFilters, search: "" }));
+      }
+      return next;
+    });
+  }
 
   function openAddPole() {
     setFormValues(emptyPoleForm());
@@ -71,7 +92,11 @@ export default function PoleInventoryPage() {
   }
 
   function handleDeletePole(pole: Pole) {
-    if (!confirm(`Delete ${pole.length} ${pole.weightRating}? Historical logs will keep this pole reference.`)) {
+    if (
+      !confirm(
+        `Delete ${pole.length} ${pole.weightRating}? Historical logs will keep this pole reference.`
+      )
+    ) {
       return;
     }
 
@@ -88,23 +113,54 @@ export default function PoleInventoryPage() {
         ← Vault
       </Link>
 
-      <div className="mt-4 flex items-start justify-between gap-3">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Pole Inventory</h1>
-          <p className="mt-1 text-sm text-muted">
-            Your poles, bags, and quick references for practice and meets.
-          </p>
+      <div className="mt-4 flex items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold text-foreground">My Poles</h1>
+        <div className="flex items-center gap-2">
+          {poles.length > 0 && activeTab === "inventory" && (
+            <button
+              type="button"
+              onClick={toggleSearch}
+              aria-label={searchOpen ? "Close search" : "Search poles"}
+              aria-pressed={searchOpen}
+              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border transition ${
+                searchOpen || filters.search.trim()
+                  ? "border-accent bg-accent-soft text-accent-text"
+                  : "border-border bg-surface-muted text-muted hover:bg-surface-accent hover:text-foreground"
+              }`}
+            >
+              <SearchIcon className="h-3.5 w-3.5" />
+            </button>
+          )}
+          {!isCoachReadOnly && (
+            <button
+              type="button"
+              onClick={openAddPole}
+              aria-label="Add pole"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent text-xl font-light text-white shadow-sm transition hover:opacity-90"
+            >
+              +
+            </button>
+          )}
         </div>
       </div>
 
-      {!isCoachReadOnly && (
-        <button
-          type="button"
-          onClick={openAddPole}
-          className={`${primaryButtonClassName} mt-5`}
-        >
-          Add Pole
-        </button>
+      <div className="mt-4">
+        <PoleInventoryTabs activeTab={activeTab} onChange={setActiveTab} />
+      </div>
+
+      {searchOpen && activeTab === "inventory" && poles.length > 0 && (
+        <label className="mt-3 block">
+          <span className="sr-only">Search poles</span>
+          <input
+            ref={searchInputRef}
+            value={filters.search}
+            onChange={(event) =>
+              setFilters({ ...filters, search: event.target.value })
+            }
+            placeholder="Search poles"
+            className={`${fieldClassNameSm} py-2 text-sm`}
+          />
+        </label>
       )}
 
       {poles.length === 0 ? (
@@ -116,46 +172,57 @@ export default function PoleInventoryPage() {
         </div>
       ) : (
         <div className="mt-6 space-y-6">
-          <PoleSearchFilters
-            poles={poles}
-            filters={filters}
-            onChange={setFilters}
-          />
+          {activeTab === "inventory" && (
+            <PoleInventoryView
+              poles={poles}
+              filters={filters}
+              onViewDetails={(pole) =>
+                setSheetMode({ type: "detail", pole })
+              }
+            />
+          )}
 
-          <section className="space-y-3">
-            <h2 className="text-xl font-bold text-foreground">
-              {filteredPoles.length} Pole{filteredPoles.length === 1 ? "" : "s"}
-            </h2>
+          {activeTab === "progression" && (
+            <div className="space-y-4">
+              <PoleProgressionSummary poleCount={poles.length} />
+              {gridHasEntries ? (
+                <PoleProgressionGrid
+                  poles={poles}
+                  onSelectCell={(cellPoles) =>
+                    setSheetMode({ type: "cell", poles: cellPoles })
+                  }
+                />
+              ) : (
+                <p className="text-sm text-muted">
+                  Poles need standard progression lengths and weights to appear
+                  on the grid. Edit poles to use values like 14&apos;0 and 170.
+                </p>
+              )}
+            </div>
+          )}
 
-            {filteredPoles.length === 0 ? (
-              <p className="text-sm text-muted">
-                No poles match your filters.
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {filteredPoles.map((pole) => (
-                  <PoleCard
-                    key={pole.id}
-                    pole={pole}
-                    onViewDetails={(selected) =>
-                      setSheetMode({ type: "detail", pole: selected })
-                    }
-                  />
-                ))}
-              </div>
-            )}
-          </section>
-
-          <PoleBagSection
-            poles={poles}
-            bags={bags}
-            readOnly={isCoachReadOnly}
-            onAddBag={addBag}
-            onDeleteBag={deleteBag}
-            onAddPoleToBag={addPoleToBag}
-            onRemovePoleFromBag={removePoleFromBag}
-          />
+          {activeTab === "bags" && (
+            <PoleBagSection
+              poles={poles}
+              bags={bags}
+              readOnly={isCoachReadOnly}
+              onAddBag={addBag}
+              onDeleteBag={deleteBag}
+              onAddPoleToBag={addPoleToBag}
+              onRemovePoleFromBag={removePoleFromBag}
+            />
+          )}
         </div>
+      )}
+
+      {sheetMode?.type === "cell" && (
+        <PoleCellDetailSheet
+          poles={sheetMode.poles}
+          length={sheetMode.poles[0]?.length ?? ""}
+          weight={sheetMode.poles[0]?.weightRating ?? 0}
+          onViewPole={(pole) => setSheetMode({ type: "detail", pole })}
+          onClose={() => setSheetMode(null)}
+        />
       )}
 
       {sheetMode?.type === "detail" && (
@@ -179,5 +246,21 @@ export default function PoleInventoryPage() {
         />
       )}
     </main>
+  );
+}
+
+function SearchIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      fill="none"
+      aria-hidden="true"
+      className={className}
+    >
+      <path
+        d="M8.75 3.5a5.25 5.25 0 1 0 3.71 8.96l3.03 3.03a.75.75 0 0 0 1.06-1.06l-3.03-3.03A5.25 5.25 0 0 0 8.75 3.5Zm-3.75 5.25a3.75 3.75 0 1 1 7.5 0 3.75 3.75 0 0 1-7.5 0Z"
+        fill="currentColor"
+      />
+    </svg>
   );
 }

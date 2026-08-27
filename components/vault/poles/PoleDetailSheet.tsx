@@ -2,8 +2,9 @@
 
 import type { Pole } from "@/lib/domain/types";
 import {
-  formatPoleShortLabel,
+  formatPoleLengthDisplay,
   formatPoleTitle,
+  formatPoleWeightDisplay,
 } from "@/lib/domain/poleInventory";
 import { getBrandName, getModelName } from "@/lib/poleCatalog";
 import PoleBrandAccent from "@/components/vault/poles/PoleBrandAccent";
@@ -28,7 +29,7 @@ export default function PoleDetailSheet({
   onClose,
 }: PoleDetailSheetProps) {
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
+    <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/40 p-4 sm:items-center">
       <div
         role="dialog"
         aria-modal="true"
@@ -43,7 +44,8 @@ export default function PoleDetailSheet({
               </p>
             </div>
             <p className="mt-1 text-sm text-muted">
-              {formatPoleShortLabel(pole)}
+              {formatPoleLengthDisplay(pole.length)} ·{" "}
+              {formatPoleWeightDisplay(pole.weightRating)}
             </p>
           </div>
           <button
@@ -58,12 +60,13 @@ export default function PoleDetailSheet({
         <dl className="space-y-3 text-sm">
           <DetailRow label="Brand" value={getBrandName(pole.brandId)} />
           <DetailRow label="Model" value={getModelName(pole.modelId)} />
-          <DetailRow label="Length" value={pole.length || "—"} />
-          <DetailRow label="Weight" value={String(pole.weightRating) || "—"} />
+          <DetailRow label="Serial #" value={pole.serialNumber || "—"} />
+          <DetailRow label="Length" value={formatPoleLengthDisplay(pole.length)} />
+          <DetailRow label="Weight" value={formatPoleWeightDisplay(pole.weightRating)} />
           <DetailRow label="Flex" value={pole.flex || "—"} />
           <DetailRow
-            label="Status"
-            value={pole.retired ? "Retired" : "Active"}
+            label="Carbon Fiber"
+            value={pole.carbonFiber ? "Yes" : "No"}
           />
           {pole.notes && (
             <div>
