@@ -19,6 +19,7 @@ export const POLE_BRANDS: PoleBrand[] = [
 ];
 
 export const POLE_MODELS: PoleModel[] = [
+  { id: "altius-carbon", brandId: "altius", name: "Carbon" },
   { id: "altius-other", brandId: "altius", name: "Other" },
 
   { id: "pacer-carbon", brandId: "pacer", name: "Pacer Carbon" },
@@ -78,7 +79,6 @@ const LEGACY_MODEL_ID_MAP: Record<string, string> = {
   "pacer-carbon-fx": "pacer-carbon",
   "pacer-fxc": "pacer-fx",
   "pacer-one-piece": "pacer-one",
-  "altius-carbon": "altius-other",
   "altius-fibersport": "altius-other",
   "sky-pole-carbon": "skypole-other",
   "sky-pole-fiberglass": "skypole-other",
