@@ -35,8 +35,8 @@ export default function EditWeekPanel({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center">
-      <div className="flex w-full max-w-md flex-col rounded-t-2xl border border-border bg-surface shadow-xl sm:rounded-2xl">
-        <div className="flex items-center justify-between border-b border-border px-4 py-3">
+      <div className="flex w-full max-w-lg flex-col rounded-t-2xl border border-border bg-surface shadow-xl sm:rounded-2xl">
+        <div className="flex items-center justify-between border-b border-border px-4 py-3.5">
           <p className="text-base font-bold text-foreground">Edit Week</p>
           <button
             type="button"
@@ -47,10 +47,10 @@ export default function EditWeekPanel({
           </button>
         </div>
 
-        <div className="px-3 py-3">
+        <div className="px-4 py-4">
           <TargetIndicators metrics={healthMetrics} />
 
-          <div className="mt-3">
+          <div className="mt-4">
             <WeeklyPlannerCard
               compact
               readOnly={readOnly}
@@ -61,7 +61,7 @@ export default function EditWeekPanel({
         </div>
 
         {!readOnly && (
-          <div className="space-y-2 border-t border-border px-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+          <div className="space-y-2.5 border-t border-border px-4 py-3.5 pb-[max(0.875rem,env(safe-area-inset-bottom))]">
             <button
               type="button"
               onClick={onRegenerate}
