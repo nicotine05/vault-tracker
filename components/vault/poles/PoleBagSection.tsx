@@ -3,11 +3,14 @@
 import type { Pole, PoleBag } from "@/lib/domain/types";
 import {
   ALL_POLES_BAG_ID,
+  formatPoleSearchText,
   formatPoleShortLabel,
   formatPoleTitle,
   getPoleById,
   getVirtualAllPolesBag,
 } from "@/lib/domain/poleInventory";
+import { getBrandName } from "@/lib/poleCatalog";
+import PoleBrandAccent from "@/components/vault/poles/PoleBrandAccent";
 import {
   fieldClassNameSm,
   primaryButtonClassNameSm,
@@ -144,9 +147,12 @@ export default function PoleBagSection({
                           }`}
                         >
                           <div>
-                            <p className="font-medium text-foreground">
-                              {formatPoleShortLabel(pole)}
-                            </p>
+                            <div className="flex items-center gap-2">
+                              <PoleBrandAccent brandId={pole.brandId} />
+                              <p className="font-medium text-foreground">
+                                {formatPoleShortLabel(pole)}
+                              </p>
+                            </div>
                             <p className="text-xs text-muted">
                               {formatPoleTitle(pole)}
                             </p>
@@ -242,16 +248,7 @@ function BagPolePicker({
       return true;
     }
 
-    const haystack = [
-      pole.brand,
-      pole.model,
-      pole.length,
-      String(pole.weightRating),
-    ]
-      .join(" ")
-      .toLowerCase();
-
-    return haystack.includes(query.trim().toLowerCase());
+    return formatPoleSearchText(pole).includes(query.trim().toLowerCase());
   });
 
   return (
@@ -274,10 +271,11 @@ function BagPolePicker({
               onClick={() => onSelect(pole.id)}
               className="flex w-full items-center justify-between rounded-lg px-2 py-2 text-left text-sm transition hover:bg-surface-muted"
             >
-              <span className="font-medium text-foreground">
+              <span className="flex items-center gap-2 font-medium text-foreground">
+                <PoleBrandAccent brandId={pole.brandId} />
                 {formatPoleShortLabel(pole)}
               </span>
-              <span className="text-xs text-muted">{pole.brand}</span>
+              <span className="text-xs text-muted">{getBrandName(pole.brandId)}</span>
             </button>
           ))
         )}

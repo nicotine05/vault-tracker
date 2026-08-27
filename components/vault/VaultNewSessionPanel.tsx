@@ -2,8 +2,9 @@
 
 import type { Jump, Pole, VaultStepReferences } from "@/lib/domain/types";
 import { getGradeEmoji, getRunReference } from "@/lib/domain/vaultLog";
-import { formatPoleShortLabel, getPoleById } from "@/lib/domain/poleInventory";
+import { formatPolePickerLabel, formatPoleShortLabel, getPoleById } from "@/lib/domain/poleInventory";
 import PolePicker from "@/components/vault/poles/PolePicker";
+import PoleBrandAccent from "@/components/vault/poles/PoleBrandAccent";
 
 type JumpFormState = {
   run: string;
@@ -200,8 +201,9 @@ export default function VaultNewSessionPanel({
                     <p>Grip: {jump.grip}</p>
                     <p>Takeoff: {jump.takeoff}</p>
                     {pole && (
-                      <p className="text-sm text-muted">
-                        Pole: {formatPoleShortLabel(pole)}
+                      <p className="flex items-center gap-1.5 text-sm text-muted">
+                        <PoleBrandAccent brandId={pole.brandId} className="h-2 w-2" />
+                        Pole: {formatPolePickerLabel(pole)}
                       </p>
                     )}
                     {jump.comment && <p className="text-muted">{jump.comment}</p>}

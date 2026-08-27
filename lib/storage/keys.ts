@@ -21,6 +21,7 @@ export const STORAGE_KEYS = {
   EXECUTION_HISTORY: "workoutExecutionHistory",
   MIGRATION_V1: "vaultTracker_migration_v1",
   MIGRATION_V2: "vaultTracker_migration_v2",
+  MIGRATION_V3: "vaultTracker_migration_v3",
 } as const;
 
 export const STORAGE_EVENTS = {

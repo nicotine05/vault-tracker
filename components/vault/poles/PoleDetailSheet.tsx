@@ -5,6 +5,8 @@ import {
   formatPoleShortLabel,
   formatPoleTitle,
 } from "@/lib/domain/poleInventory";
+import { getBrandName, getModelName } from "@/lib/poleCatalog";
+import PoleBrandAccent from "@/components/vault/poles/PoleBrandAccent";
 import {
   destructiveOutlineButtonClassName,
   primaryButtonClassName,
@@ -34,9 +36,12 @@ export default function PoleDetailSheet({
       >
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
-            <p className="text-xl font-bold text-foreground">
-              {formatPoleTitle(pole)}
-            </p>
+            <div className="flex items-center gap-2">
+              <PoleBrandAccent brandId={pole.brandId} className="h-3 w-3" />
+              <p className="text-xl font-bold text-foreground">
+                {formatPoleTitle(pole)}
+              </p>
+            </div>
             <p className="mt-1 text-sm text-muted">
               {formatPoleShortLabel(pole)}
             </p>
@@ -51,8 +56,8 @@ export default function PoleDetailSheet({
         </div>
 
         <dl className="space-y-3 text-sm">
-          <DetailRow label="Brand" value={pole.brand || "—"} />
-          <DetailRow label="Model" value={pole.model || "—"} />
+          <DetailRow label="Brand" value={getBrandName(pole.brandId)} />
+          <DetailRow label="Model" value={getModelName(pole.modelId)} />
           <DetailRow label="Length" value={pole.length || "—"} />
           <DetailRow label="Weight" value={String(pole.weightRating) || "—"} />
           <DetailRow label="Flex" value={pole.flex || "—"} />

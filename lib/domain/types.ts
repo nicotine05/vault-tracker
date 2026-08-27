@@ -82,8 +82,8 @@ export type VaultStepReferences = {
 
 export type Pole = {
   id: string;
-  brand: string;
-  model: string;
+  brandId: string;
+  modelId: string;
   length: string;
   weightRating: number;
   flex?: string;

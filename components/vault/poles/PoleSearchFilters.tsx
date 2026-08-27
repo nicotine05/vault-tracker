@@ -2,11 +2,13 @@
 
 import type { PoleFilters } from "@/lib/domain/poleInventory";
 import {
-  getUniquePoleBrands,
+  getUniquePoleBrandIds,
   getUniquePoleLengths,
   getUniquePoleWeights,
 } from "@/lib/domain/poleInventory";
 import type { Pole } from "@/lib/domain/types";
+import { getBrandName, POLE_BRANDS } from "@/lib/poleCatalog";
+import PoleBrandAccent from "@/components/vault/poles/PoleBrandAccent";
 import { fieldClassNameSm } from "@/lib/ui/componentStyles";
 
 type PoleSearchFiltersProps = {
@@ -20,7 +22,7 @@ export default function PoleSearchFilters({
   filters,
   onChange,
 }: PoleSearchFiltersProps) {
-  const brands = getUniquePoleBrands(poles);
+  const brandIds = getUniquePoleBrandIds(poles);
   const lengths = getUniquePoleLengths(poles);
   const weights = getUniquePoleWeights(poles);
 
@@ -38,22 +40,48 @@ export default function PoleSearchFilters({
       <div className="grid grid-cols-3 gap-2">
         <FilterSelect
           label="Brand"
-          value={filters.brand}
-          options={brands}
-          onChange={(brand) => onChange({ ...filters, brand })}
+          value={filters.brandId}
+          options={brandIds.map((brandId) => ({
+            value: brandId,
+            label: getBrandName(brandId),
+          }))}
+          onChange={(brandId) => onChange({ ...filters, brandId })}
         />
         <FilterSelect
           label="Length"
           value={filters.length}
-          options={lengths}
+          options={lengths.map((length) => ({ value: length, label: length }))}
           onChange={(length) => onChange({ ...filters, length })}
         />
         <FilterSelect
           label="Weight"
           value={filters.weightRating}
-          options={weights}
+          options={weights.map((weight) => ({ value: weight, label: weight }))}
           onChange={(weightRating) => onChange({ ...filters, weightRating })}
         />
+      </div>
+
+      <div className="flex flex-wrap gap-2 pt-1">
+        {POLE_BRANDS.map((brand) => (
+          <button
+            key={brand.id}
+            type="button"
+            onClick={() =>
+              onChange({
+                ...filters,
+                brandId: filters.brandId === brand.id ? "" : brand.id,
+              })
+            }
+            className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition ${
+              filters.brandId === brand.id
+                ? "border-accent bg-accent-soft text-accent-text"
+                : "border-border bg-surface text-muted hover:bg-surface-accent"
+            }`}
+          >
+            <PoleBrandAccent brandId={brand.id} className="h-2 w-2" />
+            {brand.name}
+          </button>
+        ))}
       </div>
     </div>
   );
@@ -67,7 +95,7 @@ function FilterSelect({
 }: {
   label: string;
   value: string;
-  options: string[];
+  options: Array<{ value: string; label: string }>;
   onChange: (value: string) => void;
 }) {
   return (
@@ -82,8 +110,8 @@ function FilterSelect({
       >
         <option value="">All</option>
         {options.map((option) => (
-          <option key={option} value={option}>
-            {option}
+          <option key={option.value} value={option.value}>
+            {option.label}
           </option>
         ))}
       </select>

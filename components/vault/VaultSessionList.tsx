@@ -10,9 +10,12 @@ import {
   getVaultWeekOptions,
 } from "@/lib/domain/vaultLog";
 import {
+  formatPolePickerLabel,
   formatPoleShortLabel,
+  formatPoleTitle,
   getPoleById,
 } from "@/lib/domain/poleInventory";
+import PoleBrandAccent from "@/components/vault/poles/PoleBrandAccent";
 
 type VaultSessionListProps = {
   sessions: VaultSession[];
@@ -140,7 +143,7 @@ function JumpDetail({
   const reference = getRunReference(jump.run, stepRefs);
   const pole = getPoleById(poles, jump.poleId);
   const poleDisplay = pole
-    ? formatPoleShortLabel(pole)
+    ? formatPolePickerLabel(pole)
     : jump.poleLabel;
 
   return (
@@ -154,7 +157,10 @@ function JumpDetail({
         <span>{jump.grip}</span>
         <span>{jump.takeoff}</span>
         {poleDisplay && (
-          <span className="text-xs text-muted">{poleDisplay}</span>
+          <span className="flex items-center gap-1 text-xs text-muted">
+            {pole && <PoleBrandAccent brandId={pole.brandId} className="h-2 w-2" />}
+            {poleDisplay}
+          </span>
         )}
       </div>
 
@@ -169,9 +175,9 @@ function JumpDetail({
           </p>
           {pole ? (
             <>
-              <p className="mt-1 font-medium text-foreground">
-                {[pole.brand, pole.model].filter(Boolean).join(" ") ||
-                  formatPoleShortLabel(pole)}
+              <p className="mt-1 flex items-center gap-2 font-medium text-foreground">
+                <PoleBrandAccent brandId={pole.brandId} />
+                {formatPoleTitle(pole)}
               </p>
               <p className="text-muted">{formatPoleShortLabel(pole)}</p>
               {pole.flex && <p className="text-muted">Flex {pole.flex}</p>}

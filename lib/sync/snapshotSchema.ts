@@ -10,6 +10,7 @@ import type {
   WorkoutExecutionRecord,
 } from "@/lib/domain/types";
 import type { WeekScheduleSnapshot } from "@/lib/storage/programStore";
+import { migrateLegacyPoleRecord } from "@/lib/domain/poleInventory";
 import type { PlannerDay } from "@/lib/trainingProgram";
 import {
   EMPTY_RUN_PRS,
@@ -227,34 +228,11 @@ function normalizeWeekPlanner(
 }
 
 function normalizePole(value: unknown): Pole | null {
-  if (!isRecord(value) || !isString(value.id) || !isString(value.createdAt)) {
+  if (!isRecord(value)) {
     return null;
   }
 
-  if (
-    !isString(value.brand) ||
-    !isString(value.model) ||
-    !isString(value.length)
-  ) {
-    return null;
-  }
-
-  const weightRating = Number(value.weightRating);
-  if (!Number.isFinite(weightRating)) {
-    return null;
-  }
-
-  return {
-    id: value.id,
-    brand: value.brand,
-    model: value.model,
-    length: value.length,
-    weightRating,
-    flex: isString(value.flex) ? value.flex : undefined,
-    notes: isString(value.notes) ? value.notes : undefined,
-    retired: Boolean(value.retired) || undefined,
-    createdAt: value.createdAt,
-  };
+  return migrateLegacyPoleRecord(value);
 }
 
 function normalizePoleBag(value: unknown): PoleBag | null {

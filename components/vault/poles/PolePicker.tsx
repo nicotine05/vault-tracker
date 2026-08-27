@@ -3,9 +3,12 @@
 import type { Pole } from "@/lib/domain/types";
 import {
   formatPolePickerLabel,
+  formatPoleSearchText,
   formatPoleShortLabel,
+  formatPoleTitle,
   getPoleById,
 } from "@/lib/domain/poleInventory";
+import PoleBrandAccent from "@/components/vault/poles/PoleBrandAccent";
 import { fieldClassNameSm } from "@/lib/ui/componentStyles";
 import { useMemo, useState } from "react";
 
@@ -50,18 +53,9 @@ export default function PolePicker({
     }
 
     const normalized = query.trim().toLowerCase();
-    return activeFirst.filter((pole) => {
-      const haystack = [
-        pole.brand,
-        pole.model,
-        pole.length,
-        String(pole.weightRating),
-      ]
-        .join(" ")
-        .toLowerCase();
-
-      return haystack.includes(normalized);
-    });
+    return activeFirst.filter((pole) =>
+      formatPoleSearchText(pole).includes(normalized)
+    );
   }, [poles, query]);
 
   if (!expanded) {
@@ -76,7 +70,10 @@ export default function PolePicker({
         <span className="block text-xs font-medium uppercase tracking-wide text-muted">
           Pole Used (optional)
         </span>
-        <span className="mt-1 block font-medium text-foreground">
+        <span className="mt-1 flex items-center gap-2 font-medium text-foreground">
+          {selectedPole && (
+            <PoleBrandAccent brandId={selectedPole.brandId} />
+          )}
           {selectedPole
             ? formatPolePickerLabel(selectedPole)
             : "Tap to select a pole"}
@@ -115,12 +112,13 @@ export default function PolePicker({
                   key={pole.id}
                   type="button"
                   onClick={() => onSelect(pole.id)}
-                  className={`rounded-full border px-3 py-1.5 text-sm transition ${
+                  className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition ${
                     selected
                       ? "border-accent bg-accent text-white"
                       : "border-border bg-surface-muted text-foreground hover:bg-surface-accent"
                   }`}
                 >
+                  <PoleBrandAccent brandId={pole.brandId} />
                   {formatPoleShortLabel(pole)}
                 </button>
               );
@@ -159,8 +157,14 @@ export default function PolePicker({
                 selected ? "bg-surface-accent font-medium" : ""
               } ${pole.retired ? "opacity-60" : ""}`}
             >
-              <span className="text-foreground">
-                {formatPolePickerLabel(pole)}
+              <span className="flex items-center gap-2 text-foreground">
+                <PoleBrandAccent brandId={pole.brandId} />
+                <span>
+                  <span className="block">{formatPolePickerLabel(pole)}</span>
+                  <span className="text-xs text-muted">
+                    {formatPoleTitle(pole)}
+                  </span>
+                </span>
               </span>
               {pole.retired && (
                 <span className="text-[10px] uppercase text-muted">Retired</span>

@@ -1,7 +1,13 @@
 "use client";
 
 import type { PoleFormValues } from "@/lib/domain/poleInventory";
-import { isPoleFormValid } from "@/lib/domain/poleInventory";
+import {
+  getModelsForBrand,
+  isPoleFormValid,
+  withBrandSelection,
+} from "@/lib/domain/poleInventory";
+import { POLE_BRANDS } from "@/lib/poleCatalog";
+import PoleBrandAccent from "@/components/vault/poles/PoleBrandAccent";
 import {
   fieldClassName,
   primaryButtonClassName,
@@ -26,6 +32,7 @@ export default function PoleFormSheet({
   submitLabel = "Save Pole",
 }: PoleFormSheetProps) {
   const valid = isPoleFormValid(values);
+  const models = values.brandId ? getModelsForBrand(values.brandId) : [];
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
@@ -46,22 +53,54 @@ export default function PoleFormSheet({
         </div>
 
         <fieldset className="m-0 space-y-3 border-0 p-0">
-          <input
-            value={values.brand}
-            onChange={(event) =>
-              onChange({ ...values, brand: event.target.value })
-            }
-            placeholder="Brand (e.g. ESSX)"
-            className={fieldClassName}
-          />
-          <input
-            value={values.model}
-            onChange={(event) =>
-              onChange({ ...values, model: event.target.value })
-            }
-            placeholder="Model (e.g. Recoil)"
-            className={fieldClassName}
-          />
+          <label className="block">
+            <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">
+              Brand
+            </span>
+            <select
+              value={values.brandId}
+              onChange={(event) =>
+                onChange(withBrandSelection(values, event.target.value))
+              }
+              className={fieldClassName}
+            >
+              <option value="">Select brand</option>
+              {POLE_BRANDS.map((brand) => (
+                <option key={brand.id} value={brand.id}>
+                  {brand.name}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="block">
+            <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">
+              Model
+            </span>
+            <select
+              value={values.modelId}
+              disabled={!values.brandId}
+              onChange={(event) =>
+                onChange({ ...values, modelId: event.target.value })
+              }
+              className={fieldClassName}
+            >
+              <option value="">Select model</option>
+              {models.map((model) => (
+                <option key={model.id} value={model.id}>
+                  {model.name}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          {values.brandId && (
+            <div className="flex items-center gap-2 rounded-xl border border-border bg-surface-muted px-3 py-2 text-sm text-muted">
+              <PoleBrandAccent brandId={values.brandId} />
+              <span>Brand color preview</span>
+            </div>
+          )}
+
           <input
             value={values.length}
             onChange={(event) =>

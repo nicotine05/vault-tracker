@@ -1,5 +1,6 @@
 import { countPlannerSessions, isPlannerComplete } from "@/lib/domain/plannerHealth";
-import { STORAGE_KEYS } from "@/lib/storage/keys";
+import { migrateLegacyPoleRecord } from "@/lib/domain/poleInventory";
+import type { Pole } from "@/lib/domain/types";
 import type { PlannerDay } from "@/lib/trainingProgram";
 import {
   bootstrapSprintPREntry,
@@ -9,6 +10,7 @@ import {
   EMPTY_SPRINT_PRS,
   EMPTY_STRENGTH_PRS,
 } from "@/lib/storage/logStore";
+import { STORAGE_KEYS } from "@/lib/storage/keys";
 import {
   generateScheduleSnapshot,
   type WeekScheduleSnapshot,
@@ -162,10 +164,35 @@ function restoreMissingScheduleSnapshots(): void {
   writeJson(STORAGE_KEYS.MIGRATION_V2, true);
 }
 
+/** Migrate freeform brand/model poles to standardized catalog IDs. */
+function migratePoleCatalogIds(): void {
+  if (readJson<boolean>(STORAGE_KEYS.MIGRATION_V3, false)) {
+    return;
+  }
+
+  const rawPoles = readJson<unknown[]>(STORAGE_KEYS.POLE_INVENTORY, []);
+  const migrated: Pole[] = [];
+
+  for (const rawPole of rawPoles) {
+    if (typeof rawPole !== "object" || rawPole === null) {
+      continue;
+    }
+
+    const pole = migrateLegacyPoleRecord(rawPole as Record<string, unknown>);
+    if (pole) {
+      migrated.push(pole);
+    }
+  }
+
+  writeJson(STORAGE_KEYS.POLE_INVENTORY, migrated);
+  writeJson(STORAGE_KEYS.MIGRATION_V3, true);
+}
+
 const MIGRATIONS: Migration[] = [
   { id: "legacy-generated-schedules", run: migrateLegacyGeneratedSchedules },
   { id: "sprint-strength-pr-history", run: migrateSprintStrengthPRHistory },
   { id: "restore-missing-schedule-snapshots", run: restoreMissingScheduleSnapshots },
+  { id: "pole-catalog-ids", run: migratePoleCatalogIds },
 ];
 
 let migrationsRan = false;

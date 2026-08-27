@@ -15,7 +15,7 @@ import {
   emptyJumpForm,
   updateRunPR,
 } from "@/lib/domain/vaultLog";
-import { updateRecentPoleIds, formatPoleShortLabel, getPoleById } from "@/lib/domain/poleInventory";
+import { updateRecentPoleIds, formatPolePickerLabel, getPoleById } from "@/lib/domain/poleInventory";
 import {
   EMPTY_RUN_PRS,
   EMPTY_STEP_REFS,
@@ -89,7 +89,7 @@ export function useVaultLogState() {
       createJump({
         ...jumpForm,
         poleLabel: selectedPole
-          ? formatPoleShortLabel(selectedPole)
+          ? formatPolePickerLabel(selectedPole)
           : undefined,
       }),
     ]);
