@@ -34,7 +34,6 @@ type GeneratedScheduleCardProps = {
   currentWeek: number;
   generatedSchedule: GeneratedWeekSchedule;
   weekPlanner: Record<string, PlannerDay>;
-  plannerComplete: boolean;
   completedWorkouts: Record<string, boolean>;
   confirmingKey: string | null;
   onConfirmWorkout: (params: WorkoutToggleParams) => void;
@@ -51,7 +50,6 @@ export default function GeneratedScheduleCard({
   currentWeek,
   generatedSchedule,
   weekPlanner,
-  plannerComplete,
   completedWorkouts,
   confirmingKey,
   onConfirmWorkout,
@@ -212,6 +210,7 @@ export default function GeneratedScheduleCard({
       {showEditWeek && (
         <EditWeekPanel
           readOnly={readOnly}
+          planningWeek={planningWeek}
           weekPlanner={weekPlanner}
           onToggle={onTogglePlanner}
           onRegenerate={() => {
@@ -223,7 +222,6 @@ export default function GeneratedScheduleCard({
             onReset();
           }}
           onClose={() => setShowEditWeek(false)}
-          canRegenerate={plannerComplete}
         />
       )}
     </div>

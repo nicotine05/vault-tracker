@@ -177,7 +177,6 @@ function ProgramPageContent() {
           currentWeek={currentWeek}
           generatedSchedule={generatedSchedule}
           weekPlanner={weekPlanner}
-          plannerComplete={plannerComplete}
           completedWorkouts={completedWorkouts}
           confirmingKey={confirmingKey}
           onConfirmWorkout={completeWorkout}
