@@ -13,7 +13,6 @@ import PoleInventoryTabs, {
 } from "@/components/vault/poles/PoleInventoryTabs";
 import PoleInventoryView from "@/components/vault/poles/PoleInventoryView";
 import PoleProgressionGrid from "@/components/vault/poles/PoleProgressionGrid";
-import PoleProgressionSummary from "@/components/vault/poles/PoleProgressionSummary";
 import {
   EMPTY_POLE_FILTERS,
   emptyPoleForm,
@@ -183,8 +182,7 @@ export default function PoleInventoryPage() {
           )}
 
           {activeTab === "progression" && (
-            <div className="space-y-4">
-              <PoleProgressionSummary poleCount={poles.length} />
+            <>
               {gridHasEntries ? (
                 <PoleProgressionGrid
                   poles={poles}
@@ -198,7 +196,7 @@ export default function PoleInventoryPage() {
                   on the grid. Edit poles to use values like 14&apos;0 and 170.
                 </p>
               )}
-            </div>
+            </>
           )}
 
           {activeTab === "bags" && (

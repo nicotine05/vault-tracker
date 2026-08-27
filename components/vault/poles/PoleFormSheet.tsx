@@ -4,6 +4,7 @@ import type { PoleFormValues } from "@/lib/domain/poleInventory";
 import {
   getModelsForBrand,
   isPoleFormValid,
+  sanitizePoleFormDigits,
   withBrandSelection,
 } from "@/lib/domain/poleInventory";
 import { POLE_BRANDS } from "@/lib/poleCatalog";
@@ -22,10 +23,12 @@ type PoleFormSheetProps = {
 };
 
 const compactFieldClassName =
-  "w-full rounded-lg border border-border bg-surface-muted px-2.5 py-2 text-sm text-foreground";
+  "rounded-lg border border-border bg-surface-muted px-2.5 py-2 text-sm text-foreground";
 
 const compactLabelClassName =
   "mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-muted";
+
+const unitLabelClassName = "shrink-0 text-sm text-muted";
 
 export default function PoleFormSheet({
   title,
@@ -65,7 +68,7 @@ export default function PoleFormSheet({
                 onChange={(event) =>
                   onChange(withBrandSelection(values, event.target.value))
                 }
-                className={compactFieldClassName}
+                className={`${compactFieldClassName} w-full`}
               >
                 <option value="">Select</option>
                 {POLE_BRANDS.map((brand) => (
@@ -84,7 +87,7 @@ export default function PoleFormSheet({
                 onChange={(event) =>
                   onChange({ ...values, modelId: event.target.value })
                 }
-                className={compactFieldClassName}
+                className={`${compactFieldClassName} w-full`}
               >
                 <option value="">Select</option>
                 {models.map((model) => (
@@ -95,31 +98,71 @@ export default function PoleFormSheet({
               </select>
             </label>
 
-            <label className="block">
+            <div className="col-span-2 block">
               <span className={compactLabelClassName}>Length</span>
-              <input
-                value={values.length}
-                onChange={(event) =>
-                  onChange({ ...values, length: event.target.value })
-                }
-                placeholder="--ft -in"
-                inputMode="text"
-                className={compactFieldClassName}
-              />
-            </label>
+              <div className="flex items-center gap-2">
+                <input
+                  value={values.lengthFeet}
+                  onChange={(event) =>
+                    onChange({
+                      ...values,
+                      lengthFeet: sanitizePoleFormDigits(
+                        event.target.value,
+                        2
+                      ),
+                    })
+                  }
+                  inputMode="numeric"
+                  maxLength={2}
+                  placeholder="--"
+                  aria-label="Length feet"
+                  className={`${compactFieldClassName} w-14 text-center tabular-nums`}
+                />
+                <span className={unitLabelClassName}>ft</span>
+                <input
+                  value={values.lengthInches}
+                  onChange={(event) =>
+                    onChange({
+                      ...values,
+                      lengthInches: sanitizePoleFormDigits(
+                        event.target.value,
+                        1
+                      ),
+                    })
+                  }
+                  inputMode="numeric"
+                  maxLength={1}
+                  placeholder="-"
+                  aria-label="Length inches"
+                  className={`${compactFieldClassName} w-10 text-center tabular-nums`}
+                />
+                <span className={unitLabelClassName}>in</span>
+              </div>
+            </div>
 
-            <label className="block">
+            <div className="col-span-2 block">
               <span className={compactLabelClassName}>Weight</span>
-              <input
-                value={values.weightRating}
-                onChange={(event) =>
-                  onChange({ ...values, weightRating: event.target.value })
-                }
-                placeholder="---lbs"
-                inputMode="numeric"
-                className={compactFieldClassName}
-              />
-            </label>
+              <div className="flex items-center gap-2">
+                <input
+                  value={values.weightRating}
+                  onChange={(event) =>
+                    onChange({
+                      ...values,
+                      weightRating: sanitizePoleFormDigits(
+                        event.target.value,
+                        3
+                      ),
+                    })
+                  }
+                  inputMode="numeric"
+                  maxLength={3}
+                  placeholder="---"
+                  aria-label="Weight rating"
+                  className={`${compactFieldClassName} w-16 text-center tabular-nums`}
+                />
+                <span className={unitLabelClassName}>lbs</span>
+              </div>
+            </div>
 
             <label className="col-span-2 block">
               <span className={compactLabelClassName}>Flex (optional)</span>
@@ -129,7 +172,7 @@ export default function PoleFormSheet({
                   onChange({ ...values, flex: event.target.value })
                 }
                 placeholder="18.0"
-                className={compactFieldClassName}
+                className={`${compactFieldClassName} w-full`}
               />
             </label>
           </div>

@@ -21,7 +21,8 @@ export const MAX_RECENT_POLES = 5;
 export type PoleFormValues = {
   brandId: string;
   modelId: string;
-  length: string;
+  lengthFeet: string;
+  lengthInches: string;
   weightRating: string;
   flex: string;
   notes: string;
@@ -45,10 +46,55 @@ export function emptyPoleForm(): PoleFormValues {
   return {
     brandId: "",
     modelId: "",
-    length: "",
+    lengthFeet: "",
+    lengthInches: "",
     weightRating: "",
     flex: "",
     notes: "",
+  };
+}
+
+export function sanitizePoleFormDigits(value: string, maxLength: number): string {
+  return value.replace(/\D/g, "").slice(0, maxLength);
+}
+
+export function parsePoleLengthFormValues(
+  values: Pick<PoleFormValues, "lengthFeet" | "lengthInches">
+): string | null {
+  const feet = values.lengthFeet.trim();
+  const inches = values.lengthInches.trim();
+
+  if (!/^\d{1,2}$/.test(feet) || !/^\d$/.test(inches)) {
+    return null;
+  }
+
+  return parsePoleLengthInput(`${feet}'${inches}`);
+}
+
+export function parsePoleWeightFormValue(weightRating: string): number | null {
+  const digits = weightRating.trim();
+
+  if (!/^\d{1,3}$/.test(digits)) {
+    return null;
+  }
+
+  return parsePoleWeightInput(digits);
+}
+
+export function splitPoleLengthForForm(length: string): {
+  lengthFeet: string;
+  lengthInches: string;
+} {
+  const normalized = normalizeProgressionLength(length);
+  const match = normalized.match(/^(\d+)'(\d+)$/);
+
+  if (!match) {
+    return { lengthFeet: "", lengthInches: "" };
+  }
+
+  return {
+    lengthFeet: match[1],
+    lengthInches: match[2],
   };
 }
 
@@ -68,7 +114,7 @@ export function parsePoleLengthInput(length: string): string | null {
 
 export function parsePoleWeightInput(weightRating: string): number | null {
   const compact = weightRating.trim().toLowerCase().replace(/\s+/g, "");
-  const match = compact.match(/^(\d+(?:\.\d+)?)(?:lbs?)?$/);
+  const match = compact.match(/^(\d{1,3})(?:lbs?)?$/);
 
   if (!match) {
     return null;
@@ -97,12 +143,12 @@ export function formatPoleWeightInput(weightRating: number): string {
   return `${weightRating}lbs`;
 }
 
-function normalizePoleLength(length: string): string {
-  return parsePoleLengthInput(length) ?? normalizeProgressionLength(length);
+function normalizePoleLengthFromForm(values: PoleFormValues): string {
+  return parsePoleLengthFormValues(values) ?? "";
 }
 
-function normalizePoleWeight(weightRating: string): number {
-  const parsed = parsePoleWeightInput(weightRating);
+function normalizePoleWeightFromForm(weightRating: string): number {
+  const parsed = parsePoleWeightFormValue(weightRating);
   if (parsed !== null) {
     return parsed;
   }
@@ -116,8 +162,8 @@ export function createPole(values: PoleFormValues): Pole {
     id: crypto.randomUUID(),
     brandId: values.brandId,
     modelId: values.modelId,
-    length: normalizePoleLength(values.length),
-    weightRating: normalizePoleWeight(values.weightRating),
+    length: normalizePoleLengthFromForm(values),
+    weightRating: normalizePoleWeightFromForm(values.weightRating),
     flex: values.flex.trim() || undefined,
     notes: values.notes.trim() || undefined,
     createdAt: new Date().toISOString(),
@@ -133,11 +179,14 @@ export function createPoleBag(name: string): PoleBag {
 }
 
 export function poleToFormValues(pole: Pole): PoleFormValues {
+  const { lengthFeet, lengthInches } = splitPoleLengthForForm(pole.length);
+
   return {
     brandId: pole.brandId,
     modelId: pole.modelId,
-    length: formatPoleLengthInput(pole.length),
-    weightRating: formatPoleWeightInput(pole.weightRating),
+    lengthFeet,
+    lengthInches,
+    weightRating: String(pole.weightRating),
     flex: pole.flex ?? "",
     notes: pole.notes ?? "",
   };
@@ -148,8 +197,8 @@ export function applyPoleFormValues(pole: Pole, values: PoleFormValues): Pole {
     ...pole,
     brandId: values.brandId,
     modelId: values.modelId,
-    length: normalizePoleLength(values.length),
-    weightRating: normalizePoleWeight(values.weightRating),
+    length: normalizePoleLengthFromForm(values),
+    weightRating: normalizePoleWeightFromForm(values.weightRating),
     flex: values.flex.trim() || undefined,
     notes: values.notes.trim() || undefined,
   };
@@ -337,8 +386,8 @@ export function isPoleFormValid(values: PoleFormValues): boolean {
     values.brandId !== "" &&
     values.modelId !== "" &&
     isValidBrandModelPair(values.brandId, values.modelId) &&
-    parsePoleLengthInput(values.length) !== null &&
-    parsePoleWeightInput(values.weightRating) !== null
+    parsePoleLengthFormValues(values) !== null &&
+    parsePoleWeightFormValue(values.weightRating) !== null
   );
 }
 
