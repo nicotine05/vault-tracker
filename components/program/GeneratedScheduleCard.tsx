@@ -5,7 +5,6 @@ import { useSearchParams } from "next/navigation";
 import EditWeekPanel from "@/components/program/EditWeekPanel";
 import ScheduleDaySection from "@/components/program/ScheduleDaySection";
 import ScheduleWeekOverview from "@/components/program/ScheduleWeekOverview";
-import TodayWorkoutHero from "@/components/program/TodayWorkoutHero";
 import type { WorkoutToggleParams } from "@/lib/hooks/useProgramState";
 import { getTodayPlannerDayName } from "@/lib/domain/todayTraining";
 import {
@@ -25,6 +24,7 @@ import {
   segmentedIdleClassName,
   segmentedSelectedClassName,
   navButtonClassName,
+  todayBadgeClassName,
 } from "@/lib/ui/componentStyles";
 
 type GeneratedScheduleCardProps = {
@@ -65,12 +65,9 @@ export default function GeneratedScheduleCard({
   );
   const [showEditWeek, setShowEditWeek] = useState(false);
 
-  const isCurrentWeek = planningWeek === currentWeek;
-  const todayName = isCurrentWeek ? getTodayPlannerDayName() : null;
-  const todayPlan =
-    todayName && generatedSchedule[todayName]
-      ? generatedSchedule[todayName]
-      : getEmptyDailyPlan();
+  const todayName =
+    planningWeek === currentWeek ? getTodayPlannerDayName() : null;
+  const isViewingToday = Boolean(todayName && selectedDay === todayName);
 
   useEffect(() => {
     const view = searchParams.get("view");
@@ -99,22 +96,8 @@ export default function GeneratedScheduleCard({
     onSetConfirmingKey(null);
   }
 
-  function openTodayTraining() {
-    if (todayName) {
-      openDailyView(todayName);
-    }
-  }
-
   return (
     <div className="mt-4 space-y-4">
-      {isCurrentWeek && todayName && (
-        <TodayWorkoutHero
-          todayName={todayName}
-          dailyPlan={todayPlan}
-          onOpenTraining={openTodayTraining}
-        />
-      )}
-
       <div className="flex items-center justify-between gap-2">
         <div className="grid flex-1 grid-cols-2 gap-2">
           {(["day", "week"] as const).map((mode) => {
@@ -166,7 +149,12 @@ export default function GeneratedScheduleCard({
           </button>
 
           <div className="text-center">
-            <p className="font-semibold text-foreground">{selectedDay}</p>
+            <div className="flex items-center justify-center gap-2">
+              <p className="font-semibold text-foreground">{selectedDay}</p>
+              {isViewingToday && (
+                <span className={todayBadgeClassName}>Today</span>
+              )}
+            </div>
             <p className="text-xs text-muted">
               {selectedDailyPlan.sessions.length} workout
               {selectedDailyPlan.sessions.length === 1 ? "" : "s"}
