@@ -80,12 +80,24 @@ export type VaultStepReferences = {
   sevenL: string;
 };
 
+export type PoleKind = "owned" | "wishlist";
+
 export type Pole = {
   id: string;
+  /** Defaults to owned when omitted. */
+  kind?: PoleKind;
   brandId: string;
   modelId: string;
+  /** Wishlist: optional multi-brand selection. */
+  brandIds?: string[];
+  /** Wishlist: optional multi-model selection. */
+  modelIds?: string[];
   length: string;
+  /** Wishlist: upper length bound (e.g. 14'0 for 13'6–14'0). */
+  lengthMax?: string;
   weightRating: number;
+  /** Wishlist: upper weight bound (e.g. 175 for 170–175). */
+  weightMax?: number;
   flex?: string;
   notes?: string;
   /** @deprecated Removed in V3. Migrated away on load. */

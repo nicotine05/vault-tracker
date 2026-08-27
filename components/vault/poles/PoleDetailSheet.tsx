@@ -2,15 +2,19 @@
 
 import type { Pole } from "@/lib/domain/types";
 import {
-  formatPoleLengthDisplay,
+  formatPoleLengthRangeDisplay,
   formatPoleTitle,
-  formatPoleWeightDisplay,
+  formatPoleWeightRangeDisplay,
+  formatWishlistBrandLabel,
+  formatWishlistModelLabel,
+  isWishlistPole,
 } from "@/lib/domain/poleInventory";
 import { getBrandName, getModelName } from "@/lib/poleCatalog";
 import PoleBrandAccent from "@/components/vault/poles/PoleBrandAccent";
 import {
   destructiveOutlineButtonClassName,
   primaryButtonClassName,
+  todayBadgeClassName,
 } from "@/lib/ui/componentStyles";
 
 type PoleDetailSheetProps = {
@@ -28,6 +32,8 @@ export default function PoleDetailSheet({
   onDelete,
   onClose,
 }: PoleDetailSheetProps) {
+  const wishlist = isWishlistPole(pole);
+
   return (
     <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/40 p-4 sm:items-center">
       <div
@@ -37,15 +43,18 @@ export default function PoleDetailSheet({
       >
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
-            <div className="flex items-center gap-2">
-              <PoleBrandAccent brandId={pole.brandId} className="h-3 w-3" />
+            <div className="flex flex-wrap items-center gap-2">
+              {pole.brandId && <PoleBrandAccent brandId={pole.brandId} className="h-3 w-3" />}
               <p className="text-xl font-bold text-foreground">
                 {formatPoleTitle(pole)}
               </p>
+              {wishlist && (
+                <span className={`${todayBadgeClassName} normal-case`}>Wishlist</span>
+              )}
             </div>
             <p className="mt-1 text-sm text-muted">
-              {formatPoleLengthDisplay(pole.length)} ·{" "}
-              {formatPoleWeightDisplay(pole.weightRating)}
+              {formatPoleLengthRangeDisplay(pole)} ·{" "}
+              {formatPoleWeightRangeDisplay(pole)}
             </p>
           </div>
           <button
@@ -58,10 +67,19 @@ export default function PoleDetailSheet({
         </div>
 
         <dl className="space-y-3 text-sm">
-          <DetailRow label="Brand" value={getBrandName(pole.brandId)} />
-          <DetailRow label="Model" value={getModelName(pole.modelId)} />
-          <DetailRow label="Length" value={formatPoleLengthDisplay(pole.length)} />
-          <DetailRow label="Weight" value={formatPoleWeightDisplay(pole.weightRating)} />
+          {wishlist ? (
+            <>
+              <DetailRow label="Brands" value={formatWishlistBrandLabel(pole)} />
+              <DetailRow label="Models" value={formatWishlistModelLabel(pole)} />
+            </>
+          ) : (
+            <>
+              <DetailRow label="Brand" value={getBrandName(pole.brandId)} />
+              <DetailRow label="Model" value={getModelName(pole.modelId)} />
+            </>
+          )}
+          <DetailRow label="Length" value={formatPoleLengthRangeDisplay(pole)} />
+          <DetailRow label="Weight" value={formatPoleWeightRangeDisplay(pole)} />
           <DetailRow label="Flex" value={pole.flex || "—"} />
           {pole.notes && (
             <div>
@@ -78,14 +96,14 @@ export default function PoleDetailSheet({
               onClick={onEdit}
               className={primaryButtonClassName}
             >
-              Edit Pole
+              {wishlist ? "Edit Wishlist Item" : "Edit Pole"}
             </button>
             <button
               type="button"
               onClick={onDelete}
               className={`${destructiveOutlineButtonClassName} w-full py-2.5 text-sm`}
             >
-              Delete Pole
+              {wishlist ? "Remove from Wishlist" : "Delete Pole"}
             </button>
           </div>
         )}
@@ -98,7 +116,7 @@ function DetailRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between gap-4 border-b border-border/60 pb-2">
       <dt className="text-muted">{label}</dt>
-      <dd className="font-medium text-foreground">{value}</dd>
+      <dd className="text-right font-medium text-foreground">{value}</dd>
     </div>
   );
 }

@@ -227,7 +227,7 @@ function migratePoleCarbonFiberFields(): void {
     }
 
     const record = rawPole as Record<string, unknown>;
-    if (record.status === "wishlist") {
+    if (record.status === "wishlist" && record.kind !== "wishlist") {
       continue;
     }
 
@@ -241,6 +241,33 @@ function migratePoleCarbonFiberFields(): void {
   writeJson(STORAGE_KEYS.MIGRATION_V5, true);
 }
 
+/** Ensure owned poles have explicit kind and preserve wishlist entries. */
+function migratePoleWishlistSupport(): void {
+  if (readJson<boolean>(STORAGE_KEYS.MIGRATION_V6, false)) {
+    return;
+  }
+
+  const rawPoles = readJson<unknown[]>(STORAGE_KEYS.POLE_INVENTORY, []);
+  const migrated: Pole[] = [];
+
+  for (const rawPole of rawPoles) {
+    if (typeof rawPole !== "object" || rawPole === null) {
+      continue;
+    }
+
+    const pole = migrateLegacyPoleRecord(rawPole as Record<string, unknown>);
+    if (pole) {
+      migrated.push({
+        ...pole,
+        kind: pole.kind ?? "owned",
+      });
+    }
+  }
+
+  writeJson(STORAGE_KEYS.POLE_INVENTORY, migrated);
+  writeJson(STORAGE_KEYS.MIGRATION_V6, true);
+}
+
 const MIGRATIONS: Migration[] = [
   { id: "legacy-generated-schedules", run: migrateLegacyGeneratedSchedules },
   { id: "sprint-strength-pr-history", run: migrateSprintStrengthPRHistory },
@@ -248,6 +275,7 @@ const MIGRATIONS: Migration[] = [
   { id: "pole-catalog-ids", run: migratePoleCatalogIds },
   { id: "pole-status-fields", run: migratePoleStatusFields },
   { id: "pole-carbon-fiber-fields", run: migratePoleCarbonFiberFields },
+  { id: "pole-wishlist-support", run: migratePoleWishlistSupport },
 ];
 
 let migrationsRan = false;

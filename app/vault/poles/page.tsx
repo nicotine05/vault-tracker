@@ -13,12 +13,20 @@ import PoleInventoryTabs, {
 } from "@/components/vault/poles/PoleInventoryTabs";
 import PoleInventoryView from "@/components/vault/poles/PoleInventoryView";
 import PoleProgressionGrid from "@/components/vault/poles/PoleProgressionGrid";
+import PoleSourceToggle from "@/components/vault/poles/PoleSourceToggle";
 import {
   EMPTY_POLE_FILTERS,
   emptyPoleForm,
+  getOwnedPoles,
+  isWishlistPole,
   poleToFormValues,
+  type PoleSourceFilter,
 } from "@/lib/domain/poleInventory";
-import { buildProgressionGrid } from "@/lib/domain/poleProgression";
+import {
+  buildProgressionGrid,
+  gridHasVisibleEntries,
+  type ProgressionCellContents,
+} from "@/lib/domain/poleProgression";
 import type { Pole } from "@/lib/domain/types";
 import { usePoleInventoryState } from "@/lib/hooks/usePoleInventoryState";
 import { fieldClassNameSm } from "@/lib/ui/componentStyles";
@@ -27,7 +35,12 @@ type SheetMode =
   | { type: "add" }
   | { type: "edit"; poleId: string }
   | { type: "detail"; pole: Pole }
-  | { type: "cell"; poles: Pole[] };
+  | {
+      type: "cell";
+      contents: ProgressionCellContents;
+      length: string;
+      weight: number;
+    };
 
 export default function PoleInventoryPage() {
   const { isCoachReadOnly } = useAuth();
@@ -44,15 +57,25 @@ export default function PoleInventoryPage() {
   } = usePoleInventoryState();
 
   const [activeTab, setActiveTab] = useState<PoleInventoryTab>("inventory");
+  const [sourceFilter, setSourceFilter] = useState<PoleSourceFilter>("both");
   const [filters, setFilters] = useState(EMPTY_POLE_FILTERS);
   const [searchOpen, setSearchOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [sheetMode, setSheetMode] = useState<SheetMode | null>(null);
   const [formValues, setFormValues] = useState(emptyPoleForm());
 
+  const ownedPoles = useMemo(() => getOwnedPoles(poles), [poles]);
+
+  const progressionGrid = useMemo(() => buildProgressionGrid(poles), [poles]);
   const gridHasEntries = useMemo(
-    () => buildProgressionGrid(poles).size > 0,
-    [poles]
+    () =>
+      gridHasVisibleEntries(progressionGrid, {
+        includeOwned:
+          sourceFilter === "inventory" || sourceFilter === "both",
+        includeWishlist:
+          sourceFilter === "wishlist" || sourceFilter === "both",
+      }),
+    [progressionGrid, sourceFilter]
   );
 
   function toggleSearch() {
@@ -68,7 +91,13 @@ export default function PoleInventoryPage() {
   }
 
   function openAddPole() {
-    setFormValues(emptyPoleForm());
+    setFormValues(
+      emptyPoleForm(
+        activeTab === "progression" && sourceFilter === "wishlist"
+          ? "wishlist"
+          : "owned"
+      )
+    );
     setSheetMode({ type: "add" });
   }
 
@@ -91,9 +120,13 @@ export default function PoleInventoryPage() {
   }
 
   function handleDeletePole(pole: Pole) {
+    const label = isWishlistPole(pole)
+      ? "this wishlist item"
+      : `${pole.length} ${pole.weightRating}`;
+
     if (
       !confirm(
-        `Delete ${pole.length} ${pole.weightRating}? Historical logs will keep this pole reference.`
+        `Delete ${label}? Historical logs will keep this pole reference.`
       )
     ) {
       return;
@@ -102,6 +135,9 @@ export default function PoleInventoryPage() {
     deletePole(pole.id);
     setSheetMode(null);
   }
+
+  const showSourceToggle = activeTab === "progression";
+  const hasAnyPoles = poles.length > 0;
 
   return (
     <main className="mx-auto max-w-md p-4 pb-20">
@@ -115,7 +151,7 @@ export default function PoleInventoryPage() {
       <div className="mt-4 flex items-center justify-between gap-3">
         <h1 className="text-2xl font-bold text-foreground">My Poles</h1>
         <div className="flex items-center gap-2">
-          {poles.length > 0 && activeTab === "inventory" && (
+          {hasAnyPoles && activeTab === "inventory" && (
             <button
               type="button"
               onClick={toggleSearch}
@@ -147,7 +183,13 @@ export default function PoleInventoryPage() {
         <PoleInventoryTabs activeTab={activeTab} onChange={setActiveTab} />
       </div>
 
-      {searchOpen && activeTab === "inventory" && poles.length > 0 && (
+      {showSourceToggle && hasAnyPoles && (
+        <div className="mt-3">
+          <PoleSourceToggle value={sourceFilter} onChange={setSourceFilter} />
+        </div>
+      )}
+
+      {searchOpen && activeTab === "inventory" && hasAnyPoles && (
         <label className="mt-3 block">
           <span className="sr-only">Search poles</span>
           <input
@@ -162,7 +204,7 @@ export default function PoleInventoryPage() {
         </label>
       )}
 
-      {poles.length === 0 ? (
+      {!hasAnyPoles ? (
         <div className="mt-6">
           <PoleEmptyState
             onAddFirstPole={openAddPole}
@@ -186,22 +228,25 @@ export default function PoleInventoryPage() {
               {gridHasEntries ? (
                 <PoleProgressionGrid
                   poles={poles}
-                  onSelectCell={(cellPoles) =>
-                    setSheetMode({ type: "cell", poles: cellPoles })
+                  sourceFilter={sourceFilter}
+                  onSelectCell={(contents, length, weight) =>
+                    setSheetMode({ type: "cell", contents, length, weight })
                   }
                 />
               ) : (
-                <p className="text-sm text-muted">
-                  Poles need standard progression lengths and weights to appear
-                  on the grid. Edit poles to use values like 14&apos;0 and 170.
-                </p>
+                <FilteredEmptyState
+                  sourceFilter={sourceFilter}
+                  onAdd={openAddPole}
+                  readOnly={isCoachReadOnly}
+                  progression
+                />
               )}
             </>
           )}
 
           {activeTab === "bags" && (
             <PoleBagSection
-              poles={poles}
+              poles={ownedPoles}
               bags={bags}
               readOnly={isCoachReadOnly}
               onAddBag={addBag}
@@ -215,9 +260,9 @@ export default function PoleInventoryPage() {
 
       {sheetMode?.type === "cell" && (
         <PoleCellDetailSheet
-          poles={sheetMode.poles}
-          length={sheetMode.poles[0]?.length ?? ""}
-          weight={sheetMode.poles[0]?.weightRating ?? 0}
+          contents={sheetMode.contents}
+          length={sheetMode.length}
+          weight={sheetMode.weight}
           onViewPole={(pole) => setSheetMode({ type: "detail", pole })}
           onClose={() => setSheetMode(null)}
         />
@@ -235,15 +280,69 @@ export default function PoleInventoryPage() {
 
       {(sheetMode?.type === "add" || sheetMode?.type === "edit") && (
         <PoleFormSheet
-          title={sheetMode.type === "add" ? "Add Pole" : "Edit Pole"}
+          title={
+            sheetMode.type === "add"
+              ? formValues.kind === "wishlist"
+                ? "Add to Wishlist"
+                : "Add Pole"
+              : formValues.kind === "wishlist"
+                ? "Edit Wishlist Item"
+                : "Edit Pole"
+          }
           values={formValues}
           onChange={setFormValues}
           onSubmit={handleSubmitPole}
           onClose={() => setSheetMode(null)}
-          submitLabel={sheetMode.type === "add" ? "Add Pole" : "Save Changes"}
+          submitLabel={
+            sheetMode.type === "add"
+              ? formValues.kind === "wishlist"
+                ? "Add to Wishlist"
+                : "Add Pole"
+              : "Save Changes"
+          }
         />
       )}
     </main>
+  );
+}
+
+function FilteredEmptyState({
+  sourceFilter,
+  onAdd,
+  readOnly,
+  progression = false,
+}: {
+  sourceFilter: PoleSourceFilter;
+  onAdd: () => void;
+  readOnly: boolean;
+  progression?: boolean;
+}) {
+  const message =
+    sourceFilter === "wishlist"
+      ? progression
+        ? "Add wishlist items with length or weight ranges to see them on the progression grid."
+        : "No wishlist items yet. Add poles you're considering buying."
+      : sourceFilter === "inventory"
+        ? progression
+          ? "Owned poles need standard progression lengths and weights (e.g. 14'0 and 170) to appear on the grid."
+          : "No owned poles in inventory."
+        : progression
+          ? "Add owned poles or wishlist items to populate the progression grid."
+          : "Nothing to show with the current filter.";
+
+  return (
+    <div className="rounded-2xl border border-dashed border-border-accent bg-surface-muted/60 px-6 py-8 text-center">
+      <p className="text-sm text-muted">{message}</p>
+      {!readOnly && sourceFilter !== "inventory" && (
+        <button
+          type="button"
+          onClick={onAdd}
+          className="mt-4 text-sm font-semibold text-accent-text transition hover:opacity-80"
+        >
+          Add to wishlist
+        </button>
+      )}
+    </div>
   );
 }
 

@@ -6,6 +6,7 @@ import {
   formatPoleSearchText,
   formatPoleShortLabel,
   formatPoleTitle,
+  getOwnedPoles,
   getPoleById,
   sortPolesForDisplay,
 } from "@/lib/domain/poleInventory";
@@ -31,17 +32,18 @@ export default function PolePicker({
   const [expanded, setExpanded] = useState(false);
   const [query, setQuery] = useState("");
 
-  const selectedPole = getPoleById(poles, selectedPoleId);
   const recentPoles = useMemo(
     () =>
       recentPoleIds
-        .map((poleId) => getPoleById(poles, poleId))
+        .map((poleId) => getPoleById(getOwnedPoles(poles), poleId))
         .filter((pole): pole is Pole => pole !== null),
     [recentPoleIds, poles]
   );
 
+  const selectedPole = getPoleById(getOwnedPoles(poles), selectedPoleId);
+
   const filteredPoles = useMemo(() => {
-    const sorted = sortPolesForDisplay(poles);
+    const sorted = sortPolesForDisplay(getOwnedPoles(poles));
 
     if (!query.trim()) {
       return sorted;

@@ -20,7 +20,7 @@ export default function PoleInventoryView({
 
   return (
     <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
-      <div className="grid grid-cols-[minmax(0,1fr)_3rem_3.5rem_2.5rem] gap-2 border-b border-border/60 bg-surface-muted px-3 py-2 pl-4 text-[10px] font-semibold uppercase tracking-wide text-muted">
+      <div className="grid grid-cols-[minmax(0,1fr)_4rem_4rem_2.5rem] gap-2 border-b border-border/60 bg-surface-muted px-3 py-2 pl-4 text-[10px] font-semibold uppercase tracking-wide text-muted">
         <span>Pole</span>
         <span className="text-center">Len</span>
         <span className="text-center">Wt</span>
