@@ -4,12 +4,9 @@ import {
   snapWeightToProgression,
 } from "@/lib/domain/poleProgression";
 import {
-  getBrandModelName,
   getBrandName,
-  getDefaultModelIdForBrand,
+  getModelIdForCarbonChoice,
   getModelName,
-  getModelsForBrand,
-  isValidBrandModelPair,
   resolveBrandId,
   resolveModelId,
 } from "@/lib/poleCatalog";
@@ -20,11 +17,9 @@ export const MAX_RECENT_POLES = 5;
 
 export type PoleFormValues = {
   brandId: string;
-  modelId: string;
   length: string;
   weightRating: string;
   flex: string;
-  serialNumber: string;
   carbonFiber: boolean;
   notes: string;
 };
@@ -46,23 +41,71 @@ export const EMPTY_POLE_FILTERS: PoleFilters = {
 export function emptyPoleForm(): PoleFormValues {
   return {
     brandId: "",
-    modelId: "",
     length: "",
     weightRating: "",
     flex: "",
-    serialNumber: "",
     carbonFiber: false,
     notes: "",
   };
 }
 
+export function parsePoleLengthInput(length: string): string | null {
+  const trimmed = length.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  const normalized = normalizeProgressionLength(trimmed);
+  if (!/^\d+'\d+$/.test(normalized)) {
+    return null;
+  }
+
+  return normalized;
+}
+
+export function parsePoleWeightInput(weightRating: string): number | null {
+  const compact = weightRating.trim().toLowerCase().replace(/\s+/g, "");
+  const match = compact.match(/^(\d+(?:\.\d+)?)(?:lbs?)?$/);
+
+  if (!match) {
+    return null;
+  }
+
+  const parsed = Number(match[1]);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return null;
+  }
+
+  return Math.round(parsed);
+}
+
+export function formatPoleLengthInput(length: string): string {
+  const normalized = normalizeProgressionLength(length);
+  const match = normalized.match(/^(\d+)'(\d+)$/);
+
+  if (match) {
+    return `${match[1]}ft ${match[2]}in`;
+  }
+
+  return length;
+}
+
+export function formatPoleWeightInput(weightRating: number): string {
+  return `${weightRating}lbs`;
+}
+
 function normalizePoleLength(length: string): string {
-  return normalizeProgressionLength(length);
+  return parsePoleLengthInput(length) ?? normalizeProgressionLength(length);
 }
 
 function normalizePoleWeight(weightRating: string): number {
-  const parsed = Number(weightRating);
-  return snapWeightToProgression(parsed) ?? parsed;
+  const parsed = parsePoleWeightInput(weightRating);
+  if (parsed !== null) {
+    return parsed;
+  }
+
+  const fallback = Number(weightRating);
+  return snapWeightToProgression(fallback) ?? fallback;
 }
 
 function inferCarbonFiber(modelId: string, explicit?: boolean): boolean {
@@ -73,15 +116,31 @@ function inferCarbonFiber(modelId: string, explicit?: boolean): boolean {
   return modelId.toLowerCase().includes("carbon");
 }
 
+function resolveStoredModelId(
+  brandId: string,
+  carbonFiber: boolean,
+  existingModelId?: string
+): string {
+  if (existingModelId) {
+    const inferredCarbon = existingModelId.toLowerCase().includes("carbon");
+    if (inferredCarbon === carbonFiber) {
+      return existingModelId;
+    }
+  }
+
+  return getModelIdForCarbonChoice(brandId, carbonFiber);
+}
+
 export function createPole(values: PoleFormValues): Pole {
+  const modelId = getModelIdForCarbonChoice(values.brandId, values.carbonFiber);
+
   return {
     id: crypto.randomUUID(),
     brandId: values.brandId,
-    modelId: values.modelId,
+    modelId,
     length: normalizePoleLength(values.length),
     weightRating: normalizePoleWeight(values.weightRating),
     flex: values.flex.trim() || undefined,
-    serialNumber: values.serialNumber.trim() || undefined,
     carbonFiber: values.carbonFiber,
     notes: values.notes.trim() || undefined,
     createdAt: new Date().toISOString(),
@@ -99,11 +158,9 @@ export function createPoleBag(name: string): PoleBag {
 export function poleToFormValues(pole: Pole): PoleFormValues {
   return {
     brandId: pole.brandId,
-    modelId: pole.modelId,
-    length: normalizeProgressionLength(pole.length),
-    weightRating: String(pole.weightRating),
+    length: formatPoleLengthInput(pole.length),
+    weightRating: formatPoleWeightInput(pole.weightRating),
     flex: pole.flex ?? "",
-    serialNumber: pole.serialNumber ?? "",
     carbonFiber: Boolean(pole.carbonFiber),
     notes: pole.notes ?? "",
   };
@@ -113,11 +170,14 @@ export function applyPoleFormValues(pole: Pole, values: PoleFormValues): Pole {
   return {
     ...pole,
     brandId: values.brandId,
-    modelId: values.modelId,
+    modelId: resolveStoredModelId(
+      values.brandId,
+      values.carbonFiber,
+      pole.modelId
+    ),
     length: normalizePoleLength(values.length),
     weightRating: normalizePoleWeight(values.weightRating),
     flex: values.flex.trim() || undefined,
-    serialNumber: values.serialNumber.trim() || undefined,
     carbonFiber: values.carbonFiber,
     notes: values.notes.trim() || undefined,
   };
@@ -128,18 +188,22 @@ export function formatPoleShortLabel(pole: Pole): string {
 }
 
 export function formatPoleTitle(pole: Pole): string {
-  return getBrandModelName(pole.brandId, pole.modelId);
+  return formatPoleBrandLabel(pole);
 }
 
 export function formatPoleBrandLabel(pole: Pole): string {
   const brand = getBrandName(pole.brandId);
-  const model = getModelName(pole.modelId);
+  const material = pole.carbonFiber ? "Carbon" : "Composite";
 
-  if (model.toLowerCase().includes(brand.toLowerCase())) {
-    return model;
+  if (brand.toLowerCase().includes("pacer")) {
+    return `Pacer ${material}`;
   }
 
-  return `${brand} ${model}`.trim();
+  if (pole.carbonFiber) {
+    return `${brand} Carbon`;
+  }
+
+  return brand;
 }
 
 export function formatPolePickerLabel(pole: Pole): string {
@@ -147,23 +211,22 @@ export function formatPolePickerLabel(pole: Pole): string {
 }
 
 export function formatPoleLengthDisplay(length: string): string {
-  return normalizeProgressionLength(length);
+  return formatPoleLengthInput(length);
 }
 
 export function formatPoleWeightDisplay(weightRating: number): string {
-  return `${weightRating}lbs`;
+  return formatPoleWeightInput(weightRating);
 }
 
 export function formatPoleSearchText(pole: Pole): string {
   return [
     getBrandName(pole.brandId),
     getModelName(pole.modelId),
-    pole.serialNumber ?? "",
     pole.length,
     String(pole.weightRating),
     pole.flex ?? "",
     pole.notes ?? "",
-    pole.carbonFiber ? "carbon fiber" : "",
+    pole.carbonFiber ? "carbon fiber" : "composite",
   ]
     .join(" ")
     .toLowerCase();
@@ -184,8 +247,11 @@ export function migrateLegacyPoleRecord(
   let brandId = isString(value.brandId) ? value.brandId : "";
   let modelId = isString(value.modelId) ? value.modelId : "";
 
-  if (!brandId || !modelId || !isValidBrandModelPair(brandId, modelId)) {
+  if (!brandId) {
     brandId = resolveBrandId(isString(value.brand) ? value.brand : brandId);
+  }
+
+  if (!modelId) {
     modelId = resolveModelId(
       brandId,
       isString(value.model) ? value.model : modelId
@@ -195,15 +261,16 @@ export function migrateLegacyPoleRecord(
   const explicitCarbon =
     typeof value.carbonFiber === "boolean" ? value.carbonFiber : undefined;
 
+  const carbonFiber = inferCarbonFiber(modelId, explicitCarbon);
+
   return {
     id: value.id,
     brandId,
-    modelId,
+    modelId: getModelIdForCarbonChoice(brandId, carbonFiber),
     length: normalizeProgressionLength(value.length),
     weightRating,
     flex: isString(value.flex) ? value.flex : undefined,
-    serialNumber: isString(value.serialNumber) ? value.serialNumber : undefined,
-    carbonFiber: inferCarbonFiber(modelId, explicitCarbon),
+    carbonFiber,
     notes: isString(value.notes) ? value.notes : undefined,
     createdAt: value.createdAt,
   };
@@ -319,11 +386,8 @@ export function sortPolesForDisplay(poles: Pole[]): Pole[] {
 export function isPoleFormValid(values: PoleFormValues): boolean {
   return (
     values.brandId !== "" &&
-    values.modelId !== "" &&
-    isValidBrandModelPair(values.brandId, values.modelId) &&
-    values.length.trim() !== "" &&
-    Number.isFinite(Number(values.weightRating)) &&
-    Number(values.weightRating) > 0
+    parsePoleLengthInput(values.length) !== null &&
+    parsePoleWeightInput(values.weightRating) !== null
   );
 }
 
@@ -331,15 +395,8 @@ export function withBrandSelection(
   values: PoleFormValues,
   brandId: string
 ): PoleFormValues {
-  const modelId = getDefaultModelIdForBrand(brandId);
-  const model = getModelsForBrand(brandId).find((entry) => entry.id === modelId);
-
   return {
     ...values,
     brandId,
-    modelId,
-    carbonFiber: model?.name.toLowerCase().includes("carbon") ?? false,
   };
 }
-
-export { getModelsForBrand };

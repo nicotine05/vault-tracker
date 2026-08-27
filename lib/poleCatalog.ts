@@ -157,3 +157,24 @@ export function isValidBrandModelPair(
 export function getDefaultModelIdForBrand(brandId: string): string {
   return getModelsForBrand(brandId)[0]?.id ?? DEFAULT_MODEL_ID;
 }
+
+export function getModelIdForCarbonChoice(
+  brandId: string,
+  carbonFiber: boolean
+): string {
+  const models = getModelsForBrand(brandId);
+
+  if (carbonFiber) {
+    return (
+      models.find((model) => model.name.toLowerCase().includes("carbon"))?.id ??
+      models[0]?.id ??
+      DEFAULT_MODEL_ID
+    );
+  }
+
+  return (
+    models.find((model) => !model.name.toLowerCase().includes("carbon"))?.id ??
+    models[0]?.id ??
+    DEFAULT_MODEL_ID
+  );
+}

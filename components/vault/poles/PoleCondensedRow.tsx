@@ -26,9 +26,6 @@ export default function PoleCondensedRow({ pole, onPress }: PoleCondensedRowProp
         <p className="truncate text-sm font-bold text-foreground">
           {formatPoleBrandLabel(pole)}
         </p>
-        {pole.serialNumber && (
-          <p className="truncate text-xs text-muted">{pole.serialNumber}</p>
-        )}
       </div>
 
       <p className="w-12 shrink-0 text-center text-sm text-foreground">

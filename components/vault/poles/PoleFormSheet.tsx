@@ -2,17 +2,11 @@
 
 import type { PoleFormValues } from "@/lib/domain/poleInventory";
 import {
-  getModelsForBrand,
   isPoleFormValid,
   withBrandSelection,
 } from "@/lib/domain/poleInventory";
-import {
-  PROGRESSION_LENGTHS,
-  PROGRESSION_WEIGHTS,
-} from "@/lib/domain/poleProgression";
 import { POLE_BRANDS } from "@/lib/poleCatalog";
 import {
-  fieldClassNameSm,
   primaryButtonClassNameSm,
   secondaryButtonClassName,
 } from "@/lib/ui/componentStyles";
@@ -41,7 +35,6 @@ export default function PoleFormSheet({
   submitLabel = "Save Pole",
 }: PoleFormSheetProps) {
   const valid = isPoleFormValid(values);
-  const models = values.brandId ? getModelsForBrand(values.brandId) : [];
 
   return (
     <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/40 sm:items-center sm:p-4">
@@ -81,71 +74,44 @@ export default function PoleFormSheet({
               </select>
             </label>
 
-            <label className="block">
-              <span className={compactLabelClassName}>Model</span>
-              <select
-                value={values.modelId}
-                disabled={!values.brandId}
-                onChange={(event) =>
-                  onChange({ ...values, modelId: event.target.value })
-                }
-                className={compactFieldClassName}
-              >
-                <option value="">Select</option>
-                {models.map((model) => (
-                  <option key={model.id} value={model.id}>
-                    {model.name}
-                  </option>
-                ))}
-              </select>
+            <label className="flex items-end">
+              <span className="flex w-full items-center gap-2 rounded-lg border border-border bg-surface-muted px-2.5 py-2 text-sm text-foreground">
+                <input
+                  type="checkbox"
+                  checked={values.carbonFiber}
+                  onChange={(event) =>
+                    onChange({ ...values, carbonFiber: event.target.checked })
+                  }
+                  className="h-4 w-4 rounded border-border accent-accent"
+                />
+                Carbon fiber
+              </span>
             </label>
 
-            <label className="col-span-2 block">
-              <span className={compactLabelClassName}>Serial # (optional)</span>
+            <label className="block">
+              <span className={compactLabelClassName}>Length</span>
               <input
-                value={values.serialNumber}
+                value={values.length}
                 onChange={(event) =>
-                  onChange({ ...values, serialNumber: event.target.value })
+                  onChange({ ...values, length: event.target.value })
                 }
-                placeholder="123456"
+                placeholder="--ft -in"
+                inputMode="text"
                 className={compactFieldClassName}
               />
             </label>
 
             <label className="block">
-              <span className={compactLabelClassName}>Length</span>
-              <select
-                value={values.length}
-                onChange={(event) =>
-                  onChange({ ...values, length: event.target.value })
-                }
-                className={compactFieldClassName}
-              >
-                <option value="">Select</option>
-                {PROGRESSION_LENGTHS.map((length) => (
-                  <option key={length} value={length}>
-                    {length}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="block">
               <span className={compactLabelClassName}>Weight</span>
-              <select
+              <input
                 value={values.weightRating}
                 onChange={(event) =>
                   onChange({ ...values, weightRating: event.target.value })
                 }
+                placeholder="---lbs"
+                inputMode="numeric"
                 className={compactFieldClassName}
-              >
-                <option value="">Select</option>
-                {PROGRESSION_WEIGHTS.map((weight) => (
-                  <option key={weight} value={String(weight)}>
-                    {weight}
-                  </option>
-                ))}
-              </select>
+              />
             </label>
 
             <label className="col-span-2 block">
@@ -160,18 +126,6 @@ export default function PoleFormSheet({
               />
             </label>
           </div>
-
-          <label className="mt-2 flex items-center gap-2 rounded-lg border border-border bg-surface-muted px-2.5 py-2 text-sm text-foreground">
-            <input
-              type="checkbox"
-              checked={values.carbonFiber}
-              onChange={(event) =>
-                onChange({ ...values, carbonFiber: event.target.checked })
-              }
-              className="h-4 w-4 rounded border-border accent-accent"
-            />
-            Carbon fiber pole
-          </label>
         </fieldset>
 
         <div className="shrink-0 border-t border-border bg-surface px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">

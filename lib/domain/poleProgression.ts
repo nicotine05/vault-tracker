@@ -39,9 +39,14 @@ export function normalizeProgressionLength(length: string): string {
     return `${feetOnly[1]}'0`;
   }
 
-  const legacy = compact.match(/^(\d+)ft(\d)?$/i);
+  const legacy = compact.match(/^(\d+)ft(\d+)?in?$/i);
   if (legacy) {
     return `${legacy[1]}'${legacy[2] ?? "0"}`;
+  }
+
+  const legacyFtOnly = compact.match(/^(\d+)ft$/i);
+  if (legacyFtOnly) {
+    return `${legacyFtOnly[1]}'0`;
   }
 
   return length.trim();
