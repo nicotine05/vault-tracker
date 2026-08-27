@@ -2,6 +2,7 @@
 
 import type { PoleFormValues } from "@/lib/domain/poleInventory";
 import {
+  getModelsForBrand,
   isPoleFormValid,
   withBrandSelection,
 } from "@/lib/domain/poleInventory";
@@ -35,6 +36,7 @@ export default function PoleFormSheet({
   submitLabel = "Save Pole",
 }: PoleFormSheetProps) {
   const valid = isPoleFormValid(values);
+  const models = values.brandId ? getModelsForBrand(values.brandId) : [];
 
   return (
     <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/40 sm:items-center sm:p-4">
@@ -74,18 +76,23 @@ export default function PoleFormSheet({
               </select>
             </label>
 
-            <label className="flex items-end">
-              <span className="flex w-full items-center gap-2 rounded-lg border border-border bg-surface-muted px-2.5 py-2 text-sm text-foreground">
-                <input
-                  type="checkbox"
-                  checked={values.carbonFiber}
-                  onChange={(event) =>
-                    onChange({ ...values, carbonFiber: event.target.checked })
-                  }
-                  className="h-4 w-4 rounded border-border accent-accent"
-                />
-                Carbon fiber
-              </span>
+            <label className="block">
+              <span className={compactLabelClassName}>Model</span>
+              <select
+                value={values.modelId}
+                disabled={!values.brandId}
+                onChange={(event) =>
+                  onChange({ ...values, modelId: event.target.value })
+                }
+                className={compactFieldClassName}
+              >
+                <option value="">Select</option>
+                {models.map((model) => (
+                  <option key={model.id} value={model.id}>
+                    {model.name}
+                  </option>
+                ))}
+              </select>
             </label>
 
             <label className="block">

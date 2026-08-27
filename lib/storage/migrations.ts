@@ -212,7 +212,7 @@ function migratePoleStatusFields(): void {
   writeJson(STORAGE_KEYS.MIGRATION_V4, true);
 }
 
-/** Drop legacy status fields and wishlist poles; normalize carbon fiber. */
+/** Drop legacy status fields and wishlist poles. */
 function migratePoleCarbonFiberFields(): void {
   if (readJson<boolean>(STORAGE_KEYS.MIGRATION_V5, false)) {
     return;

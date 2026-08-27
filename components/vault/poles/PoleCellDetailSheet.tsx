@@ -63,9 +63,6 @@ export default function PoleCellDetailSheet({
                     {formatPoleBrandLabel(pole)}
                   </p>
                   <p className="text-sm text-muted">{formatPoleShortLabel(pole)}</p>
-                  {pole.carbonFiber && (
-                    <p className="mt-1 text-xs text-muted">Carbon fiber</p>
-                  )}
                 </div>
               </div>
               <button

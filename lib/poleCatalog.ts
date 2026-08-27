@@ -11,54 +11,101 @@ export interface PoleModel {
 }
 
 export const POLE_BRANDS: PoleBrand[] = [
-  { id: "essx", name: "ESSX", color: "#3B82F6" },
-  { id: "ucs-spirit", name: "UCS Spirit", color: "#8B5CF6" },
-  { id: "gill", name: "Gill", color: "#EF4444" },
-  { id: "pacer", name: "Pacer", color: "#22C55E" },
   { id: "altius", name: "Altius", color: "#F97316" },
-  { id: "sky-pole", name: "Sky Pole", color: "#06B6D4" },
-  { id: "nordic", name: "Nordic", color: "#EAB308" },
-  { id: "other", name: "Other", color: "#9CA3AF" },
+  { id: "pacer", name: "Pacer", color: "#22C55E" },
+  { id: "ucs-spirit", name: "UCS Spirit", color: "#8B5CF6" },
+  { id: "essx", name: "ESSX", color: "#3B82F6" },
+  { id: "skypole", name: "Skypole", color: "#06B6D4" },
 ];
 
 export const POLE_MODELS: PoleModel[] = [
-  { id: "essx-recoil", brandId: "essx", name: "Recoil" },
-  { id: "essx-recoil-pro", brandId: "essx", name: "Recoil Pro" },
-  { id: "essx-recoil-advanced", brandId: "essx", name: "Recoil Advanced" },
+  { id: "altius-other", brandId: "altius", name: "Other" },
+
+  { id: "pacer-carbon", brandId: "pacer", name: "Pacer Carbon" },
+  { id: "pacer-fx", brandId: "pacer", name: "Pacer FX" },
+  { id: "pacer-one", brandId: "pacer", name: "Pacer One" },
+  { id: "pacer-composite", brandId: "pacer", name: "Pacer Composite" },
+  { id: "pacer-spirit", brandId: "pacer", name: "Pacer Spirit" },
+  { id: "pacer-fiberglass", brandId: "pacer", name: "Pacer Fiberglass" },
+  { id: "pacer-other", brandId: "pacer", name: "Other" },
+
   { id: "ucs-spirit-spirit", brandId: "ucs-spirit", name: "Spirit" },
+  {
+    id: "ucs-spirit-spirit-carbon",
+    brandId: "ucs-spirit",
+    name: "Spirit Carbon",
+  },
   { id: "ucs-spirit-spirit-elite", brandId: "ucs-spirit", name: "Spirit Elite" },
-  { id: "ucs-spirit-spirit-carbon", brandId: "ucs-spirit", name: "Spirit Carbon" },
-  { id: "gill-fx", brandId: "gill", name: "FX" },
-  { id: "gill-agx", brandId: "gill", name: "AGX" },
-  { id: "gill-mystic", brandId: "gill", name: "Mystic" },
-  { id: "pacer-carbon-fx", brandId: "pacer", name: "Carbon FX" },
-  { id: "pacer-fxc", brandId: "pacer", name: "FXC" },
-  { id: "pacer-one-piece", brandId: "pacer", name: "One Piece" },
-  { id: "altius-carbon", brandId: "altius", name: "Carbon" },
-  { id: "altius-fibersport", brandId: "altius", name: "FiberSport" },
-  { id: "sky-pole-carbon", brandId: "sky-pole", name: "Carbon" },
-  { id: "sky-pole-fiberglass", brandId: "sky-pole", name: "Fiberglass" },
-  { id: "nordic-carbon", brandId: "nordic", name: "Carbon" },
-  { id: "nordic-fiberglass", brandId: "nordic", name: "Fiberglass" },
-  { id: "other-custom-model", brandId: "other", name: "Custom Model" },
+  {
+    id: "ucs-spirit-spirit-competition",
+    brandId: "ucs-spirit",
+    name: "Spirit Competition",
+  },
+  {
+    id: "ucs-spirit-fiberglass-spirit",
+    brandId: "ucs-spirit",
+    name: "Fiberglass Spirit",
+  },
+  { id: "ucs-spirit-other", brandId: "ucs-spirit", name: "Other" },
+
+  {
+    id: "essx-recoil-advance",
+    brandId: "essx",
+    name: "ESSX Recoil Advance",
+  },
+  { id: "essx-recoil", brandId: "essx", name: "ESSX Recoil" },
+  { id: "essx-landing-pad", brandId: "essx", name: "ESSX Landing Pad" },
+  { id: "essx-hybrid", brandId: "essx", name: "ESSX Hybrid" },
+  { id: "essx-fiberglass", brandId: "essx", name: "ESSX Fiberglass" },
+  { id: "essx-other", brandId: "essx", name: "Other" },
+
+  { id: "skypole-other", brandId: "skypole", name: "Other" },
 ];
 
-export const DEFAULT_BRAND_ID = "other";
-export const DEFAULT_MODEL_ID = "other-custom-model";
+export const DEFAULT_BRAND_ID = "altius";
+export const DEFAULT_MODEL_ID = "altius-other";
+
+const LEGACY_BRAND_ID_MAP: Record<string, string> = {
+  "sky-pole": "skypole",
+  gill: "altius",
+  nordic: "altius",
+  other: "altius",
+};
+
+const LEGACY_MODEL_ID_MAP: Record<string, string> = {
+  "essx-recoil-advanced": "essx-recoil-advance",
+  "essx-recoil-pro": "essx-recoil",
+  "pacer-carbon-fx": "pacer-carbon",
+  "pacer-fxc": "pacer-fx",
+  "pacer-one-piece": "pacer-one",
+  "altius-carbon": "altius-other",
+  "altius-fibersport": "altius-other",
+  "sky-pole-carbon": "skypole-other",
+  "sky-pole-fiberglass": "skypole-other",
+  "nordic-carbon": "altius-other",
+  "nordic-fiberglass": "altius-other",
+  "gill-fx": "altius-other",
+  "gill-agx": "altius-other",
+  "gill-mystic": "altius-other",
+  "other-custom-model": "altius-other",
+};
 
 const brandById = new Map(POLE_BRANDS.map((brand) => [brand.id, brand]));
 const modelById = new Map(POLE_MODELS.map((model) => [model.id, model]));
 
 export function getPoleBrand(brandId: string): PoleBrand {
-  return brandById.get(brandId) ?? brandById.get(DEFAULT_BRAND_ID)!;
+  const resolvedId = LEGACY_BRAND_ID_MAP[brandId] ?? brandId;
+  return brandById.get(resolvedId) ?? brandById.get(DEFAULT_BRAND_ID)!;
 }
 
 export function getPoleModel(modelId: string): PoleModel {
-  return modelById.get(modelId) ?? modelById.get(DEFAULT_MODEL_ID)!;
+  const resolvedId = LEGACY_MODEL_ID_MAP[modelId] ?? modelId;
+  return modelById.get(resolvedId) ?? modelById.get(DEFAULT_MODEL_ID)!;
 }
 
 export function getModelsForBrand(brandId: string): PoleModel[] {
-  return POLE_MODELS.filter((model) => model.brandId === brandId);
+  const resolvedBrandId = LEGACY_BRAND_ID_MAP[brandId] ?? brandId;
+  return POLE_MODELS.filter((model) => model.brandId === resolvedBrandId);
 }
 
 export function getBrandName(brandId: string): string {
@@ -70,7 +117,18 @@ export function getModelName(modelId: string): string {
 }
 
 export function getBrandModelName(brandId: string, modelId: string): string {
-  return `${getBrandName(brandId)} ${getModelName(modelId)}`;
+  return formatPoleDisplayName(brandId, modelId);
+}
+
+export function formatPoleDisplayName(brandId: string, modelId: string): string {
+  const brand = getBrandName(brandId);
+  const model = getModelName(modelId);
+
+  if (model === "Other") {
+    return brand;
+  }
+
+  return model;
 }
 
 export function getBrandColor(brandId: string): string {
@@ -87,8 +145,13 @@ export function resolveBrandId(value: string | undefined): string {
     return DEFAULT_BRAND_ID;
   }
 
+  if (LEGACY_BRAND_ID_MAP[value ?? ""]) {
+    return LEGACY_BRAND_ID_MAP[value ?? ""];
+  }
+
   for (const brand of POLE_BRANDS) {
     if (
+      brand.id === value ||
       brand.id === normalized.replace(/\s+/g, "-") ||
       normalizeCatalogText(brand.name) === normalized
     ) {
@@ -100,11 +163,12 @@ export function resolveBrandId(value: string | undefined): string {
   if (normalized.includes("spirit") || normalized.includes("ucs")) {
     return "ucs-spirit";
   }
-  if (normalized.includes("gill")) return "gill";
   if (normalized.includes("pacer")) return "pacer";
   if (normalized.includes("altius")) return "altius";
-  if (normalized.includes("sky")) return "sky-pole";
-  if (normalized.includes("nordic")) return "nordic";
+  if (normalized.includes("sky")) return "skypole";
+  if (normalized.includes("gill") || normalized.includes("nordic")) {
+    return "altius";
+  }
 
   return DEFAULT_BRAND_ID;
 }
@@ -113,9 +177,25 @@ export function resolveModelId(
   brandId: string,
   value: string | undefined
 ): string {
-  const normalized = normalizeCatalogText(value ?? "");
-  const models = getModelsForBrand(brandId);
+  const resolvedBrandId = resolveBrandId(brandId);
+  const models = getModelsForBrand(resolvedBrandId);
 
+  if (value) {
+    const legacyMapped = LEGACY_MODEL_ID_MAP[value];
+    if (legacyMapped) {
+      const legacyModel = modelById.get(legacyMapped);
+      if (legacyModel?.brandId === resolvedBrandId) {
+        return legacyMapped;
+      }
+    }
+
+    const directModel = modelById.get(value);
+    if (directModel?.brandId === resolvedBrandId) {
+      return directModel.id;
+    }
+  }
+
+  const normalized = normalizeCatalogText(value ?? "");
   if (!normalized) {
     return models[0]?.id ?? DEFAULT_MODEL_ID;
   }
@@ -143,38 +223,23 @@ export function resolveModelId(
     }
   }
 
-  return models[0]?.id ?? DEFAULT_MODEL_ID;
+  return (
+    models.find((model) => model.name === "Other")?.id ??
+    models[0]?.id ??
+    DEFAULT_MODEL_ID
+  );
 }
 
 export function isValidBrandModelPair(
   brandId: string,
   modelId: string
 ): boolean {
-  const model = modelById.get(modelId);
-  return Boolean(model && model.brandId === brandId);
+  const resolvedBrandId = resolveBrandId(brandId);
+  const resolvedModelId = LEGACY_MODEL_ID_MAP[modelId] ?? modelId;
+  const model = modelById.get(resolvedModelId);
+  return Boolean(model && model.brandId === resolvedBrandId);
 }
 
 export function getDefaultModelIdForBrand(brandId: string): string {
   return getModelsForBrand(brandId)[0]?.id ?? DEFAULT_MODEL_ID;
-}
-
-export function getModelIdForCarbonChoice(
-  brandId: string,
-  carbonFiber: boolean
-): string {
-  const models = getModelsForBrand(brandId);
-
-  if (carbonFiber) {
-    return (
-      models.find((model) => model.name.toLowerCase().includes("carbon"))?.id ??
-      models[0]?.id ??
-      DEFAULT_MODEL_ID
-    );
-  }
-
-  return (
-    models.find((model) => !model.name.toLowerCase().includes("carbon"))?.id ??
-    models[0]?.id ??
-    DEFAULT_MODEL_ID
-  );
 }

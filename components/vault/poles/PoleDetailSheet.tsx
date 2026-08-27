@@ -6,7 +6,7 @@ import {
   formatPoleTitle,
   formatPoleWeightDisplay,
 } from "@/lib/domain/poleInventory";
-import { getBrandName } from "@/lib/poleCatalog";
+import { getBrandName, getModelName } from "@/lib/poleCatalog";
 import PoleBrandAccent from "@/components/vault/poles/PoleBrandAccent";
 import {
   destructiveOutlineButtonClassName,
@@ -59,13 +59,10 @@ export default function PoleDetailSheet({
 
         <dl className="space-y-3 text-sm">
           <DetailRow label="Brand" value={getBrandName(pole.brandId)} />
+          <DetailRow label="Model" value={getModelName(pole.modelId)} />
           <DetailRow label="Length" value={formatPoleLengthDisplay(pole.length)} />
           <DetailRow label="Weight" value={formatPoleWeightDisplay(pole.weightRating)} />
           <DetailRow label="Flex" value={pole.flex || "—"} />
-          <DetailRow
-            label="Carbon Fiber"
-            value={pole.carbonFiber ? "Yes" : "No"}
-          />
           {pole.notes && (
             <div>
               <dt className="text-muted">Notes</dt>
