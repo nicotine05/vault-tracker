@@ -6,6 +6,7 @@ import {
   formatPoleTitle,
   formatPoleWeightRangeDisplay,
   formatWishlistModelLabel,
+  isNeedsReplacePole,
   isRetiredPole,
   isWishlistPole,
 } from "@/lib/domain/poleInventory";
@@ -19,6 +20,7 @@ type PoleCondensedRowProps = {
 export default function PoleCondensedRow({ pole, onPress }: PoleCondensedRowProps) {
   const wishlist = isWishlistPole(pole);
   const retired = isRetiredPole(pole);
+  const needsReplace = isNeedsReplacePole(pole);
 
   return (
     <button
@@ -58,6 +60,11 @@ export default function PoleCondensedRow({ pole, onPress }: PoleCondensedRowProp
           {wishlist && !retired && (
             <span className="shrink-0 rounded-full border border-accent/30 bg-accent-soft px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-accent-text">
               Wishlist
+            </span>
+          )}
+          {needsReplace && (
+            <span className="shrink-0 rounded-full border border-rose-300/70 bg-rose-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-rose-700 [data-theme=dark]:border-rose-400/40 [data-theme=dark]:text-rose-300">
+              Replace
             </span>
           )}
         </div>

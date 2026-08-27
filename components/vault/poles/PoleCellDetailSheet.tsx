@@ -7,11 +7,15 @@ import {
   formatPoleTitle,
   formatPoleWeightRangeDisplay,
   formatWishlistModelLabel,
+  isNeedsReplacePole,
   isWishlistPole,
 } from "@/lib/domain/poleInventory";
 import type { ProgressionCellContents } from "@/lib/domain/poleProgression";
 import PoleBrandAccent from "@/components/vault/poles/PoleBrandAccent";
 import { secondaryButtonClassName, todayBadgeClassName } from "@/lib/ui/componentStyles";
+
+const replaceBadgeClassName =
+  "rounded-full border border-rose-300/70 bg-rose-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-rose-700 [data-theme=dark]:border-rose-400/40 [data-theme=dark]:text-rose-300";
 
 type PoleCellDetailSheetProps = {
   contents: ProgressionCellContents;
@@ -95,13 +99,16 @@ function CellPoleCard({
   onViewPole: (pole: Pole) => void;
 }) {
   const wishlist = isWishlistPole(pole);
+  const needsReplace = isNeedsReplacePole(pole);
 
   return (
     <div
       className={`rounded-xl border p-3 ${
         wishlist
           ? "border-amber-300/60 bg-amber-500/5 [data-theme=dark]:border-amber-400/40 [data-theme=dark]:bg-amber-500/10"
-          : "border-border bg-surface-muted"
+          : needsReplace
+            ? "border-rose-300/60 bg-rose-500/5 [data-theme=dark]:border-rose-400/40 [data-theme=dark]:bg-rose-500/10"
+            : "border-border bg-surface-muted"
       }`}
     >
       <div className="flex items-start gap-2">
@@ -111,10 +118,13 @@ function CellPoleCard({
           <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-border" />
         )}
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <p className="font-semibold text-foreground">{formatPoleTitle(pole)}</p>
             {wishlist && (
               <span className={`${todayBadgeClassName} normal-case`}>Wishlist</span>
+            )}
+            {needsReplace && (
+              <span className={`${replaceBadgeClassName} normal-case`}>Replace</span>
             )}
           </div>
           <p className="text-sm text-muted">

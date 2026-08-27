@@ -102,6 +102,8 @@ export type Pole = {
   notes?: string;
   /** Retired owned poles stay in inventory but are hidden from bags, logs, and progression. */
   retired?: boolean;
+  /** Active owned poles flagged for replacement. */
+  needsReplace?: boolean;
   /** @deprecated Removed in V3. Migrated away on load. */
   status?: "owned" | "wishlist" | "replace";
   createdAt: string;

@@ -25,6 +25,7 @@ type PoleFormSheetProps = {
   onSubmit: () => void;
   onClose: () => void;
   submitLabel?: string;
+  isEditing?: boolean;
 };
 
 const compactFieldClassName =
@@ -42,6 +43,7 @@ export default function PoleFormSheet({
   onSubmit,
   onClose,
   submitLabel = "Save Pole",
+  isEditing = false,
 }: PoleFormSheetProps) {
   const valid = isPoleFormValid(values);
   const isWishlist = values.kind === "wishlist";
@@ -104,6 +106,7 @@ export default function PoleFormSheet({
               values={values}
               onChange={onChange}
               models={models}
+              isEditing={isEditing}
             />
           )}
 
@@ -149,10 +152,12 @@ function OwnedFields({
   values,
   onChange,
   models,
+  isEditing,
 }: {
   values: PoleFormValues;
   onChange: (values: PoleFormValues) => void;
   models: ReturnType<typeof getModelsForBrand>;
+  isEditing: boolean;
 }) {
   return (
     <div className="grid grid-cols-2 gap-2">
@@ -218,6 +223,20 @@ function OwnedFields({
           className={`${compactFieldClassName} w-full`}
         />
       </label>
+
+      {isEditing && (
+        <label className="col-span-2 flex cursor-pointer items-center gap-2 rounded-lg border border-border bg-surface-muted px-3 py-2.5">
+          <input
+            type="checkbox"
+            checked={values.needsReplace}
+            onChange={(event) =>
+              onChange({ ...values, needsReplace: event.target.checked })
+            }
+            className="rounded border-border"
+          />
+          <span className="text-sm text-foreground">Needs replaced</span>
+        </label>
+      )}
     </div>
   );
 }

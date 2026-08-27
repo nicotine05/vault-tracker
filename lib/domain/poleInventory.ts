@@ -34,6 +34,7 @@ export type PoleFormValues = {
   weightMax: string;
   flex: string;
   notes: string;
+  needsReplace: boolean;
 };
 
 export type PoleFilters = {
@@ -65,6 +66,7 @@ export function emptyPoleForm(kind: PoleKind = "owned"): PoleFormValues {
     weightMax: "",
     flex: "",
     notes: "",
+    needsReplace: false,
   };
 }
 
@@ -78,6 +80,10 @@ export function isWishlistPole(pole: Pole): boolean {
 
 export function isRetiredPole(pole: Pole): boolean {
   return pole.retired === true;
+}
+
+export function isNeedsReplacePole(pole: Pole): boolean {
+  return pole.needsReplace === true && isActiveOwnedPole(pole);
 }
 
 export function isActiveOwnedPole(pole: Pole): boolean {
@@ -247,6 +253,7 @@ function createOwnedPole(values: PoleFormValues): Pole {
     weightRating: normalizePoleWeightFromForm(values.weightRating),
     flex: values.flex.trim() || undefined,
     notes: values.notes.trim() || undefined,
+    needsReplace: values.needsReplace ? true : undefined,
     createdAt: new Date().toISOString(),
   };
 }
@@ -311,6 +318,7 @@ export function poleToFormValues(pole: Pole): PoleFormValues {
     weightMax: pole.weightMax ? String(pole.weightMax) : "",
     flex: pole.flex ?? "",
     notes: pole.notes ?? "",
+    needsReplace: pole.needsReplace === true,
   };
 }
 
@@ -336,6 +344,7 @@ export function applyPoleFormValues(pole: Pole, values: PoleFormValues): Pole {
     weightMax: undefined,
     flex: values.flex.trim() || undefined,
     notes: values.notes.trim() || undefined,
+    needsReplace: values.needsReplace ? true : undefined,
   };
 }
 
@@ -458,6 +467,7 @@ export function formatPoleSearchText(pole: Pole): string {
     pole.notes ?? "",
     isWishlistPole(pole) ? "wishlist" : "",
     isRetiredPole(pole) ? "retired" : "",
+    isNeedsReplacePole(pole) ? "replace needs replaced" : "",
   ]
     .join(" ")
     .toLowerCase();
@@ -510,6 +520,10 @@ export function migrateLegacyPoleRecord(
     flex: isString(value.flex) ? value.flex : undefined,
     notes: isString(value.notes) ? value.notes : undefined,
     retired: value.retired === true ? true : undefined,
+    needsReplace:
+      value.needsReplace === true || value.status === "replace"
+        ? true
+        : undefined,
     createdAt: value.createdAt,
   };
 }

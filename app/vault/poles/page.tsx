@@ -331,6 +331,7 @@ export default function PoleInventoryPage() {
                 : "Add Pole"
               : "Save Changes"
           }
+          isEditing={sheetMode.type === "edit"}
         />
       )}
     </main>
