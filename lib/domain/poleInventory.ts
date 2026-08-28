@@ -1,5 +1,6 @@
 import type { Pole, PoleBag, PoleKind } from "@/lib/domain/types";
 import {
+  lengthToTotalInches,
   normalizeProgressionLength,
   snapWeightToProgression,
 } from "@/lib/domain/poleProgression";
@@ -40,15 +41,23 @@ export type PoleFormValues = {
 export type PoleFilters = {
   search: string;
   brandId: string;
-  length: string;
-  weightRating: string;
+  lengthMinFeet: string;
+  lengthMinInches: string;
+  lengthMaxFeet: string;
+  lengthMaxInches: string;
+  weightMin: string;
+  weightMax: string;
 };
 
 export const EMPTY_POLE_FILTERS: PoleFilters = {
   search: "",
   brandId: "",
-  length: "",
-  weightRating: "",
+  lengthMinFeet: "",
+  lengthMinInches: "",
+  lengthMaxFeet: "",
+  lengthMaxInches: "",
+  weightMin: "",
+  weightMax: "",
 };
 
 export function emptyPoleForm(kind: PoleKind = "owned"): PoleFormValues {
@@ -564,6 +573,17 @@ export function updateRecentPoleIds(
 }
 
 export function filterPoles(poles: Pole[], filters: PoleFilters): Pole[] {
+  const filterLengthMin = parseFilterLengthToInches(
+    filters.lengthMinFeet,
+    filters.lengthMinInches
+  );
+  const filterLengthMax = parseFilterLengthToInches(
+    filters.lengthMaxFeet,
+    filters.lengthMaxInches
+  );
+  const filterWeightMin = parseFilterWeight(filters.weightMin);
+  const filterWeightMax = parseFilterWeight(filters.weightMax);
+
   return poles.filter((pole) => {
     if (filters.search.trim()) {
       const query = filters.search.trim().toLowerCase();
@@ -572,23 +592,158 @@ export function filterPoles(poles: Pole[], filters: PoleFilters): Pole[] {
       }
     }
 
-    if (filters.brandId && pole.brandId !== filters.brandId) {
-      return false;
-    }
-
-    if (filters.length && pole.length !== filters.length) {
+    if (filters.brandId && !poleMatchesBrandFilter(pole, filters.brandId)) {
       return false;
     }
 
     if (
-      filters.weightRating &&
-      String(pole.weightRating) !== filters.weightRating
+      filterLengthMin !== null ||
+      filterLengthMax !== null
     ) {
-      return false;
+      const poleLength = getPoleLengthRangeInches(pole);
+      if (
+        poleLength.min === null &&
+        poleLength.max === null
+      ) {
+        return false;
+      }
+
+      if (
+        !rangesOverlap(
+          poleLength.min,
+          poleLength.max,
+          filterLengthMin,
+          filterLengthMax
+        )
+      ) {
+        return false;
+      }
+    }
+
+    if (filterWeightMin !== null || filterWeightMax !== null) {
+      const poleWeight = getPoleWeightRange(pole);
+      if (poleWeight.min === null && poleWeight.max === null) {
+        return false;
+      }
+
+      if (
+        !rangesOverlap(
+          poleWeight.min,
+          poleWeight.max,
+          filterWeightMin,
+          filterWeightMax
+        )
+      ) {
+        return false;
+      }
     }
 
     return true;
   });
+}
+
+export function hasActivePoleFilters(filters: PoleFilters): boolean {
+  return (
+    filters.search.trim() !== "" ||
+    filters.brandId !== "" ||
+    filters.lengthMinFeet.trim() !== "" ||
+    filters.lengthMinInches.trim() !== "" ||
+    filters.lengthMaxFeet.trim() !== "" ||
+    filters.lengthMaxInches.trim() !== "" ||
+    filters.weightMin.trim() !== "" ||
+    filters.weightMax.trim() !== ""
+  );
+}
+
+function parseFilterLengthToInches(feet: string, inches: string): number | null {
+  const parsed = parsePoleLengthFormValues(
+    {
+      lengthFeet: feet,
+      lengthInches: inches,
+      lengthMaxFeet: "",
+      lengthMaxInches: "",
+    },
+    "min"
+  );
+
+  return parsed ? lengthToTotalInches(parsed) : null;
+}
+
+function parseFilterWeight(value: string): number | null {
+  return parsePoleWeightFormValue(value);
+}
+
+function getPoleLengthRangeInches(pole: Pole): {
+  min: number | null;
+  max: number | null;
+} {
+  if (isWishlistPole(pole)) {
+    const min = pole.length ? lengthToTotalInches(pole.length) : null;
+    const max = pole.lengthMax
+      ? lengthToTotalInches(pole.lengthMax)
+      : min;
+
+    return { min, max };
+  }
+
+  if (!pole.length) {
+    return { min: null, max: null };
+  }
+
+  const inches = lengthToTotalInches(pole.length);
+  return { min: inches, max: inches };
+}
+
+function getPoleWeightRange(pole: Pole): {
+  min: number | null;
+  max: number | null;
+} {
+  if (isWishlistPole(pole)) {
+    const min = pole.weightRating > 0 ? pole.weightRating : null;
+    const max =
+      pole.weightMax ?? (pole.weightRating > 0 ? pole.weightRating : null);
+
+    return { min, max };
+  }
+
+  if (pole.weightRating <= 0) {
+    return { min: null, max: null };
+  }
+
+  return { min: pole.weightRating, max: pole.weightRating };
+}
+
+function poleMatchesBrandFilter(pole: Pole, brandId: string): boolean {
+  if (isWishlistPole(pole)) {
+    const brandIds =
+      pole.brandIds && pole.brandIds.length > 0
+        ? pole.brandIds
+        : pole.brandId
+          ? [pole.brandId]
+          : [];
+
+    if (brandIds.length === 0) {
+      return true;
+    }
+
+    return brandIds.includes(brandId);
+  }
+
+  return pole.brandId === brandId;
+}
+
+function rangesOverlap(
+  leftMin: number | null,
+  leftMax: number | null,
+  rightMin: number | null,
+  rightMax: number | null
+): boolean {
+  const loLeft = leftMin ?? leftMax ?? Number.NEGATIVE_INFINITY;
+  const hiLeft = leftMax ?? leftMin ?? Number.POSITIVE_INFINITY;
+  const loRight = rightMin ?? Number.NEGATIVE_INFINITY;
+  const hiRight = rightMax ?? Number.POSITIVE_INFINITY;
+
+  return loLeft <= hiRight && loRight <= hiLeft;
 }
 
 export function getUniquePoleBrandIds(poles: Pole[]): string[] {

@@ -14,10 +14,12 @@ import PoleInventoryTabs, {
 import PoleInventoryView from "@/components/vault/poles/PoleInventoryView";
 import PoleProgressionGrid from "@/components/vault/poles/PoleProgressionGrid";
 import PoleSourceToggle from "@/components/vault/poles/PoleSourceToggle";
+import PoleSearchFilters from "@/components/vault/poles/PoleSearchFilters";
 import {
   EMPTY_POLE_FILTERS,
   emptyPoleForm,
   getOwnedPoles,
+  hasActivePoleFilters,
   isRetiredPole,
   isWishlistPole,
   poleToFormValues,
@@ -30,7 +32,6 @@ import {
 } from "@/lib/domain/poleProgression";
 import type { Pole } from "@/lib/domain/types";
 import { usePoleInventoryState } from "@/lib/hooks/usePoleInventoryState";
-import { fieldClassNameSm } from "@/lib/ui/componentStyles";
 
 type SheetMode =
   | { type: "add" }
@@ -87,7 +88,7 @@ export default function PoleInventoryPage() {
       if (next) {
         window.setTimeout(() => searchInputRef.current?.focus(), 0);
       } else {
-        setFilters((currentFilters) => ({ ...currentFilters, search: "" }));
+        setFilters(EMPTY_POLE_FILTERS);
       }
       return next;
     });
@@ -179,7 +180,7 @@ export default function PoleInventoryPage() {
               aria-label={searchOpen ? "Close search" : "Search poles"}
               aria-pressed={searchOpen}
               className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border transition ${
-                searchOpen || filters.search.trim()
+                searchOpen || hasActivePoleFilters(filters)
                   ? "border-accent bg-accent-soft text-accent-text"
                   : "border-border bg-surface-muted text-muted hover:bg-surface-accent hover:text-foreground"
               }`}
@@ -211,18 +212,11 @@ export default function PoleInventoryPage() {
       )}
 
       {searchOpen && activeTab === "inventory" && hasAnyPoles && (
-        <label className="mt-3 block">
-          <span className="sr-only">Search poles</span>
-          <input
-            ref={searchInputRef}
-            value={filters.search}
-            onChange={(event) =>
-              setFilters({ ...filters, search: event.target.value })
-            }
-            placeholder="Search poles"
-            className={`${fieldClassNameSm} py-2 text-sm`}
-          />
-        </label>
+        <PoleSearchFilters
+          filters={filters}
+          onChange={setFilters}
+          searchInputRef={searchInputRef}
+        />
       )}
 
       {!hasAnyPoles ? (

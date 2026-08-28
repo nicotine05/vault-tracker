@@ -29,7 +29,7 @@ export default function PoleInventoryView({
 
       {filteredPoles.length === 0 ? (
         <p className="px-4 py-6 text-center text-sm text-muted">
-          No poles match your search.
+          No poles match your filters.
         </p>
       ) : (
         filteredPoles.map((pole) => (
