@@ -27,6 +27,7 @@ import {
 } from "@/lib/domain/poleInventory";
 import {
   buildProgressionGrid,
+  computeProgressionAxesFromPoles,
   gridHasVisibleEntries,
   type ProgressionCellContents,
 } from "@/lib/domain/poleProgression";
@@ -70,7 +71,18 @@ export default function PoleInventoryPage() {
 
   const ownedPoles = useMemo(() => getOwnedPoles(poles), [poles]);
 
-  const progressionGrid = useMemo(() => buildProgressionGrid(poles), [poles]);
+  const progressionGrid = useMemo(() => {
+    const includeOwned =
+      sourceFilter === "inventory" || sourceFilter === "both";
+    const includeWishlist =
+      sourceFilter === "wishlist" || sourceFilter === "both";
+    const axes = computeProgressionAxesFromPoles(poles, {
+      includeOwned,
+      includeWishlist,
+    });
+
+    return buildProgressionGrid(poles, axes);
+  }, [poles, sourceFilter]);
   const gridHasEntries = useMemo(
     () =>
       gridHasVisibleEntries(progressionGrid, {
@@ -350,7 +362,7 @@ function FilteredEmptyState({
         : "No wishlist items yet. Add poles you're considering buying."
       : sourceFilter === "inventory"
         ? progression
-          ? "Owned poles need standard progression lengths and weights (e.g. 14'0 and 170) to appear on the grid."
+          ? "Owned poles need a length and weight to appear on the grid."
           : "No owned poles in inventory."
         : progression
           ? "Add owned poles or wishlist items to populate the progression grid."

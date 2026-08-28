@@ -13,7 +13,12 @@ function isWishlistPole(pole: Pole): boolean {
   return pole.kind === "wishlist";
 }
 
-/** Standard progression ladder lengths (columns). */
+const LENGTH_STEP_INCHES = 6;
+const WEIGHT_STEP = 10;
+const AXIS_PADDING_LENGTH_INCHES = 6;
+const AXIS_PADDING_WEIGHT = 10;
+
+/** Default progression ladder lengths (columns). */
 export const PROGRESSION_LENGTHS = [
   "10'6",
   "11'0",
@@ -29,7 +34,7 @@ export const PROGRESSION_LENGTHS = [
   "16'0",
 ] as const;
 
-/** Standard progression weight ratings (rows). */
+/** Default progression weight ratings (rows). */
 export const PROGRESSION_WEIGHTS = [
   90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200,
 ] as const;
@@ -42,6 +47,11 @@ export type ProgressionCellContents = {
 };
 
 export type ProgressionGrid = Map<ProgressionCellKey, ProgressionCellContents>;
+
+export type ProgressionAxes = {
+  lengths: string[];
+  weights: number[];
+};
 
 export function normalizeProgressionLength(length: string): string {
   const compact = length.trim().replace(/\s+/g, "");
@@ -69,6 +79,12 @@ export function normalizeProgressionLength(length: string): string {
   return length.trim();
 }
 
+export function formatLengthFromTotalInches(totalInches: number): string {
+  const feet = Math.floor(totalInches / 12);
+  const inches = totalInches % 12;
+  return `${feet}'${inches}`;
+}
+
 export function lengthToTotalInches(length: string): number | null {
   const normalized = normalizeProgressionLength(length);
   const match = normalized.match(/^(\d+)'(\d+)$/);
@@ -80,39 +96,36 @@ export function lengthToTotalInches(length: string): number | null {
   return Number(match[1]) * 12 + Number(match[2]);
 }
 
-export function snapWeightToProgression(weight: number): number | null {
-  if (!Number.isFinite(weight)) {
+export function snapLengthToProgressionStep(length: string): string | null {
+  const totalInches = lengthToTotalInches(normalizeProgressionLength(length));
+  if (totalInches === null || totalInches < 0) {
     return null;
   }
 
-  const rounded = Math.round(weight / 10) * 10;
-  if (PROGRESSION_WEIGHTS.includes(rounded as (typeof PROGRESSION_WEIGHTS)[number])) {
-    return rounded;
+  const snapped = Math.round(totalInches / LENGTH_STEP_INCHES) * LENGTH_STEP_INCHES;
+  return formatLengthFromTotalInches(snapped);
+}
+
+export function snapWeightToProgression(weight: number): number | null {
+  if (!Number.isFinite(weight) || weight <= 0) {
+    return null;
   }
 
-  return null;
+  return Math.round(weight / WEIGHT_STEP) * WEIGHT_STEP;
 }
 
 export function getProgressionCellKey(
   length: string,
   weightRating: number
 ): ProgressionCellKey | null {
-  const normalizedLength = normalizeProgressionLength(length);
+  const snappedLength = snapLengthToProgressionStep(length);
   const weight = snapWeightToProgression(weightRating);
 
-  if (!weight) {
+  if (!snappedLength || weight === null) {
     return null;
   }
 
-  if (
-    !PROGRESSION_LENGTHS.includes(
-      normalizedLength as (typeof PROGRESSION_LENGTHS)[number]
-    )
-  ) {
-    return null;
-  }
-
-  return `${normalizedLength}|${weight}`;
+  return `${snappedLength}|${weight}`;
 }
 
 function emptyCellContents(): ProgressionCellContents {
@@ -130,6 +143,105 @@ function addPoleToCell(
     ...existing,
     [bucket]: [...existing[bucket], pole],
   });
+}
+
+function generateLengthSteps(minInches: number, maxInches: number): string[] {
+  const start =
+    Math.floor(minInches / LENGTH_STEP_INCHES) * LENGTH_STEP_INCHES;
+  const end = Math.ceil(maxInches / LENGTH_STEP_INCHES) * LENGTH_STEP_INCHES;
+  const steps: string[] = [];
+
+  for (let inches = start; inches <= end; inches += LENGTH_STEP_INCHES) {
+    steps.push(formatLengthFromTotalInches(inches));
+  }
+
+  return steps;
+}
+
+function generateWeightSteps(minWeight: number, maxWeight: number): number[] {
+  const start = Math.floor(minWeight / WEIGHT_STEP) * WEIGHT_STEP;
+  const end = Math.ceil(maxWeight / WEIGHT_STEP) * WEIGHT_STEP;
+  const steps: number[] = [];
+
+  for (let weight = start; weight <= end; weight += WEIGHT_STEP) {
+    steps.push(weight);
+  }
+
+  return steps;
+}
+
+export function computeProgressionAxesFromPoles(
+  poles: Pole[],
+  options: { includeOwned: boolean; includeWishlist: boolean }
+): ProgressionAxes {
+  let minLengthInches = Number.POSITIVE_INFINITY;
+  let maxLengthInches = Number.NEGATIVE_INFINITY;
+  let minWeight = Number.POSITIVE_INFINITY;
+  let maxWeight = Number.NEGATIVE_INFINITY;
+  let hasData = false;
+
+  for (const pole of poles) {
+    if (options.includeOwned && isOwnedPole(pole) && !isRetiredPole(pole)) {
+      const snappedLength = snapLengthToProgressionStep(pole.length);
+      const snappedWeight = snapWeightToProgression(pole.weightRating);
+
+      if (snappedLength) {
+        const inches = lengthToTotalInches(snappedLength);
+        if (inches !== null) {
+          minLengthInches = Math.min(minLengthInches, inches);
+          maxLengthInches = Math.max(maxLengthInches, inches);
+          hasData = true;
+        }
+      }
+
+      if (snappedWeight !== null) {
+        minWeight = Math.min(minWeight, snappedWeight);
+        maxWeight = Math.max(maxWeight, snappedWeight);
+        hasData = true;
+      }
+    }
+
+    if (options.includeWishlist && isWishlistPole(pole)) {
+      if (pole.length.trim()) {
+        const minLen = lengthToTotalInches(pole.length);
+        const maxLen = pole.lengthMax
+          ? lengthToTotalInches(pole.lengthMax)
+          : minLen;
+
+        if (minLen !== null) {
+          minLengthInches = Math.min(minLengthInches, minLen);
+          maxLengthInches = Math.max(maxLengthInches, maxLen ?? minLen);
+          hasData = true;
+        }
+      }
+
+      const weightMin = pole.weightRating > 0 ? pole.weightRating : null;
+      const weightMax = pole.weightMax ?? weightMin;
+
+      if (weightMin !== null) {
+        minWeight = Math.min(minWeight, weightMin);
+        maxWeight = Math.max(maxWeight, weightMax ?? weightMin);
+        hasData = true;
+      }
+    }
+  }
+
+  if (!hasData) {
+    return {
+      lengths: [...PROGRESSION_LENGTHS],
+      weights: [...PROGRESSION_WEIGHTS],
+    };
+  }
+
+  minLengthInches = Math.max(0, minLengthInches - AXIS_PADDING_LENGTH_INCHES);
+  maxLengthInches += AXIS_PADDING_LENGTH_INCHES;
+  minWeight = Math.max(WEIGHT_STEP, minWeight - AXIS_PADDING_WEIGHT);
+  maxWeight += AXIS_PADDING_WEIGHT;
+
+  return {
+    lengths: generateLengthSteps(minLengthInches, maxLengthInches),
+    weights: generateWeightSteps(minWeight, maxWeight),
+  };
 }
 
 export function wishlistMatchesProgressionCell(
@@ -191,8 +303,17 @@ export function getOwnedProgressionCellKey(pole: Pole): ProgressionCellKey | nul
   return getProgressionCellKey(pole.length, pole.weightRating);
 }
 
-export function buildProgressionGrid(poles: Pole[]): ProgressionGrid {
+export function buildProgressionGrid(
+  poles: Pole[],
+  axes?: ProgressionAxes
+): ProgressionGrid {
   const grid: ProgressionGrid = new Map();
+  const resolvedAxes =
+    axes ??
+    computeProgressionAxesFromPoles(poles, {
+      includeOwned: true,
+      includeWishlist: true,
+    });
 
   for (const pole of poles) {
     if (isOwnedPole(pole)) {
@@ -213,8 +334,8 @@ export function buildProgressionGrid(poles: Pole[]): ProgressionGrid {
       continue;
     }
 
-    for (const length of PROGRESSION_LENGTHS) {
-      for (const weight of PROGRESSION_WEIGHTS) {
+    for (const length of resolvedAxes.lengths) {
+      for (const weight of resolvedAxes.weights) {
         if (!wishlistMatchesProgressionCell(pole, length, weight)) {
           continue;
         }

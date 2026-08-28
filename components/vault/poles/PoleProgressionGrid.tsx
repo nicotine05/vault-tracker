@@ -1,16 +1,15 @@
 "use client";
 
-import { Fragment, type CSSProperties } from "react";
+import { Fragment, useMemo, type CSSProperties } from "react";
 import type { Pole } from "@/lib/domain/types";
 import type { PoleSourceFilter } from "@/lib/domain/poleInventory";
 import {
   buildProgressionGrid,
+  computeProgressionAxesFromPoles,
   getCellBrandColors,
   getPrimaryCellBrandColor,
   getProgressionCellKey,
   type ProgressionCellContents,
-  PROGRESSION_LENGTHS,
-  PROGRESSION_WEIGHTS,
 } from "@/lib/domain/poleProgression";
 
 type PoleProgressionGridProps = {
@@ -28,11 +27,25 @@ export default function PoleProgressionGrid({
   sourceFilter,
   onSelectCell,
 }: PoleProgressionGridProps) {
-  const grid = buildProgressionGrid(poles);
-  const rows = [...PROGRESSION_WEIGHTS];
-  const columns = [...PROGRESSION_LENGTHS];
   const showOwned = sourceFilter === "inventory" || sourceFilter === "both";
   const showWishlist = sourceFilter === "wishlist" || sourceFilter === "both";
+
+  const axes = useMemo(
+    () =>
+      computeProgressionAxesFromPoles(poles, {
+        includeOwned: showOwned,
+        includeWishlist: showWishlist,
+      }),
+    [poles, showOwned, showWishlist]
+  );
+
+  const grid = useMemo(
+    () => buildProgressionGrid(poles, axes),
+    [poles, axes]
+  );
+
+  const rows = axes.weights;
+  const columns = axes.lengths;
 
   return (
     <div className="overflow-x-auto rounded-2xl border border-border bg-surface shadow-sm">
