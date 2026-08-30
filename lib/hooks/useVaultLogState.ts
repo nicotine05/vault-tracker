@@ -23,12 +23,15 @@ import {
 import {
   EMPTY_RUN_PRS,
   EMPTY_STEP_REFS,
+  clearVaultSessionDraft,
   loadVaultPRHistory,
   loadVaultRunPRs,
+  loadVaultSessionDraft,
   loadVaultSessions,
   loadVaultStepReferences,
   saveVaultPRHistory,
   saveVaultRunPRs,
+  saveVaultSessionDraft,
   saveVaultSessions,
   saveVaultStepReferences,
 } from "@/lib/storage/logStore";
@@ -58,12 +61,24 @@ export function useVaultLogState() {
       setPrHistory(loadVaultPRHistory());
       setPoles(loadPoles());
       setRecentPoleIds(loadRecentPoleIds());
+
+      const draft = loadVaultSessionDraft();
+      if (draft) {
+        setKeys(draft.keys);
+        setJumps(draft.jumps);
+        setJumpForm(draft.jumpForm);
+      }
     } catch (error) {
       console.error("Failed to load vault logs", error);
     }
 
     setLoaded(true);
   }, []);
+
+  useEffect(() => {
+    if (!loaded) return;
+    saveVaultSessionDraft({ keys, jumps, jumpForm });
+  }, [keys, jumps, jumpForm, loaded]);
 
   useEffect(() => {
     if (!loaded) return;
@@ -125,6 +140,7 @@ export function useVaultLogState() {
     setKeys([""]);
     setJumps([]);
     setJumpForm(emptyJumpForm());
+    clearVaultSessionDraft();
   }
 
   function deleteSession(sessionId: string) {

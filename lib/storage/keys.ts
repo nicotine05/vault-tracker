@@ -14,6 +14,7 @@ export const STORAGE_KEYS = {
   STRENGTH_PRS: "strengthPRs",
   STRENGTH_PR_HISTORY: "strengthPRHistory",
   VAULT_LOGS: "vaultLogs",
+  VAULT_SESSION_DRAFT: "vaultSessionDraft",
   VAULT_STEP_REFERENCES: "vaultStepReferences",
   POLE_INVENTORY: "poleInventory",
   POLE_BAGS: "poleBags",

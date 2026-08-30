@@ -11,6 +11,7 @@ import type {
 } from "@/lib/domain/types";
 import type { WeekScheduleSnapshot } from "@/lib/storage/programStore";
 import { migrateLegacyPoleRecord } from "@/lib/domain/poleInventory";
+import { normalizeVaultSessionDraft } from "@/lib/domain/vaultLog";
 import type { PlannerDay } from "@/lib/trainingProgram";
 import {
   EMPTY_RUN_PRS,
@@ -426,6 +427,9 @@ export function normalizeSyncSnapshot(
           .map(normalizeVaultSession)
           .filter((session): session is VaultSession => session !== null)
       : [],
+    [STORAGE_KEYS.VAULT_SESSION_DRAFT]: normalizeVaultSessionDraft(
+      data[STORAGE_KEYS.VAULT_SESSION_DRAFT]
+    ),
     [STORAGE_KEYS.VAULT_STEP_REFERENCES]: mergeStringRecord(
       data[STORAGE_KEYS.VAULT_STEP_REFERENCES],
       EMPTY_STEP_REFS

@@ -1,3 +1,8 @@
+import {
+  isVaultSessionDraftEmpty,
+  normalizeVaultSessionDraft,
+  type VaultSessionDraft,
+} from "@/lib/domain/vaultLog";
 import type {
   HeightPREntry,
   RunPRs,
@@ -8,7 +13,7 @@ import type {
   VaultSession,
   VaultStepReferences,
 } from "@/lib/domain/types";
-import { getItem, setItem } from "@/lib/storage/localStore";
+import { getItem, removeItem, setItem } from "@/lib/storage/localStore";
 import { STORAGE_EVENTS, STORAGE_KEYS } from "@/lib/storage/keys";
 
 export const EMPTY_SPRINT_PRS: SprintPRs = {
@@ -92,6 +97,24 @@ export function loadVaultSessions(): VaultSession[] {
 
 export function saveVaultSessions(sessions: VaultSession[]): void {
   setItem(STORAGE_KEYS.VAULT_LOGS, sessions);
+}
+
+export function loadVaultSessionDraft(): VaultSessionDraft | null {
+  const stored = getItem<unknown>(STORAGE_KEYS.VAULT_SESSION_DRAFT, null);
+  return normalizeVaultSessionDraft(stored);
+}
+
+export function saveVaultSessionDraft(draft: VaultSessionDraft): void {
+  if (isVaultSessionDraftEmpty(draft)) {
+    clearVaultSessionDraft();
+    return;
+  }
+
+  setItem(STORAGE_KEYS.VAULT_SESSION_DRAFT, draft);
+}
+
+export function clearVaultSessionDraft(): void {
+  removeItem(STORAGE_KEYS.VAULT_SESSION_DRAFT);
 }
 
 export function loadVaultStepReferences(): VaultStepReferences {

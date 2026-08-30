@@ -197,3 +197,93 @@ export function emptyJumpForm(): {
     poleId: undefined,
   };
 }
+
+export type VaultSessionDraft = {
+  keys: string[];
+  jumps: Jump[];
+  jumpForm: ReturnType<typeof emptyJumpForm>;
+};
+
+export function emptyVaultSessionDraft(): VaultSessionDraft {
+  return {
+    keys: [""],
+    jumps: [],
+    jumpForm: emptyJumpForm(),
+  };
+}
+
+export function isVaultSessionDraftEmpty(draft: VaultSessionDraft): boolean {
+  const hasKeys = draft.keys.some((key) => key.trim() !== "");
+  const hasJumps = draft.jumps.length > 0;
+  const form = draft.jumpForm;
+
+  return (
+    !hasKeys &&
+    !hasJumps &&
+    form.run.trim() === "" &&
+    form.grip.trim() === "" &&
+    form.takeoff.trim() === "" &&
+    form.comment.trim() === "" &&
+    !form.poleId
+  );
+}
+
+export function normalizeVaultSessionDraft(
+  value: unknown
+): VaultSessionDraft | null {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const record = value as Record<string, unknown>;
+  const keys = Array.isArray(record.keys)
+    ? record.keys.filter((key): key is string => typeof key === "string")
+    : [""];
+  const jumps = Array.isArray(record.jumps)
+    ? record.jumps.filter((jump): jump is Jump => {
+        if (!jump || typeof jump !== "object") {
+          return false;
+        }
+
+        const entry = jump as Jump;
+        return (
+          typeof entry.id === "string" &&
+          typeof entry.run === "string" &&
+          typeof entry.grip === "string" &&
+          typeof entry.takeoff === "string" &&
+          typeof entry.comment === "string" &&
+          (entry.grade === "green" ||
+            entry.grade === "yellow" ||
+            entry.grade === "red")
+        );
+      })
+    : [];
+
+  const jumpFormRaw = record.jumpForm;
+  if (!jumpFormRaw || typeof jumpFormRaw !== "object") {
+    return null;
+  }
+
+  const form = jumpFormRaw as Record<string, unknown>;
+  const grade = form.grade;
+  if (grade !== "green" && grade !== "yellow" && grade !== "red") {
+    return null;
+  }
+
+  const jumpForm = {
+    run: typeof form.run === "string" ? form.run : "",
+    grip: typeof form.grip === "string" ? form.grip : "",
+    takeoff: typeof form.takeoff === "string" ? form.takeoff : "",
+    grade: grade as Jump["grade"],
+    comment: typeof form.comment === "string" ? form.comment : "",
+    poleId: typeof form.poleId === "string" ? form.poleId : undefined,
+  };
+
+  const draft: VaultSessionDraft = {
+    keys: keys.length > 0 ? keys : [""],
+    jumps,
+    jumpForm,
+  };
+
+  return isVaultSessionDraftEmpty(draft) ? null : draft;
+}
