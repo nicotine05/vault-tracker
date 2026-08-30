@@ -17,7 +17,14 @@ function sanitizeFeet(raw: string): string {
 }
 
 function sanitizeInches(raw: string): string {
-  return raw.replace(/\D/g, "").slice(0, 1);
+  const digits = raw.replace(/\D/g, "");
+  if (!digits) {
+    return "";
+  }
+
+  // Keep the most recently typed digits so users can replace a leading 0.
+  const recent = digits.slice(-2);
+  return String(Math.min(11, Number(recent)));
 }
 
 export default function VaultHeightInput({
@@ -55,8 +62,9 @@ export default function VaultHeightInput({
       <input
         type="text"
         inputMode="numeric"
-        maxLength={1}
+        maxLength={2}
         value={inches}
+        onFocus={(event) => event.target.select()}
         onChange={(event) =>
           onChange(
             composeVaultHeight(feet, sanitizeInches(event.target.value))

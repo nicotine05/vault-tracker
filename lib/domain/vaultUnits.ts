@@ -72,8 +72,12 @@ export function composeVaultHeight(feet: string, inches: string): string {
     return "";
   }
 
-  const inchValue = inches.trim() === "" ? "0" : inches.trim();
-  return formatVaultHeightCanonical(Number(feetTrimmed), Number(inchValue));
+  const inchesTrimmed = inches.trim();
+  if (inchesTrimmed === "") {
+    return `${Number(feetTrimmed)}ft 0in`;
+  }
+
+  return formatVaultHeightCanonical(Number(feetTrimmed), Number(inchesTrimmed));
 }
 
 export function formatFeetInches(totalInches: number): string {
