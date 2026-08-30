@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Card from "@/components/Card";
 import type { Jump, Pole, VaultSession, VaultStepReferences } from "@/lib/domain/types";
 import {
@@ -40,6 +41,8 @@ export default function VaultSessionList({
   onDeleteSession,
   readOnly,
 }: VaultSessionListProps) {
+  const [sectionExpanded, setSectionExpanded] = useState(true);
+
   if (sessions.length === 0) {
     return null;
   }
@@ -49,24 +52,41 @@ export default function VaultSessionList({
 
   return (
     <div>
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-xl font-bold text-foreground">Vault Sessions</h2>
+      <button
+        type="button"
+        onClick={() => setSectionExpanded((current) => !current)}
+        className="mb-3 flex w-full items-center justify-between gap-3 text-left"
+      >
+        <div className="flex items-center gap-2">
+          <h2 className="text-xl font-bold text-foreground">Vault Sessions</h2>
+          <span className="text-muted">{sectionExpanded ? "▾" : "▸"}</span>
+          {!sectionExpanded && (
+            <span className="text-sm text-muted">
+              ({filteredSessions.length} session
+              {filteredSessions.length === 1 ? "" : "s"})
+            </span>
+          )}
+        </div>
 
-        <select
-          value={weekFilter}
-          onChange={(event) => onWeekFilterChange(event.target.value)}
-          className="rounded-lg border border-border bg-surface-muted px-2 py-1 text-foreground"
-        >
-          <option value="all">All</option>
-          {weekOptions.map((week) => (
-            <option key={week} value={week}>
-              {week}
-            </option>
-          ))}
-        </select>
-      </div>
+        {sectionExpanded && (
+          <select
+            value={weekFilter}
+            onClick={(event) => event.stopPropagation()}
+            onChange={(event) => onWeekFilterChange(event.target.value)}
+            className="rounded-lg border border-border bg-surface-muted px-2 py-1 text-foreground"
+          >
+            <option value="all">All</option>
+            {weekOptions.map((week) => (
+              <option key={week} value={week}>
+                {week}
+              </option>
+            ))}
+          </select>
+        )}
+      </button>
 
-      <div className="space-y-3">
+      {sectionExpanded && (
+        <div className="space-y-3">
         {filteredSessions.map((session) => {
           const grades = countJumpGrades(session.jumps);
           const expanded = expandedSessionId === session.id;
@@ -126,7 +146,8 @@ export default function VaultSessionList({
             </Card>
           );
         })}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
