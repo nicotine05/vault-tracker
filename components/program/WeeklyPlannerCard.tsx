@@ -1,5 +1,5 @@
 import Card from "@/components/Card";
-import { getActiveTrainingType } from "@/lib/domain/plannerHealth";
+import { getActiveTrainingTypes } from "@/lib/domain/plannerHealth";
 import type { PlannerDay } from "@/lib/trainingProgram";
 import { plannerDays, type TrainingType } from "@/lib/trainingProgram";
 import { trainingTypeStyles } from "@/lib/ui/trainingStyles";
@@ -30,22 +30,38 @@ export default function WeeklyPlannerCard({
   const plannerContent = (
     <div className={compact ? "space-y-2" : "space-y-3"}>
       {plannerDays.map((day) => {
-        const activeType = getActiveTrainingType(weekPlanner[day]);
-        const styles = activeType ? trainingTypeStyles[activeType] : null;
+        const activeTypes = getActiveTrainingTypes(weekPlanner[day]);
+        const singleType =
+          activeTypes.length === 1 ? activeTypes[0] : undefined;
+        const styles = singleType ? trainingTypeStyles[singleType] : null;
 
         if (compact) {
           return (
             <div
               key={day}
               className={`flex items-center gap-2.5 rounded-xl border px-2.5 py-2 transition-colors ${
-                activeType
-                  ? `${styles!.card} ring-1 ${styles!.ring}`
+                activeTypes.length > 0
+                  ? singleType
+                    ? `${styles!.card} ring-1 ${styles!.ring}`
+                    : "border-border bg-surface-muted ring-1 ring-border/60"
                   : "border-border bg-surface-muted"
               }`}
             >
-              <p className="w-10 shrink-0 text-xs font-semibold text-foreground">
-                {dayAbbreviations[day]}
-              </p>
+              <div className="flex w-10 shrink-0 flex-col gap-1">
+                <p className="text-xs font-semibold text-foreground">
+                  {dayAbbreviations[day]}
+                </p>
+                {activeTypes.length > 1 && (
+                  <div className="flex gap-0.5">
+                    {activeTypes.map((type) => (
+                      <span
+                        key={type}
+                        className={`h-1.5 w-1.5 rounded-full ${trainingTypeStyles[type].dot}`}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
 
               <div className="grid flex-1 grid-cols-3 gap-1.5">
                 {(["vault", "strength", "speed"] as const).map((type) => {
@@ -76,12 +92,14 @@ export default function WeeklyPlannerCard({
           <div
             key={day}
             className={`relative overflow-hidden rounded-2xl border p-4 transition-colors duration-300 ${
-              activeType
-                ? `${styles!.card} ring-1 ${styles!.ring}`
+              activeTypes.length > 0
+                ? singleType
+                  ? `${styles!.card} ring-1 ${styles!.ring}`
+                  : "border-border bg-surface-muted ring-1 ring-border/60 [data-theme=dark]:border-border [data-theme=dark]:bg-surface"
                 : "border-border bg-surface-muted [data-theme=dark]:bg-surface [data-theme=dark]:border-border"
             }`}
           >
-            {activeType && (
+            {singleType && (
               <span
                 aria-hidden
                 className={`absolute inset-y-3 left-0 w-1 rounded-r-full transition-opacity duration-300 ${styles!.accent}`}
@@ -89,10 +107,15 @@ export default function WeeklyPlannerCard({
             )}
 
             <div className="mb-3 flex items-center gap-2">
-              {activeType && (
-                <span
-                  className={`h-2.5 w-2.5 rounded-full transition-transform duration-300 ${styles!.dot}`}
-                />
+              {activeTypes.length > 0 && (
+                <div className="flex items-center gap-1">
+                  {activeTypes.map((type) => (
+                    <span
+                      key={type}
+                      className={`h-2.5 w-2.5 rounded-full transition-transform duration-300 ${trainingTypeStyles[type].dot}`}
+                    />
+                  ))}
+                </div>
               )}
               <p className="font-semibold text-foreground">{day}</p>
             </div>
@@ -131,7 +154,8 @@ export default function WeeklyPlannerCard({
   return (
     <Card title="Weekly Planner">
       <p className="-mt-1 mb-4 text-sm text-muted">
-        Pick one session type per day. Your choices shape the generated schedule.
+        Select one or more training types for each day. Your choices shape the
+        generated schedule.
       </p>
       {plannerContent}
     </Card>

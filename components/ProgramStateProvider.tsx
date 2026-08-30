@@ -149,13 +149,10 @@ export function ProgramStateProvider({
           speed: false,
         };
 
-        const nextDayPlanner = dayPlanner[type]
-          ? { vault: false, strength: false, speed: false, [type]: false }
-          : {
-              vault: type === "vault",
-              strength: type === "strength",
-              speed: type === "speed",
-            };
+        const nextDayPlanner = {
+          ...dayPlanner,
+          [type]: !dayPlanner[type],
+        };
 
         return {
           ...prev,

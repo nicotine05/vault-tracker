@@ -82,10 +82,16 @@ export function getPlannerHealthWarnings(
   };
 }
 
+export function getActiveTrainingTypes(
+  dayPlanner: PlannerDay | undefined
+): TrainingType[] {
+  return (["vault", "strength", "speed"] as const).filter(
+    (type) => dayPlanner?.[type]
+  );
+}
+
 export function getActiveTrainingType(
   dayPlanner: PlannerDay | undefined
 ): TrainingType | undefined {
-  return (["vault", "strength", "speed"] as const).find(
-    (type) => dayPlanner?.[type]
-  );
+  return getActiveTrainingTypes(dayPlanner)[0];
 }
