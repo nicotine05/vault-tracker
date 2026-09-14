@@ -13,6 +13,9 @@ import type { PlannerDay, TrainingType } from "@/lib/trainingProgram";
 import { workoutCompletionKey } from "@/lib/trainingProgram";
 import type { WorkoutExecutionRecord } from "@/lib/domain/types";
 import { getCalendarDateForProgramDay, getDefaultCurrentWeekStartDate, shiftWeekStartDate } from "@/lib/domain/calendarUtils";
+import {
+  isPlannerTrainingTypeAllowed,
+} from "@/lib/domain/plannerHealth";
 import { shouldFreezeProgramProgression } from "@/lib/domain/injuryManagement";
 import {
   getPhaseStartWeek,
@@ -155,6 +158,10 @@ export function ProgramStateProvider({
       if (isCoachReadOnly()) return;
       setState((prev) => {
         if (weekNumber < prev.currentWeek) {
+          return prev;
+        }
+
+        if (!isPlannerTrainingTypeAllowed(type, loadInjuryProfile())) {
           return prev;
         }
 

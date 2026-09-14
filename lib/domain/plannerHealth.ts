@@ -1,3 +1,9 @@
+import {
+  getEffectiveRestrictions,
+  isProgramModified,
+  isTrainingTypeAllowed,
+  type InjuryProfile,
+} from "@/lib/domain/injuryManagement";
 import type { PlannerDay } from "@/lib/trainingProgram";
 import {
   getPhaseConfig,
@@ -28,11 +34,34 @@ export function countPlannerSessions(
   };
 }
 
+export function getAdjustedPlannerTargets(
+  planningWeek: number,
+  profile?: InjuryProfile
+) {
+  const targets = getPhaseConfig(planningWeek).targets;
+  const restrictions = profile ? getEffectiveRestrictions(profile) : null;
+
+  if (!restrictions) {
+    return targets;
+  }
+
+  return {
+    vault: restrictions.avoidVaulting ? 0 : targets.vault,
+    strength: targets.strength,
+    speed: restrictions.avoidSprinting ? 0 : targets.speed,
+  };
+}
+
 export function isPlannerComplete(
   counts: PlannerCounts,
-  planningWeek: number
+  planningWeek: number,
+  profile?: InjuryProfile
 ): boolean {
-  const targets = getPhaseConfig(planningWeek).targets;
+  if (profile && isProgramModified(profile)) {
+    return true;
+  }
+
+  const targets = getAdjustedPlannerTargets(planningWeek, profile);
 
   return (
     counts.vault >= targets.vault &&
@@ -43,24 +72,33 @@ export function isPlannerComplete(
 
 export function getPlannerHealthMetrics(
   counts: PlannerCounts,
-  planningWeek: number
+  planningWeek: number,
+  profile?: InjuryProfile
 ): PlannerHealthMetric[] {
-  const targets = getPhaseConfig(planningWeek).targets;
+  const targets = getAdjustedPlannerTargets(planningWeek, profile);
 
   return [
     { label: "Vault", current: counts.vault, required: targets.vault },
     { label: "Strength", current: counts.strength, required: targets.strength },
     { label: "Speed", current: counts.speed, required: targets.speed },
-  ];
+  ].filter((metric) => metric.required > 0);
 }
 
 export function getPlannerHealthWarnings(
   weekPlanner: Record<string, PlannerDay>,
   planningWeek: number,
-  counts: PlannerCounts
+  counts: PlannerCounts,
+  profile?: InjuryProfile
 ): { healthWarnings: string[]; otherWarnings: string[] } {
-  const targets = getPhaseConfig(planningWeek).targets;
-  const warnings = getPlannerWarnings(weekPlanner, planningWeek);
+  const targets = getAdjustedPlannerTargets(planningWeek, profile);
+  const warnings = getPlannerWarnings(weekPlanner, planningWeek, profile);
+
+  if (profile && isProgramModified(profile)) {
+    return {
+      healthWarnings: [],
+      otherWarnings: warnings,
+    };
+  }
 
   if (counts.vault < targets.vault) {
     warnings.unshift("Missing Required Vault Session");
@@ -94,4 +132,15 @@ export function getActiveTrainingType(
   dayPlanner: PlannerDay | undefined
 ): TrainingType | undefined {
   return getActiveTrainingTypes(dayPlanner)[0];
+}
+
+export function isPlannerTrainingTypeAllowed(
+  type: TrainingType,
+  profile?: InjuryProfile
+): boolean {
+  if (!profile || !isProgramModified(profile)) {
+    return true;
+  }
+
+  return isTrainingTypeAllowed(type, getEffectiveRestrictions(profile));
 }

@@ -2,6 +2,7 @@
 
 import TargetIndicators from "@/components/program/TargetIndicators";
 import WeeklyPlannerCard from "@/components/program/WeeklyPlannerCard";
+import { isProgramModified, type InjuryProfile } from "@/lib/domain/injuryManagement";
 import {
   countPlannerSessions,
   getPlannerHealthMetrics,
@@ -14,6 +15,7 @@ type EditWeekPanelProps = {
   readOnly: boolean;
   planningWeek: number;
   weekPlanner: Record<string, PlannerDay>;
+  injuryProfile?: InjuryProfile;
   onToggle: (day: string, type: TrainingType) => void;
   onRegenerate: () => void;
   onReset: () => void;
@@ -24,14 +26,22 @@ export default function EditWeekPanel({
   readOnly,
   planningWeek,
   weekPlanner,
+  injuryProfile,
   onToggle,
   onRegenerate,
   onReset,
   onClose,
 }: EditWeekPanelProps) {
   const counts = countPlannerSessions(weekPlanner);
-  const plannerComplete = isPlannerComplete(counts, planningWeek);
-  const healthMetrics = getPlannerHealthMetrics(counts, planningWeek);
+  const plannerComplete = isPlannerComplete(counts, planningWeek, injuryProfile);
+  const healthMetrics = getPlannerHealthMetrics(
+    counts,
+    planningWeek,
+    injuryProfile
+  );
+  const isModifiedProgram = injuryProfile
+    ? isProgramModified(injuryProfile)
+    : false;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center">
@@ -48,13 +58,16 @@ export default function EditWeekPanel({
         </div>
 
         <div className="px-4 py-4">
-          <TargetIndicators metrics={healthMetrics} />
+          {!isModifiedProgram && healthMetrics.length > 0 && (
+            <TargetIndicators metrics={healthMetrics} />
+          )}
 
-          <div className="mt-4">
+          <div className={isModifiedProgram ? "" : "mt-4"}>
             <WeeklyPlannerCard
               compact
               readOnly={readOnly}
               weekPlanner={weekPlanner}
+              injuryProfile={injuryProfile}
               onToggle={onToggle}
             />
           </div>
@@ -71,7 +84,7 @@ export default function EditWeekPanel({
               Regenerate Schedule
             </button>
 
-            {!plannerComplete && (
+            {!plannerComplete && !isModifiedProgram && (
               <p className="text-center text-xs text-muted">
                 Meet all session targets above to regenerate.
               </p>

@@ -1,5 +1,9 @@
 import Card from "@/components/Card";
-import { getActiveTrainingTypes } from "@/lib/domain/plannerHealth";
+import {
+  getActiveTrainingTypes,
+  isPlannerTrainingTypeAllowed,
+} from "@/lib/domain/plannerHealth";
+import { isProgramModified, type InjuryProfile } from "@/lib/domain/injuryManagement";
 import type { PlannerDay } from "@/lib/trainingProgram";
 import { plannerDays, type TrainingType } from "@/lib/trainingProgram";
 import { trainingTypeStyles } from "@/lib/ui/trainingStyles";
@@ -8,6 +12,7 @@ type WeeklyPlannerCardProps = {
   readOnly: boolean;
   weekPlanner: Record<string, PlannerDay>;
   onToggle: (day: string, type: TrainingType) => void;
+  injuryProfile?: InjuryProfile;
   compact?: boolean;
 };
 
@@ -25,8 +30,10 @@ export default function WeeklyPlannerCard({
   readOnly,
   weekPlanner,
   onToggle,
+  injuryProfile,
   compact = false,
 }: WeeklyPlannerCardProps) {
+  const isModified = injuryProfile ? isProgramModified(injuryProfile) : false;
   const plannerContent = (
     <div className={compact ? "space-y-2" : "space-y-3"}>
       {plannerDays.map((day) => {
@@ -66,17 +73,23 @@ export default function WeeklyPlannerCard({
               <div className="grid flex-1 grid-cols-3 gap-1.5">
                 {(["vault", "strength", "speed"] as const).map((type) => {
                   const isSelected = Boolean(weekPlanner[day]?.[type]);
+                  const isAllowed = isPlannerTrainingTypeAllowed(
+                    type,
+                    injuryProfile
+                  );
 
                   return (
                     <button
                       key={type}
                       type="button"
-                      disabled={readOnly}
+                      disabled={readOnly || !isAllowed}
                       onClick={() => onToggle(day, type)}
                       className={`rounded-full border px-1.5 py-1.5 text-[10px] font-semibold capitalize leading-none transition disabled:cursor-not-allowed disabled:opacity-50 ${
-                        isSelected
-                          ? trainingTypeStyles[type].selected
-                          : trainingTypeStyles[type].button
+                        !isAllowed
+                          ? "border-border/40 bg-surface-muted/40 text-muted line-through"
+                          : isSelected
+                            ? trainingTypeStyles[type].selected
+                            : trainingTypeStyles[type].button
                       }`}
                     >
                       {type}
@@ -123,17 +136,23 @@ export default function WeeklyPlannerCard({
             <div className="grid grid-cols-3 gap-2">
               {(["vault", "strength", "speed"] as const).map((type) => {
                 const isSelected = Boolean(weekPlanner[day]?.[type]);
+                const isAllowed = isPlannerTrainingTypeAllowed(
+                  type,
+                  injuryProfile
+                );
 
                 return (
                   <button
                     key={type}
                     type="button"
-                    disabled={readOnly}
+                    disabled={readOnly || !isAllowed}
                     onClick={() => onToggle(day, type)}
                     className={`rounded-full border px-2 py-2 text-sm font-semibold capitalize transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50 ${
-                      isSelected
-                        ? `${trainingTypeStyles[type].selected} scale-[1.02]`
-                        : trainingTypeStyles[type].button
+                      !isAllowed
+                        ? "border-border/40 bg-surface-muted/40 text-muted line-through"
+                        : isSelected
+                          ? `${trainingTypeStyles[type].selected} scale-[1.02]`
+                          : trainingTypeStyles[type].button
                     }`}
                   >
                     {type}
@@ -154,8 +173,9 @@ export default function WeeklyPlannerCard({
   return (
     <Card title="Weekly Planner">
       <p className="-mt-1 mb-4 text-sm text-muted">
-        Select one or more training types for each day. Your choices shape the
-        generated schedule.
+        {isModified
+          ? "Plan around your active restrictions. Restricted session types are disabled and weekly minimums are relaxed."
+          : "Select one or more training types for each day. Your choices shape the generated schedule."}
       </p>
       {plannerContent}
     </Card>

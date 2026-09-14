@@ -8,6 +8,7 @@ import ProgramWeekHeader from "@/components/program/ProgramWeekHeader";
 import ScheduleWarningModal from "@/components/program/ScheduleWarningModal";
 import TargetIndicators from "@/components/program/TargetIndicators";
 import WeeklyPlannerCard from "@/components/program/WeeklyPlannerCard";
+import { isProgramModified } from "@/lib/domain/injuryManagement";
 import {
   countPlannerSessions,
   getPlannerHealthMetrics,
@@ -78,8 +79,13 @@ function ProgramPageContent() {
   const weekPlanner = plannerByWeek[planningWeek] || {};
   const phaseName = getPhaseNameForWeek(planningWeek);
   const counts = countPlannerSessions(weekPlanner);
-  const plannerComplete = isPlannerComplete(counts, planningWeek);
-  const healthMetrics = getPlannerHealthMetrics(counts, planningWeek);
+  const isModifiedProgram = isProgramModified(injuryProfile);
+  const plannerComplete = isPlannerComplete(counts, planningWeek, injuryProfile);
+  const healthMetrics = getPlannerHealthMetrics(
+    counts,
+    planningWeek,
+    injuryProfile
+  );
 
   const programState = {
     currentWeek,
@@ -160,11 +166,14 @@ function ProgramPageContent() {
 
       {!generated && (
         <div className="mt-4 space-y-4">
-          <TargetIndicators metrics={healthMetrics} />
+          {!isModifiedProgram && healthMetrics.length > 0 && (
+            <TargetIndicators metrics={healthMetrics} />
+          )}
 
           <WeeklyPlannerCard
             readOnly={isCoachReadOnly || isPastWeek}
             weekPlanner={weekPlanner}
+            injuryProfile={injuryProfile}
             onToggle={togglePlanner}
           />
 
@@ -194,6 +203,7 @@ function ProgramPageContent() {
           currentWeek={currentWeek}
           generatedSchedule={generatedSchedule}
           weekPlanner={weekPlanner}
+          injuryProfile={injuryProfile}
           completedWorkouts={completedWorkouts}
           confirmingKey={confirmingKey}
           onConfirmWorkout={completeWorkout}

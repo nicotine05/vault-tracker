@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import EditWeekPanel from "@/components/program/EditWeekPanel";
 import ScheduleDaySection from "@/components/program/ScheduleDaySection";
 import ScheduleWeekOverview from "@/components/program/ScheduleWeekOverview";
+import type { InjuryProfile } from "@/lib/domain/injuryManagement";
 import type { WorkoutToggleParams } from "@/lib/hooks/useProgramState";
 import { getTodayPlannerDayName } from "@/lib/domain/todayTraining";
 import {
@@ -34,6 +35,7 @@ type GeneratedScheduleCardProps = {
   currentWeek: number;
   generatedSchedule: GeneratedWeekSchedule;
   weekPlanner: Record<string, PlannerDay>;
+  injuryProfile?: InjuryProfile;
   completedWorkouts: Record<string, boolean>;
   confirmingKey: string | null;
   onConfirmWorkout: (params: WorkoutToggleParams) => void;
@@ -50,6 +52,7 @@ export default function GeneratedScheduleCard({
   currentWeek,
   generatedSchedule,
   weekPlanner,
+  injuryProfile,
   completedWorkouts,
   confirmingKey,
   onConfirmWorkout,
@@ -200,6 +203,7 @@ export default function GeneratedScheduleCard({
           readOnly={readOnly}
           planningWeek={planningWeek}
           weekPlanner={weekPlanner}
+          injuryProfile={injuryProfile}
           onToggle={onTogglePlanner}
           onRegenerate={() => {
             setShowEditWeek(false);

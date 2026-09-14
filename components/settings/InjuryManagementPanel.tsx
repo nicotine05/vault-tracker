@@ -5,6 +5,7 @@ import Card from "@/components/Card";
 import { useAuth } from "@/components/AuthProvider";
 import { program } from "@/lib/data";
 import {
+  EMPTY_INJURY_RESTRICTIONS,
   getProgramStatusDescription,
   getProgramStatusLabel,
   INJURY_RESTRICTION_OPTIONS,
@@ -38,6 +39,9 @@ export default function InjuryManagementPanel() {
   const [showModifyOptions, setShowModifyOptions] = useState(
     profile.status === "modified"
   );
+  const [confirmingRestart, setConfirmingRestart] = useState<
+    "phase" | "program" | null
+  >(null);
 
   useEffect(() => {
     setDraftRestrictions(profile.restrictions);
@@ -47,6 +51,15 @@ export default function InjuryManagementPanel() {
   const phaseName = getPhaseNameForWeek(currentWeek);
   const phaseStart = getPhaseStartWeek(currentWeek);
   const canResume = profile.status === "paused" || profile.status === "modified";
+  const savedRestrictions =
+    profile.status === "modified"
+      ? profile.restrictions
+      : EMPTY_INJURY_RESTRICTIONS;
+  const restrictionsDirty =
+    draftRestrictions.avoidLowerBody !== savedRestrictions.avoidLowerBody ||
+    draftRestrictions.avoidUpperBody !== savedRestrictions.avoidUpperBody ||
+    draftRestrictions.avoidSprinting !== savedRestrictions.avoidSprinting ||
+    draftRestrictions.avoidVaulting !== savedRestrictions.avoidVaulting;
 
   function handleModifyProgram() {
     if (isCoachReadOnly) {
@@ -54,7 +67,6 @@ export default function InjuryManagementPanel() {
     }
 
     setShowModifyOptions(true);
-    modify(draftRestrictions);
   }
 
   function handleRestrictionChange(
@@ -65,15 +77,51 @@ export default function InjuryManagementPanel() {
       return;
     }
 
-    const nextRestrictions = {
-      ...draftRestrictions,
+    setDraftRestrictions((current) => ({
+      ...current,
       [key]: checked,
-    };
-    setDraftRestrictions(nextRestrictions);
+    }));
+  }
+
+  function handleSaveRestrictions() {
+    if (isCoachReadOnly || !restrictionsDirty) {
+      return;
+    }
 
     if (profile.status === "modified") {
-      updateRestrictions(nextRestrictions);
+      updateRestrictions(draftRestrictions);
+      return;
     }
+
+    modify(draftRestrictions);
+  }
+
+  function handleRestartPhase() {
+    if (isCoachReadOnly) {
+      return;
+    }
+
+    if (confirmingRestart === "phase") {
+      restartPhase();
+      setConfirmingRestart(null);
+      return;
+    }
+
+    setConfirmingRestart("phase");
+  }
+
+  function handleRestartProgram() {
+    if (isCoachReadOnly) {
+      return;
+    }
+
+    if (confirmingRestart === "program") {
+      restartProgram();
+      setConfirmingRestart(null);
+      return;
+    }
+
+    setConfirmingRestart("program");
   }
 
   return (
@@ -140,6 +188,17 @@ export default function InjuryManagementPanel() {
                   </label>
                 ))}
               </div>
+
+              {!isCoachReadOnly && (
+                <button
+                  type="button"
+                  onClick={handleSaveRestrictions}
+                  disabled={!restrictionsDirty}
+                  className={`mt-4 w-full ${primaryButtonClassName} disabled:cursor-not-allowed disabled:opacity-50`}
+                >
+                  Save Restrictions
+                </button>
+              )}
             </div>
           )}
 
@@ -171,10 +230,16 @@ export default function InjuryManagementPanel() {
           <button
             type="button"
             disabled={isCoachReadOnly}
-            onClick={() => restartPhase()}
-            className={`w-full ${secondaryButtonClassName}`}
+            onClick={handleRestartPhase}
+            className={`w-full ${
+              confirmingRestart === "phase"
+                ? primaryButtonClassName
+                : secondaryButtonClassName
+            }`}
           >
-            Restart Current Phase
+            {confirmingRestart === "phase"
+              ? "Confirm?"
+              : "Restart Current Phase"}
           </button>
           <p className="text-xs text-muted">
             Example: {phaseName} Week {currentWeek} becomes {phaseName} Week{" "}
@@ -184,10 +249,16 @@ export default function InjuryManagementPanel() {
           <button
             type="button"
             disabled={isCoachReadOnly}
-            onClick={() => restartProgram()}
-            className={`w-full ${secondaryButtonClassName}`}
+            onClick={handleRestartProgram}
+            className={`w-full ${
+              confirmingRestart === "program"
+                ? primaryButtonClassName
+                : secondaryButtonClassName
+            }`}
           >
-            Restart Entire Program
+            {confirmingRestart === "program"
+              ? "Confirm?"
+              : "Restart Entire Program"}
           </button>
           <p className="text-xs text-muted">
             Returns to Week 1, Phase 1 of the {program.totalWeeks}-week program.
