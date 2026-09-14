@@ -20,6 +20,8 @@ export const STORAGE_KEYS = {
   POLE_BAGS: "poleBags",
   RECENT_POLE_IDS: "recentPoleIds",
   EXECUTION_HISTORY: "workoutExecutionHistory",
+  INJURY_PROFILE: "injuryProfile",
+  PROGRAM_CYCLES: "programCycles",
   MIGRATION_V1: "vaultTracker_migration_v1",
   MIGRATION_V2: "vaultTracker_migration_v2",
   MIGRATION_V3: "vaultTracker_migration_v3",

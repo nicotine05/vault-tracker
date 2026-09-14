@@ -5,6 +5,8 @@ import {
   EMPTY_STRENGTH_PRS,
   EMPTY_STEP_REFS,
 } from "@/lib/storage/logStore";
+import { DEFAULT_INJURY_PROFILE } from "@/lib/domain/injuryManagement";
+import { createInitialProgramCycle } from "@/lib/domain/programCycle";
 import { STORAGE_KEYS } from "@/lib/storage/keys";
 
 /** Canonical empty snapshot for a new athlete account. */
@@ -27,6 +29,8 @@ export function getDefaultSyncSnapshot(): Record<string, unknown> {
     [STORAGE_KEYS.VAULT_LOGS]: [],
     [STORAGE_KEYS.VAULT_SESSION_DRAFT]: null,
     [STORAGE_KEYS.VAULT_STEP_REFERENCES]: { ...EMPTY_STEP_REFS },
+    [STORAGE_KEYS.INJURY_PROFILE]: { ...DEFAULT_INJURY_PROFILE },
+    [STORAGE_KEYS.PROGRAM_CYCLES]: createInitialProgramCycle(1),
     [STORAGE_KEYS.POLE_INVENTORY]: [],
     [STORAGE_KEYS.POLE_BAGS]: [],
     [STORAGE_KEYS.RECENT_POLE_IDS]: [],

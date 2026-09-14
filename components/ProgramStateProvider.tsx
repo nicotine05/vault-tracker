@@ -12,7 +12,12 @@ import {
 import type { PlannerDay, TrainingType } from "@/lib/trainingProgram";
 import { workoutCompletionKey } from "@/lib/trainingProgram";
 import type { WorkoutExecutionRecord } from "@/lib/domain/types";
+import {
+  getPhaseStartWeek,
+  pruneProgramScheduleFromWeek,
+} from "@/lib/domain/programCycle";
 import { getCalendarDateForProgramDay, getDefaultCurrentWeekStartDate, shiftWeekStartDate } from "@/lib/domain/calendarUtils";
+import { loadInjuryProfile } from "@/lib/storage/injuryStore";
 import {
   clampPlanningWeek,
   generateScheduleSnapshot,
@@ -46,6 +51,8 @@ type ProgramStateContextValue = ProgramState & {
   generateWeekSchedule: (weekNumber: number) => void;
   resetWeekPlanner: (weekNumber: number) => void;
   completeWorkout: (params: WorkoutToggleParams) => void;
+  restartCurrentPhase: () => void;
+  restartEntireProgram: () => void;
 };
 
 const ProgramStateContext = createContext<ProgramStateContextValue | null>(null);
@@ -177,7 +184,12 @@ export function ProgramStateProvider({
       }
 
       const planner = prev.plannerByWeek[weekNumber] ?? {};
-      const snapshot = generateScheduleSnapshot(weekNumber, planner);
+      const injuryProfile = loadInjuryProfile();
+      const snapshot = generateScheduleSnapshot(
+        weekNumber,
+        planner,
+        injuryProfile
+      );
 
       return {
         ...prev,
@@ -208,6 +220,41 @@ export function ProgramStateProvider({
         scheduleSnapshotsByWeek: nextSnapshots,
       };
     });
+  }, []);
+
+  const restartCurrentPhase = useCallback(() => {
+    if (isCoachReadOnly()) return;
+    setState((prev) => {
+      const phaseStartWeek = getPhaseStartWeek(prev.currentWeek);
+      const pruned = pruneProgramScheduleFromWeek(
+        prev.plannerByWeek,
+        prev.scheduleSnapshotsByWeek,
+        phaseStartWeek
+      );
+
+      return {
+        ...prev,
+        currentWeek: phaseStartWeek,
+        planningWeek: clampPlanningWeek(phaseStartWeek, phaseStartWeek),
+        currentWeekStartDate: getDefaultCurrentWeekStartDate(),
+        plannerByWeek: pruned.plannerByWeek,
+        scheduleSnapshotsByWeek: pruned.scheduleSnapshotsByWeek,
+      };
+    });
+  }, []);
+
+  const restartEntireProgram = useCallback(() => {
+    if (isCoachReadOnly()) return;
+    setState((prev) => ({
+      ...prev,
+      currentWeek: 1,
+      planningWeek: 1,
+      currentWeekStartDate: getDefaultCurrentWeekStartDate(),
+      plannerByWeek: {},
+      scheduleSnapshotsByWeek: {},
+      completedWorkouts: prev.completedWorkouts,
+      executionHistory: prev.executionHistory,
+    }));
   }, []);
 
   const completeWorkout = useCallback((params: WorkoutToggleParams) => {
@@ -266,6 +313,8 @@ export function ProgramStateProvider({
       generateWeekSchedule,
       resetWeekPlanner,
       completeWorkout,
+      restartCurrentPhase,
+      restartEntireProgram,
     }),
     [
       state,
@@ -277,6 +326,8 @@ export function ProgramStateProvider({
       generateWeekSchedule,
       resetWeekPlanner,
       completeWorkout,
+      restartCurrentPhase,
+      restartEntireProgram,
     ]
   );
 

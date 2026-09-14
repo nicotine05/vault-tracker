@@ -11,6 +11,11 @@ import type {
 } from "@/lib/domain/types";
 import type { WeekScheduleSnapshot } from "@/lib/storage/programStore";
 import { migrateLegacyPoleRecord } from "@/lib/domain/poleInventory";
+import {
+  DEFAULT_INJURY_PROFILE,
+  normalizeInjuryProfile,
+} from "@/lib/domain/injuryManagement";
+import { normalizeProgramCycleState } from "@/lib/domain/programCycle";
 import { normalizeVaultSessionDraft } from "@/lib/domain/vaultLog";
 import type { PlannerDay } from "@/lib/trainingProgram";
 import {
@@ -433,6 +438,12 @@ export function normalizeSyncSnapshot(
     [STORAGE_KEYS.VAULT_STEP_REFERENCES]: mergeStringRecord(
       data[STORAGE_KEYS.VAULT_STEP_REFERENCES],
       EMPTY_STEP_REFS
+    ),
+    [STORAGE_KEYS.INJURY_PROFILE]: normalizeInjuryProfile(
+      data[STORAGE_KEYS.INJURY_PROFILE] ?? DEFAULT_INJURY_PROFILE
+    ),
+    [STORAGE_KEYS.PROGRAM_CYCLES]: normalizeProgramCycleState(
+      data[STORAGE_KEYS.PROGRAM_CYCLES]
     ),
     [STORAGE_KEYS.POLE_INVENTORY]: isArray(data[STORAGE_KEYS.POLE_INVENTORY])
       ? (data[STORAGE_KEYS.POLE_INVENTORY] as unknown[])

@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import GeneratedScheduleCard from "@/components/program/GeneratedScheduleCard";
+import InjuryModeBadge from "@/components/program/InjuryModeBadge";
 import ProgramWeekHeader from "@/components/program/ProgramWeekHeader";
 import ScheduleWarningModal from "@/components/program/ScheduleWarningModal";
 import TargetIndicators from "@/components/program/TargetIndicators";
@@ -15,6 +16,7 @@ import {
 } from "@/lib/domain/plannerHealth";
 import { getPhaseNameForWeek } from "@/lib/domain/programWeek";
 import { useProgramState } from "@/lib/hooks/useProgramState";
+import { useInjuryState } from "@/lib/hooks/useInjuryState";
 import {
   isWeekScheduleGenerated,
   maxViewableWeek,
@@ -51,6 +53,7 @@ function ProgramPageContent() {
     completeWorkout,
     setPlanningWeek,
   } = useProgramState();
+  const { profile: injuryProfile } = useInjuryState();
 
   const [confirmingKey, setConfirmingKey] = useState<string | null>(null);
   const [scheduleWarnings, setScheduleWarnings] = useState<string[] | null>(null);
@@ -109,7 +112,11 @@ function ProgramPageContent() {
       return;
     }
 
-    const warnings = getPlannerWarnings(weekPlanner, planningWeek);
+    const warnings = getPlannerWarnings(
+      weekPlanner,
+      planningWeek,
+      injuryProfile
+    );
 
     if (warnings.length > 0) {
       setScheduleWarnings(warnings);
@@ -140,6 +147,10 @@ function ProgramPageContent() {
         onNextWeek={() => navigateToWeek(planningWeek + 1)}
         onReturnToActiveWeek={() => navigateToWeek(currentWeek)}
       />
+
+      <div className="mt-4">
+        <InjuryModeBadge profile={injuryProfile} />
+      </div>
 
       {!generated && (
         <div className="mt-4 space-y-4">

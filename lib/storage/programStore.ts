@@ -1,3 +1,4 @@
+import type { InjuryProfile } from "@/lib/domain/injuryManagement";
 import {
   ENGINE_VERSION,
   generateScheduleForWeek,
@@ -92,14 +93,15 @@ export function syncProgramWeekToCalendar(state: ProgramState): ProgramState {
 
 function createSnapshot(
   weekNumber: number,
-  planner: Record<string, PlannerDay>
+  planner: Record<string, PlannerDay>,
+  injuryProfile?: InjuryProfile | null
 ): WeekScheduleSnapshot {
   return {
     weekNumber,
     generatedAt: new Date().toISOString(),
     engineVersion: ENGINE_VERSION,
     planner,
-    schedule: generateScheduleForWeek(planner, weekNumber),
+    schedule: generateScheduleForWeek(planner, weekNumber, injuryProfile),
   };
 }
 
@@ -187,9 +189,10 @@ export function saveProgramState(state: ProgramState): void {
 
 export function generateScheduleSnapshot(
   weekNumber: number,
-  planner: Record<string, PlannerDay>
+  planner: Record<string, PlannerDay>,
+  injuryProfile?: InjuryProfile | null
 ): WeekScheduleSnapshot {
-  return createSnapshot(weekNumber, planner);
+  return createSnapshot(weekNumber, planner, injuryProfile);
 }
 
 export function getScheduleForWeek(
