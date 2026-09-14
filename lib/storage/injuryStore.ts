@@ -1,8 +1,9 @@
 import {
   DEFAULT_INJURY_PROFILE,
+  EMPTY_INJURY_RESTRICTIONS,
   normalizeInjuryProfile,
-  type InjuryBodyArea,
   type InjuryProfile,
+  type InjuryRestrictions,
 } from "@/lib/domain/injuryManagement";
 import {
   createInitialProgramCycle,
@@ -43,33 +44,51 @@ export function saveProgramCycleState(state: ProgramCycleState): void {
   setItem(STORAGE_KEYS.PROGRAM_CYCLES, state);
 }
 
-export function enableInjuryManagement(
-  bodyArea: InjuryBodyArea,
-  notes?: string
+export function pauseProgram(): InjuryProfile {
+  const profile: InjuryProfile = {
+    status: "paused",
+    restrictions: { ...EMPTY_INJURY_RESTRICTIONS },
+    updatedAt: new Date().toLocaleDateString(),
+  };
+
+  saveInjuryProfile(profile);
+  return profile;
+}
+
+export function modifyProgram(
+  restrictions: InjuryRestrictions
 ): InjuryProfile {
   const profile: InjuryProfile = {
-    status: "managing",
-    bodyArea,
-    startedAt: new Date().toLocaleDateString(),
-    notes: notes?.trim() || undefined,
+    status: "modified",
+    restrictions,
+    updatedAt: new Date().toLocaleDateString(),
   };
 
   saveInjuryProfile(profile);
   return profile;
 }
 
-export function clearInjuryManagement(): InjuryProfile {
-  const profile: InjuryProfile = { status: "normal" };
+export function resumeProgram(): InjuryProfile {
+  const profile: InjuryProfile = { ...DEFAULT_INJURY_PROFILE };
   saveInjuryProfile(profile);
   return profile;
 }
 
-export function updateInjuryNotes(notes: string): InjuryProfile {
+export function updateProgramRestrictions(
+  restrictions: InjuryRestrictions
+): InjuryProfile {
   const profile = loadInjuryProfile();
+
+  if (profile.status !== "modified") {
+    return profile;
+  }
+
   const nextProfile: InjuryProfile = {
     ...profile,
-    notes: notes.trim() || undefined,
+    restrictions,
+    updatedAt: new Date().toLocaleDateString(),
   };
+
   saveInjuryProfile(nextProfile);
   return nextProfile;
 }

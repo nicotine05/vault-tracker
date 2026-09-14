@@ -5,16 +5,12 @@ import {
 } from "./catalogs/strengthCatalog";
 import { sprintCatalog, type SprintWorkout } from "./catalogs/sprintCatalog";
 import { vaultCatalog, type VaultWorkout } from "./catalogs/vaultCatalog";
-import type { InjuryBodyArea, InjuryProfile } from "@/lib/domain/injuryManagement";
 import {
   filterStrengthCategoryPriority,
-  getInjurySubstituteStrengthId,
-  getRestrictionsForBodyArea,
-  hasRestriction,
-  isInjuryModeActive,
-  isSprintWorkoutAllowed,
-  markInjuryAdjustedSession,
-} from "@/lib/domain/injuryManagement";
+  getEffectiveRestrictions,
+  isTrainingTypeAllowed,
+  type InjuryProfile,
+} from "./domain/injuryManagement";
 
 export type TrainingType = "vault" | "strength" | "speed";
 export type TrafficLightLevel = "Green" | "Yellow" | "Orange" | "Red" | "Black";
@@ -27,7 +23,7 @@ export type DailySchedule = {
 
 export type GeneratedWeekSchedule = Record<string, DailySchedule>;
 
-export const ENGINE_VERSION = 3;
+export const ENGINE_VERSION = 2;
 
 export type PlannerDay = {
   vault: boolean;
@@ -283,21 +279,21 @@ function assignStrengthWorkout(
 function buildStrengthAssignments(
   plannerWeek: Partial<Record<string, PlannerDay>>,
   weekNumber: number,
-  injuryProfile?: InjuryProfile | null
+  injuryProfile?: InjuryProfile
 ): Map<string, SessionOption> {
   const phase = getPhaseConfig(weekNumber);
   const basePriority =
     STRENGTH_CATEGORY_PRIORITY[phase.name] ?? STRENGTH_CATEGORY_PRIORITY.Rebuild;
-  const restrictions =
-    injuryProfile && isInjuryModeActive(injuryProfile)
-      ? getRestrictionsForBodyArea(injuryProfile.bodyArea!)
-      : [];
+  const restrictions = injuryProfile
+    ? getEffectiveRestrictions(injuryProfile)
+    : null;
   const priority = filterStrengthCategoryPriority(basePriority, restrictions);
   const strengthDays = plannerDays.filter((day) => plannerWeek[day]?.strength);
+  const categories = priority.slice(0, strengthDays.length);
   const assignments = new Map<string, SessionOption>();
 
   strengthDays.forEach((day, index) => {
-    const category = priority[index % priority.length];
+    const category = categories[index];
     if (!category) {
       return;
     }
@@ -307,56 +303,6 @@ function buildStrengthAssignments(
   });
 
   return assignments;
-}
-
-function pickInjurySafeSprintSession(
-  phase: PhaseDefinition,
-  dayIndex: number,
-  weekNumber: number,
-  bodyArea: InjuryBodyArea | undefined,
-  restrictions: ReturnType<typeof getRestrictionsForBodyArea>
-): SessionOption {
-  if (hasRestriction(restrictions, "sprint")) {
-    const substituteId = getInjurySubstituteStrengthId(bodyArea, weekNumber);
-    const substitute = strengthCatalog.find((workout) => workout.id === substituteId);
-    if (substitute) {
-      return markInjuryAdjustedSession(
-        strengthToSession(substitute),
-        "speed"
-      );
-    }
-  }
-
-  const allowedPool = phase.sprint.filter((session) => {
-    const sprintWorkout = sprintCatalog.find((workout) => workout.id === session.id);
-    return sprintWorkout
-      ? isSprintWorkoutAllowed(sprintWorkout, restrictions)
-      : true;
-  });
-
-  if (allowedPool.length > 0) {
-    return allowedPool[dayIndex % allowedPool.length] ?? allowedPool[0]!;
-  }
-
-  const substituteId = getInjurySubstituteStrengthId(bodyArea, weekNumber);
-  const substitute = strengthCatalog.find((workout) => workout.id === substituteId);
-  return markInjuryAdjustedSession(
-    strengthToSession(substitute ?? strengthCatalog.find((w) => w.category === "AS")!),
-    "speed"
-  );
-}
-
-function pickInjurySafeVaultSession(
-  weekNumber: number,
-  bodyArea: InjuryBodyArea | undefined,
-  restrictions: ReturnType<typeof getRestrictionsForBodyArea>
-): SessionOption {
-  const substituteId = getInjurySubstituteStrengthId(bodyArea, weekNumber);
-  const substitute = strengthCatalog.find((workout) => workout.id === substituteId);
-  return markInjuryAdjustedSession(
-    strengthToSession(substitute ?? strengthCatalog.find((w) => w.category === "AS")!),
-    "vault"
-  );
 }
 
 export function getStrengthCategoryPriority(
@@ -370,13 +316,12 @@ export function getStrengthCategoryPriority(
 export function generateScheduleForWeek(
   plannerWeek: Partial<Record<string, PlannerDay>>,
   weekNumber: number,
-  injuryProfile?: InjuryProfile | null
+  injuryProfile?: InjuryProfile
 ): GeneratedWeekSchedule {
   const phase = getPhaseConfig(weekNumber);
-  const injuryActive = injuryProfile && isInjuryModeActive(injuryProfile);
-  const restrictions = injuryActive
-    ? getRestrictionsForBodyArea(injuryProfile!.bodyArea!)
-    : [];
+  const restrictions = injuryProfile
+    ? getEffectiveRestrictions(injuryProfile)
+    : null;
   const strengthAssignments = buildStrengthAssignments(
     plannerWeek,
     weekNumber,
@@ -387,19 +332,9 @@ export function generateScheduleForWeek(
     const entry = plannerWeek[day] || { vault: false, strength: false, speed: false };
     const assignedSessions: SessionOption[] = [];
 
-    if (entry.vault) {
-      if (injuryActive && hasRestriction(restrictions, "vault")) {
-        assignedSessions.push(
-          pickInjurySafeVaultSession(
-            weekNumber,
-            injuryProfile!.bodyArea,
-            restrictions
-          )
-        );
-      } else {
-        const pool = getPhasePool(phase, "vault");
-        assignedSessions.push(pool[dayIndex % pool.length] ?? pool[0]!);
-      }
+    if (entry.vault && isTrainingTypeAllowed("vault", restrictions)) {
+      const pool = getPhasePool(phase, "vault");
+      assignedSessions.push(pool[dayIndex % pool.length] ?? pool[0]);
     }
 
     if (entry.strength) {
@@ -409,21 +344,9 @@ export function generateScheduleForWeek(
       }
     }
 
-    if (entry.speed) {
-      if (injuryActive) {
-        assignedSessions.push(
-          pickInjurySafeSprintSession(
-            phase,
-            dayIndex,
-            weekNumber,
-            injuryProfile!.bodyArea,
-            restrictions
-          )
-        );
-      } else {
-        const pool = getPhasePool(phase, "speed");
-        assignedSessions.push(pool[dayIndex % pool.length] ?? pool[0]!);
-      }
+    if (entry.speed && isTrainingTypeAllowed("speed", restrictions)) {
+      const pool = getPhasePool(phase, "speed");
+      assignedSessions.push(pool[dayIndex % pool.length] ?? pool[0]);
     }
 
     const load = assignedSessions.reduce((total, session) => total + session.load, 0);
@@ -449,7 +372,7 @@ export function workoutCompletionKey(
 export function getPlannerWarnings(
   plannerWeek: Partial<Record<string, PlannerDay>>,
   weekNumber: number,
-  injuryProfile?: InjuryProfile | null
+  injuryProfile?: InjuryProfile
 ): string[] {
   const warnings = new Set<string>();
   const scheduled = generateScheduleForWeek(

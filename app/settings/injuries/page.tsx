@@ -15,7 +15,7 @@ export default function InjuryManagementPage() {
         Injury Management
       </h1>
       <p className="mt-1 mb-4 text-sm text-muted">
-        Modify training while recovering from injury.
+        Pause or modify your training program without losing any data.
       </p>
 
       <InjuryManagementPanel />

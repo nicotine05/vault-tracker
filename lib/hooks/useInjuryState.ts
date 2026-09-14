@@ -1,24 +1,22 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import type { InjuryBodyArea, InjuryProfile } from "@/lib/domain/injuryManagement";
-import { isInjuryModeActive } from "@/lib/domain/injuryManagement";
+import type {
+  InjuryProfile,
+  InjuryRestrictions,
+} from "@/lib/domain/injuryManagement";
 import { getPhaseStartWeek } from "@/lib/domain/programCycle";
 import { useProgramState } from "@/lib/hooks/useProgramState";
 import {
-  clearInjuryManagement,
-  enableInjuryManagement,
   loadInjuryProfile,
   loadProgramCycleState,
+  modifyProgram,
+  pauseProgram,
   recordProgramCycleStart,
+  resumeProgram,
   saveInjuryProfile,
-  updateInjuryNotes,
+  updateProgramRestrictions,
 } from "@/lib/storage/injuryStore";
-
-export type InjuryRecoveryOption =
-  | "resume"
-  | "restart-phase"
-  | "restart-program";
 
 export function useInjuryState() {
   const {
@@ -27,7 +25,9 @@ export function useInjuryState() {
     restartEntireProgram,
   } = useProgramState();
   const [loaded, setLoaded] = useState(false);
-  const [profile, setProfile] = useState<InjuryProfile>({ status: "normal" });
+  const [profile, setProfile] = useState<InjuryProfile>(() =>
+    loadInjuryProfile()
+  );
 
   useEffect(() => {
     setProfile(loadInjuryProfile());
@@ -39,64 +39,54 @@ export function useInjuryState() {
     setProfile(loadInjuryProfile());
   }, []);
 
-  const setManagingInjury = useCallback(
-    (bodyArea: InjuryBodyArea, notes?: string) => {
-      const nextProfile = enableInjuryManagement(bodyArea, notes);
-      setProfile(nextProfile);
-      return nextProfile;
-    },
-    []
-  );
-
-  const setNormalTraining = useCallback(() => {
-    const nextProfile = clearInjuryManagement();
+  const pause = useCallback(() => {
+    const nextProfile = pauseProgram();
     setProfile(nextProfile);
     return nextProfile;
   }, []);
 
-  const saveNotes = useCallback((notes: string) => {
-    const nextProfile = updateInjuryNotes(notes);
+  const modify = useCallback((restrictions: InjuryRestrictions) => {
+    const nextProfile = modifyProgram(restrictions);
     setProfile(nextProfile);
     return nextProfile;
   }, []);
 
-  const recoverFromInjury = useCallback(
-    (option: InjuryRecoveryOption) => {
-      if (option === "restart-phase") {
-        const phaseStart = getPhaseStartWeek(currentWeek);
-        const cycleState = loadProgramCycleState(currentWeek);
-        restartCurrentPhase();
-        recordProgramCycleStart(
-          cycleState,
-          phaseStart,
-          "injury-phase-restart",
-          currentWeek - 1
-        );
-      } else if (option === "restart-program") {
-        const cycleState = loadProgramCycleState(currentWeek);
-        restartEntireProgram();
-        recordProgramCycleStart(
-          cycleState,
-          1,
-          "program-restart",
-          currentWeek - 1
-        );
-      }
+  const updateRestrictions = useCallback((restrictions: InjuryRestrictions) => {
+    const nextProfile = updateProgramRestrictions(restrictions);
+    setProfile(nextProfile);
+    return nextProfile;
+  }, []);
 
-      const nextProfile = clearInjuryManagement();
-      setProfile(nextProfile);
-    },
-    [currentWeek, restartCurrentPhase, restartEntireProgram]
-  );
+  const resume = useCallback(() => {
+    const cycleState = loadProgramCycleState(currentWeek);
+    recordProgramCycleStart(cycleState, currentWeek, "injury-resume");
+    const nextProfile = resumeProgram();
+    setProfile(nextProfile);
+    return nextProfile;
+  }, [currentWeek]);
+
+  const restartPhase = useCallback(() => {
+    const cycleState = loadProgramCycleState(currentWeek);
+    const phaseStart = getPhaseStartWeek(currentWeek);
+    restartCurrentPhase();
+    recordProgramCycleStart(cycleState, phaseStart, "injury-phase-restart");
+  }, [currentWeek, restartCurrentPhase]);
+
+  const restartProgram = useCallback(() => {
+    const cycleState = loadProgramCycleState(currentWeek);
+    restartEntireProgram();
+    recordProgramCycleStart(cycleState, 1, "program-restart");
+  }, [currentWeek, restartEntireProgram]);
 
   return {
     loaded,
     profile,
-    isActive: isInjuryModeActive(profile),
-    setManagingInjury,
-    setNormalTraining,
-    saveNotes,
-    recoverFromInjury,
+    pause,
+    modify,
+    updateRestrictions,
+    resume,
+    restartPhase,
+    restartProgram,
     refreshProfile,
     updateProfile: (nextProfile: InjuryProfile) => {
       saveInjuryProfile(nextProfile);

@@ -90,9 +90,6 @@ export default function ScheduleDaySection({
                       {getSessionTypeLabel(session.type)}
                     </p>
                     <p className="mt-1 text-lg font-bold">{session.name}</p>
-                    {session.notes && (
-                      <p className="mt-1 text-xs text-muted">{session.notes}</p>
-                    )}
                     {session.focus && (
                       <p className="mt-1 text-sm opacity-80">{session.focus}</p>
                     )}

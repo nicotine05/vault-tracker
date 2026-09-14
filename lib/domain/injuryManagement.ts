@@ -1,173 +1,131 @@
 import type { StrengthCategory } from "@/lib/catalogs/strengthCatalog";
-import type { SprintWorkout } from "@/lib/catalogs/sprintCatalog";
-import type { SessionOption, TrainingType } from "@/lib/trainingProgram";
+import type { TrainingType } from "@/lib/trainingProgram";
 
-export type InjuryBodyArea =
-  | "foot-ankle"
-  | "calf"
-  | "hamstring"
-  | "quad"
-  | "hip-flexor"
-  | "glute"
-  | "groin"
-  | "knee"
-  | "low-back"
-  | "upper-back"
-  | "shoulder"
-  | "elbow"
-  | "wrist-hand";
+export type ProgramStatus = "active" | "paused" | "modified";
 
-export type InjuryStatus = "normal" | "managing";
+export type InjuryRestrictions = {
+  avoidLowerBody: boolean;
+  avoidUpperBody: boolean;
+  avoidSprinting: boolean;
+  avoidVaulting: boolean;
+};
 
 export type InjuryProfile = {
-  status: InjuryStatus;
-  bodyArea?: InjuryBodyArea;
-  startedAt?: string;
-  notes?: string;
+  status: ProgramStatus;
+  restrictions: InjuryRestrictions;
+  updatedAt?: string;
 };
 
-export type TrainingRestriction =
-  | "vault"
-  | "sprint"
-  | "max-velocity"
-  | "acceleration"
-  | "lower-strength"
-  | "posterior-chain"
-  | "heavy-hinging"
-  | "total-body-power"
-  | "upper-strength";
-
-export const INJURY_BODY_AREAS: { id: InjuryBodyArea; label: string }[] = [
-  { id: "foot-ankle", label: "Foot / Ankle" },
-  { id: "calf", label: "Calf" },
-  { id: "hamstring", label: "Hamstring" },
-  { id: "quad", label: "Quad" },
-  { id: "hip-flexor", label: "Hip Flexor" },
-  { id: "glute", label: "Glute" },
-  { id: "groin", label: "Groin" },
-  { id: "knee", label: "Knee" },
-  { id: "low-back", label: "Low Back" },
-  { id: "upper-back", label: "Upper Back" },
-  { id: "shoulder", label: "Shoulder" },
-  { id: "elbow", label: "Elbow" },
-  { id: "wrist-hand", label: "Wrist / Hand" },
-];
-
-const RESTRICTIONS_BY_AREA: Record<InjuryBodyArea, TrainingRestriction[]> = {
-  "foot-ankle": [
-    "vault",
-    "sprint",
-    "max-velocity",
-    "acceleration",
-    "lower-strength",
-    "total-body-power",
-  ],
-  calf: [
-    "vault",
-    "sprint",
-    "max-velocity",
-    "acceleration",
-    "lower-strength",
-    "posterior-chain",
-  ],
-  hamstring: [
-    "vault",
-    "sprint",
-    "max-velocity",
-    "acceleration",
-    "posterior-chain",
-    "heavy-hinging",
-    "lower-strength",
-  ],
-  quad: [
-    "vault",
-    "sprint",
-    "acceleration",
-    "lower-strength",
-    "total-body-power",
-  ],
-  "hip-flexor": ["vault", "sprint", "acceleration", "lower-strength"],
-  glute: ["vault", "sprint", "posterior-chain", "heavy-hinging"],
-  groin: ["vault", "sprint", "lower-strength", "acceleration"],
-  knee: [
-    "vault",
-    "sprint",
-    "lower-strength",
-    "total-body-power",
-    "acceleration",
-  ],
-  "low-back": ["vault", "posterior-chain", "heavy-hinging", "max-velocity"],
-  "upper-back": ["vault", "max-velocity"],
-  shoulder: ["vault", "upper-strength", "total-body-power"],
-  elbow: ["vault", "upper-strength"],
-  "wrist-hand": ["vault"],
-};
-
-const RESTRICTION_LABELS: Record<TrainingRestriction, string> = {
-  vault: "Vault sessions",
-  sprint: "Sprint workouts",
-  "max-velocity": "Max velocity work",
-  acceleration: "Acceleration work",
-  "lower-strength": "Lower body strength",
-  "posterior-chain": "Posterior chain work",
-  "heavy-hinging": "Heavy hinging",
-  "total-body-power": "Total body power",
-  "upper-strength": "Upper body strength",
+export const EMPTY_INJURY_RESTRICTIONS: InjuryRestrictions = {
+  avoidLowerBody: false,
+  avoidUpperBody: false,
+  avoidSprinting: false,
+  avoidVaulting: false,
 };
 
 export const DEFAULT_INJURY_PROFILE: InjuryProfile = {
-  status: "normal",
+  status: "active",
+  restrictions: { ...EMPTY_INJURY_RESTRICTIONS },
 };
 
-export function getBodyAreaLabel(area: InjuryBodyArea): string {
-  return INJURY_BODY_AREAS.find((entry) => entry.id === area)?.label ?? area;
+export const INJURY_RESTRICTION_OPTIONS: {
+  key: keyof InjuryRestrictions;
+  label: string;
+}[] = [
+  { key: "avoidLowerBody", label: "Avoid Lower Body" },
+  { key: "avoidUpperBody", label: "Avoid Upper Body" },
+  { key: "avoidSprinting", label: "Avoid Sprinting" },
+  { key: "avoidVaulting", label: "Avoid Vaulting" },
+];
+
+export function getProgramStatusLabel(status: ProgramStatus): string {
+  switch (status) {
+    case "active":
+      return "Active";
+    case "paused":
+      return "Paused";
+    case "modified":
+      return "Modified";
+  }
 }
 
-export function getRestrictionsForBodyArea(
-  area: InjuryBodyArea
-): TrainingRestriction[] {
-  return RESTRICTIONS_BY_AREA[area] ?? [];
+export function getProgramStatusDescription(status: ProgramStatus): string {
+  switch (status) {
+    case "active":
+      return "Program is operating normally.";
+    case "paused":
+      return "Program progression is paused.";
+    case "modified":
+      return "Future workout generation is filtered based on selected restrictions.";
+  }
 }
 
-export function getRestrictionLabels(restrictions: TrainingRestriction[]): string[] {
-  return restrictions.map((restriction) => RESTRICTION_LABELS[restriction]);
+export function isProgramPaused(profile: InjuryProfile): boolean {
+  return profile.status === "paused";
 }
 
-export function isInjuryModeActive(profile: InjuryProfile): boolean {
-  return profile.status === "managing" && Boolean(profile.bodyArea);
+export function isProgramModified(profile: InjuryProfile): boolean {
+  return profile.status === "modified";
 }
 
-export function hasRestriction(
-  restrictions: TrainingRestriction[],
-  restriction: TrainingRestriction
+export function shouldFreezeProgramProgression(profile: InjuryProfile): boolean {
+  return profile.status === "paused";
+}
+
+export function getEffectiveRestrictions(
+  profile: InjuryProfile
+): InjuryRestrictions | null {
+  if (profile.status !== "modified") {
+    return null;
+  }
+
+  return profile.restrictions;
+}
+
+export function isTrainingTypeAllowed(
+  type: TrainingType,
+  restrictions: InjuryRestrictions | null
 ): boolean {
-  return restrictions.includes(restriction);
-}
+  if (!restrictions) {
+    return true;
+  }
 
-const STRENGTH_CATEGORY_RESTRICTIONS: Record<
-  StrengthCategory,
-  TrainingRestriction[]
-> = {
-  LS: ["lower-strength"],
-  US: ["upper-strength"],
-  PC: ["posterior-chain", "heavy-hinging"],
-  AS: [],
-  TBP: ["total-body-power"],
-};
+  if (type === "vault" && restrictions.avoidVaulting) {
+    return false;
+  }
+
+  if (type === "speed" && restrictions.avoidSprinting) {
+    return false;
+  }
+
+  return true;
+}
 
 export function isStrengthCategoryAllowed(
   category: StrengthCategory,
-  restrictions: TrainingRestriction[]
+  restrictions: InjuryRestrictions | null
 ): boolean {
-  const categoryRestrictions = STRENGTH_CATEGORY_RESTRICTIONS[category];
-  return !categoryRestrictions.some((restriction) =>
-    restrictions.includes(restriction)
-  );
+  if (!restrictions) {
+    return true;
+  }
+
+  if (
+    restrictions.avoidLowerBody &&
+    (category === "LS" || category === "PC" || category === "TBP")
+  ) {
+    return false;
+  }
+
+  if (restrictions.avoidUpperBody && category === "US") {
+    return false;
+  }
+
+  return true;
 }
 
 export function filterStrengthCategoryPriority(
   priority: StrengthCategory[],
-  restrictions: TrainingRestriction[]
+  restrictions: InjuryRestrictions | null
 ): StrengthCategory[] {
   const allowed = priority.filter((category) =>
     isStrengthCategoryAllowed(category, restrictions)
@@ -180,50 +138,68 @@ export function filterStrengthCategoryPriority(
   return ["AS"];
 }
 
-export function isSprintWorkoutAllowed(
-  workout: SprintWorkout,
-  restrictions: TrainingRestriction[]
-): boolean {
-  if (hasRestriction(restrictions, "sprint")) {
-    return false;
-  }
-
-  if (
-    workout.category === "MaxVelocity" &&
-    hasRestriction(restrictions, "max-velocity")
-  ) {
-    return false;
-  }
-
-  if (
-    workout.category === "Acceleration" &&
-    hasRestriction(restrictions, "acceleration")
-  ) {
-    return false;
-  }
-
-  return true;
+function hasAnyRestriction(restrictions: InjuryRestrictions): boolean {
+  return (
+    restrictions.avoidLowerBody ||
+    restrictions.avoidUpperBody ||
+    restrictions.avoidSprinting ||
+    restrictions.avoidVaulting
+  );
 }
 
-export function getInjurySubstituteStrengthId(
-  bodyArea: InjuryBodyArea | undefined,
-  weekNumber: number
-): string {
-  if (bodyArea === "shoulder" || bodyArea === "elbow" || bodyArea === "wrist-hand") {
-    return "AS3";
+function normalizeRestrictions(value: unknown): InjuryRestrictions {
+  if (!value || typeof value !== "object") {
+    return { ...EMPTY_INJURY_RESTRICTIONS };
   }
 
-  const rehabPool = ["AS1", "AS2", "AS3"];
-  return rehabPool[(weekNumber - 1) % rehabPool.length] ?? "AS1";
-}
+  const record = value as Record<string, unknown>;
 
-export function markInjuryAdjustedSession(
-  session: SessionOption,
-  originalType: TrainingType
-): SessionOption {
   return {
-    ...session,
-    notes: `Adjusted for injury recovery (replaces ${originalType}).`,
+    avoidLowerBody: record.avoidLowerBody === true,
+    avoidUpperBody: record.avoidUpperBody === true,
+    avoidSprinting: record.avoidSprinting === true,
+    avoidVaulting: record.avoidVaulting === true,
+  };
+}
+
+function migrateLegacyManagingProfile(
+  record: Record<string, unknown>
+): InjuryProfile {
+  const restrictions: InjuryRestrictions = { ...EMPTY_INJURY_RESTRICTIONS };
+  const bodyArea =
+    typeof record.bodyArea === "string" ? record.bodyArea : undefined;
+
+  if (bodyArea) {
+    const lowerBodyAreas = new Set([
+      "foot-ankle",
+      "calf",
+      "hamstring",
+      "quad",
+      "hip-flexor",
+      "glute",
+      "groin",
+      "knee",
+      "low-back",
+    ]);
+    const upperBodyAreas = new Set(["shoulder", "elbow", "wrist-hand", "upper-back"]);
+
+    if (lowerBodyAreas.has(bodyArea)) {
+      restrictions.avoidLowerBody = true;
+      restrictions.avoidSprinting = true;
+      restrictions.avoidVaulting = true;
+    }
+
+    if (upperBodyAreas.has(bodyArea)) {
+      restrictions.avoidUpperBody = true;
+      restrictions.avoidVaulting = true;
+    }
+  }
+
+  return {
+    status: hasAnyRestriction(restrictions) ? "modified" : "active",
+    restrictions,
+    updatedAt:
+      typeof record.startedAt === "string" ? record.startedAt : undefined,
   };
 }
 
@@ -233,16 +209,21 @@ export function normalizeInjuryProfile(value: unknown): InjuryProfile {
   }
 
   const record = value as Record<string, unknown>;
-  const status = record.status === "managing" ? "managing" : "normal";
-  const bodyArea = INJURY_BODY_AREAS.some((entry) => entry.id === record.bodyArea)
-    ? (record.bodyArea as InjuryBodyArea)
-    : undefined;
+
+  if (record.status === "managing") {
+    return migrateLegacyManagingProfile(record);
+  }
+
+  const status =
+    record.status === "paused" || record.status === "modified"
+      ? record.status
+      : "active";
+  const restrictions = normalizeRestrictions(record.restrictions);
 
   return {
     status,
-    bodyArea: status === "managing" ? bodyArea : undefined,
-    startedAt:
-      typeof record.startedAt === "string" ? record.startedAt : undefined,
-    notes: typeof record.notes === "string" ? record.notes : undefined,
+    restrictions: status === "modified" ? restrictions : { ...EMPTY_INJURY_RESTRICTIONS },
+    updatedAt:
+      typeof record.updatedAt === "string" ? record.updatedAt : undefined,
   };
 }

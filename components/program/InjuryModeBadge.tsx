@@ -2,8 +2,7 @@
 
 import Link from "next/link";
 import {
-  getBodyAreaLabel,
-  isInjuryModeActive,
+  getProgramStatusLabel,
   type InjuryProfile,
 } from "@/lib/domain/injuryManagement";
 
@@ -12,7 +11,7 @@ type InjuryModeBadgeProps = {
 };
 
 export default function InjuryModeBadge({ profile }: InjuryModeBadgeProps) {
-  if (!isInjuryModeActive(profile) || !profile.bodyArea) {
+  if (profile.status === "active") {
     return null;
   }
 
@@ -25,10 +24,12 @@ export default function InjuryModeBadge({ profile }: InjuryModeBadgeProps) {
         <span className="text-lg">🩹</span>
         <div>
           <p className="text-sm font-semibold text-foreground">
-            Injury Mode Active
+            Program {getProgramStatusLabel(profile.status)}
           </p>
           <p className="text-sm text-muted">
-            {getBodyAreaLabel(profile.bodyArea)} · Training adjusted
+            {profile.status === "paused"
+              ? "Progression is paused"
+              : "Workout generation is filtered"}
           </p>
         </div>
       </div>

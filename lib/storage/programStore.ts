@@ -1,10 +1,11 @@
-import type { InjuryProfile } from "@/lib/domain/injuryManagement";
 import {
   ENGINE_VERSION,
   generateScheduleForWeek,
   type GeneratedWeekSchedule,
   type PlannerDay,
 } from "@/lib/trainingProgram";
+import { shouldFreezeProgramProgression } from "@/lib/domain/injuryManagement";
+import { loadInjuryProfile } from "@/lib/storage/injuryStore";
 import type { WorkoutExecutionRecord } from "@/lib/domain/types";
 import { getCalendarDateForProgramDay, getDefaultCurrentWeekStartDate, getCalendarWeeksElapsed, shiftWeekStartDate } from "@/lib/domain/calendarUtils";
 import { getItem, getString, setItem } from "@/lib/storage/localStore";
@@ -58,7 +59,14 @@ export function maxViewableWeek(currentWeek: number): number {
   return Math.min(12, currentWeek + MAX_PLAN_AHEAD_WEEKS);
 }
 
-export function syncProgramWeekToCalendar(state: ProgramState): ProgramState {
+export function syncProgramWeekToCalendar(
+  state: ProgramState,
+  options?: { freezeProgression?: boolean }
+): ProgramState {
+  if (options?.freezeProgression) {
+    return state;
+  }
+
   const weeksElapsed = getCalendarWeeksElapsed(state.currentWeekStartDate);
   if (weeksElapsed <= 0) {
     return state;
@@ -93,15 +101,14 @@ export function syncProgramWeekToCalendar(state: ProgramState): ProgramState {
 
 function createSnapshot(
   weekNumber: number,
-  planner: Record<string, PlannerDay>,
-  injuryProfile?: InjuryProfile | null
+  planner: Record<string, PlannerDay>
 ): WeekScheduleSnapshot {
   return {
     weekNumber,
     generatedAt: new Date().toISOString(),
     engineVersion: ENGINE_VERSION,
     planner,
-    schedule: generateScheduleForWeek(planner, weekNumber, injuryProfile),
+    schedule: generateScheduleForWeek(planner, weekNumber, loadInjuryProfile()),
   };
 }
 
@@ -164,15 +171,20 @@ export function loadProgramState(): ProgramState {
   const rawPlanning = legacyPlanning || legacySelected || String(currentWeek);
   const planningWeek = clampPlanningWeek(Number(rawPlanning), currentWeek);
 
-  return syncProgramWeekToCalendar({
-    currentWeek,
-    currentWeekStartDate,
-    planningWeek,
-    plannerByWeek: getItem(STORAGE_KEYS.WEEKLY_PLANNER, {}),
-    scheduleSnapshotsByWeek: getItem(STORAGE_KEYS.SCHEDULE_SNAPSHOTS, {}),
-    completedWorkouts: getItem(STORAGE_KEYS.COMPLETED_WORKOUTS, {}),
-    executionHistory,
-  });
+  return syncProgramWeekToCalendar(
+    {
+      currentWeek,
+      currentWeekStartDate,
+      planningWeek,
+      plannerByWeek: getItem(STORAGE_KEYS.WEEKLY_PLANNER, {}),
+      scheduleSnapshotsByWeek: getItem(STORAGE_KEYS.SCHEDULE_SNAPSHOTS, {}),
+      completedWorkouts: getItem(STORAGE_KEYS.COMPLETED_WORKOUTS, {}),
+      executionHistory,
+    },
+    {
+      freezeProgression: shouldFreezeProgramProgression(loadInjuryProfile()),
+    }
+  );
 }
 
 export function saveProgramState(state: ProgramState): void {
@@ -189,10 +201,9 @@ export function saveProgramState(state: ProgramState): void {
 
 export function generateScheduleSnapshot(
   weekNumber: number,
-  planner: Record<string, PlannerDay>,
-  injuryProfile?: InjuryProfile | null
+  planner: Record<string, PlannerDay>
 ): WeekScheduleSnapshot {
-  return createSnapshot(weekNumber, planner, injuryProfile);
+  return createSnapshot(weekNumber, planner);
 }
 
 export function getScheduleForWeek(

@@ -2,223 +2,198 @@
 
 import { useEffect, useState } from "react";
 import Card from "@/components/Card";
-import InjuryRecoveryModal from "@/components/settings/InjuryRecoveryModal";
 import { useAuth } from "@/components/AuthProvider";
+import { program } from "@/lib/data";
 import {
-  getBodyAreaLabel,
-  getRestrictionLabels,
-  getRestrictionsForBodyArea,
-  INJURY_BODY_AREAS,
-  type InjuryBodyArea,
+  getProgramStatusDescription,
+  getProgramStatusLabel,
+  INJURY_RESTRICTION_OPTIONS,
+  type InjuryRestrictions,
 } from "@/lib/domain/injuryManagement";
+import { getPhaseStartWeek } from "@/lib/domain/programCycle";
+import { getPhaseNameForWeek } from "@/lib/domain/programWeek";
 import { useInjuryState } from "@/lib/hooks/useInjuryState";
 import { useProgramState } from "@/lib/hooks/useProgramState";
 import {
-  fieldClassName,
   primaryButtonClassName,
   secondaryButtonClassName,
 } from "@/lib/ui/componentStyles";
-
-const statusButtonClass = (selected: boolean) =>
-  `w-full rounded-xl border p-4 text-left transition ${
-    selected
-      ? "border-accent bg-accent-soft ring-2 ring-accent"
-      : "border-border bg-surface-muted hover:bg-surface-accent"
-  }`;
 
 export default function InjuryManagementPanel() {
   const { isCoachReadOnly } = useAuth();
   const { currentWeek } = useProgramState();
   const {
     profile,
-    isActive,
-    setManagingInjury,
-    setNormalTraining,
-    saveNotes,
-    recoverFromInjury,
+    pause,
+    modify,
+    updateRestrictions,
+    resume,
+    restartPhase,
+    restartProgram,
   } = useInjuryState();
 
-  const [selectedArea, setSelectedArea] = useState<InjuryBodyArea | "">(
-    profile.bodyArea ?? ""
+  const [draftRestrictions, setDraftRestrictions] = useState<InjuryRestrictions>(
+    profile.restrictions
   );
-  const [notes, setNotes] = useState(profile.notes ?? "");
-  const [showRecoveryModal, setShowRecoveryModal] = useState(false);
+  const [showModifyOptions, setShowModifyOptions] = useState(
+    profile.status === "modified"
+  );
 
   useEffect(() => {
-    setSelectedArea(profile.bodyArea ?? "");
-    setNotes(profile.notes ?? "");
+    setDraftRestrictions(profile.restrictions);
+    setShowModifyOptions(profile.status === "modified");
   }, [profile]);
 
-  const restrictions =
-    selectedArea !== ""
-      ? getRestrictionsForBodyArea(selectedArea)
-      : profile.bodyArea
-        ? getRestrictionsForBodyArea(profile.bodyArea)
-        : [];
+  const phaseName = getPhaseNameForWeek(currentWeek);
+  const phaseStart = getPhaseStartWeek(currentWeek);
+  const canResume = profile.status === "paused" || profile.status === "modified";
 
-  function handleEnableInjuryMode() {
-    if (!selectedArea || isCoachReadOnly) {
-      return;
-    }
-
-    setManagingInjury(selectedArea, notes);
-  }
-
-  function handleSaveNotes() {
+  function handleModifyProgram() {
     if (isCoachReadOnly) {
       return;
     }
 
-    saveNotes(notes);
+    setShowModifyOptions(true);
+    modify(draftRestrictions);
+  }
+
+  function handleRestrictionChange(
+    key: keyof InjuryRestrictions,
+    checked: boolean
+  ) {
+    if (isCoachReadOnly) {
+      return;
+    }
+
+    const nextRestrictions = {
+      ...draftRestrictions,
+      [key]: checked,
+    };
+    setDraftRestrictions(nextRestrictions);
+
+    if (profile.status === "modified") {
+      updateRestrictions(nextRestrictions);
+    }
   }
 
   return (
     <div className="space-y-4">
-      <Card title="Current Status">
-        <div className="space-y-2">
-          <button
-            type="button"
-            disabled={isCoachReadOnly}
-            onClick={() => setNormalTraining()}
-            className={statusButtonClass(!isActive)}
-          >
-            <p className="font-semibold text-foreground">Normal Training</p>
-            <p className="mt-1 text-sm text-muted">
-              Default state with no training modifications.
-            </p>
-          </button>
+      <Card title="Current Program Status">
+        <div className="rounded-xl border border-border bg-surface-muted p-4">
+          <p className="text-lg font-semibold text-foreground">
+            {getProgramStatusLabel(profile.status)}
+          </p>
+          <p className="mt-1 text-sm text-muted">
+            {getProgramStatusDescription(profile.status)}
+          </p>
+          {profile.updatedAt && profile.status !== "active" && (
+            <p className="mt-2 text-xs text-muted">Updated {profile.updatedAt}</p>
+          )}
+        </div>
+      </Card>
 
-          {isActive ? (
-            <div className="rounded-xl border border-accent bg-accent-soft p-4">
-              <p className="font-semibold text-foreground">Managing Injury</p>
-              <p className="mt-1 text-sm text-muted">
-                Program stays active while generated workouts are adjusted.
-              </p>
-            </div>
-          ) : (
+      <Card title="Program Controls">
+        <div className="space-y-3">
+          {profile.status === "active" && (
+            <>
+              <button
+                type="button"
+                disabled={isCoachReadOnly}
+                onClick={() => pause()}
+                className={`w-full ${secondaryButtonClassName}`}
+              >
+                Pause Program
+              </button>
+
+              <button
+                type="button"
+                disabled={isCoachReadOnly}
+                onClick={handleModifyProgram}
+                className={`w-full ${secondaryButtonClassName}`}
+              >
+                Modify Program
+              </button>
+            </>
+          )}
+
+          {showModifyOptions && (
             <div className="rounded-xl border border-border bg-surface-muted p-4">
-              <p className="font-semibold text-foreground">Managing Injury</p>
-              <p className="mt-1 text-sm text-muted">
-                Select an injured area below, then enable injury mode.
+              <p className="mb-3 text-sm font-semibold text-foreground">
+                Training Restrictions
               </p>
+              <div className="space-y-2">
+                {INJURY_RESTRICTION_OPTIONS.map((option) => (
+                  <label
+                    key={option.key}
+                    className="flex items-center gap-3 rounded-lg border border-border bg-surface px-3 py-2.5 text-sm text-foreground"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={draftRestrictions[option.key]}
+                      disabled={isCoachReadOnly}
+                      onChange={(event) =>
+                        handleRestrictionChange(option.key, event.target.checked)
+                      }
+                      className="h-4 w-4 rounded border-border accent-accent"
+                    />
+                    {option.label}
+                  </label>
+                ))}
+              </div>
             </div>
+          )}
+
+          {canResume && (
+            <button
+              type="button"
+              disabled={isCoachReadOnly}
+              onClick={() => resume()}
+              className={`w-full ${primaryButtonClassName}`}
+            >
+              Resume Program
+            </button>
           )}
         </div>
 
-        {isActive && profile.bodyArea && (
-          <div className="mt-4 rounded-xl border border-border bg-surface-muted p-4 text-sm">
-            <p className="font-semibold text-foreground">Status: Managing Injury</p>
-            {profile.startedAt && (
-              <p className="mt-1 text-muted">Started: {profile.startedAt}</p>
-            )}
-            <p className="mt-1 text-muted">
-              Injured Area: {getBodyAreaLabel(profile.bodyArea)}
-            </p>
-            <p className="mt-2 text-xs text-muted">
-              Regenerate upcoming schedules to apply injury adjustments.
-            </p>
-          </div>
-        )}
+        <p className="mt-3 text-xs text-muted">
+          Pausing freezes week progression. Modifying filters future generated
+          workouts. All logs, PRs, and history are kept.
+        </p>
       </Card>
 
-      <Card title="Injury Setup">
+      <Card title="Restart Program">
         <p className="-mt-1 mb-3 text-sm text-muted">
-          Choose the affected area. This helps adjust future workout generation.
+          Restart resets training progression only. All historical data stays
+          intact.
         </p>
 
-        <div className="space-y-2">
-          {INJURY_BODY_AREAS.map((area) => {
-            const isSelected =
-              selectedArea === area.id ||
-              (isActive && profile.bodyArea === area.id);
-
-            return (
-              <button
-                key={area.id}
-                type="button"
-                disabled={isCoachReadOnly}
-                onClick={() => setSelectedArea(area.id)}
-                className={`w-full rounded-xl border px-4 py-3 text-left transition ${
-                  isSelected
-                    ? "border-accent bg-accent-soft ring-1 ring-accent"
-                    : "border-border bg-surface-muted hover:bg-surface-accent"
-                }`}
-              >
-                <span className="font-medium text-foreground">{area.label}</span>
-              </button>
-            );
-          })}
-        </div>
-
-        {!isActive && selectedArea && !isCoachReadOnly && (
+        <div className="space-y-3">
           <button
             type="button"
-            onClick={handleEnableInjuryMode}
-            className={`mt-4 w-full ${primaryButtonClassName}`}
+            disabled={isCoachReadOnly}
+            onClick={() => restartPhase()}
+            className={`w-full ${secondaryButtonClassName}`}
           >
-            Enable Injury Mode
+            Restart Current Phase
           </button>
-        )}
-      </Card>
-
-      {restrictions.length > 0 && (
-        <Card title="Training Restrictions">
-          <p className="-mt-1 mb-3 text-sm text-muted">
-            Future generated workouts will reduce or avoid these categories. Your
-            program plan stays intact underneath.
+          <p className="text-xs text-muted">
+            Example: {phaseName} Week {currentWeek} becomes {phaseName} Week{" "}
+            {phaseStart}.
           </p>
-          <ul className="space-y-2">
-            {getRestrictionLabels(restrictions).map((label) => (
-              <li
-                key={label}
-                className="rounded-lg border border-border bg-surface-muted px-3 py-2 text-sm text-foreground"
-              >
-                {label}
-              </li>
-            ))}
-          </ul>
-          <p className="mt-3 text-xs text-muted">
-            Still allowed: upper body strength, core, mobility, and
-            rehab-compatible sessions where appropriate.
+
+          <button
+            type="button"
+            disabled={isCoachReadOnly}
+            onClick={() => restartProgram()}
+            className={`w-full ${secondaryButtonClassName}`}
+          >
+            Restart Entire Program
+          </button>
+          <p className="text-xs text-muted">
+            Returns to Week 1, Phase 1 of the {program.totalWeeks}-week program.
           </p>
-        </Card>
-      )}
-
-      <Card title="Injury Notes">
-        <p className="-mt-1 mb-3 text-sm text-muted">
-          Optional notes for your own reference.
-        </p>
-        <textarea
-          value={notes}
-          disabled={isCoachReadOnly}
-          onChange={(event) => setNotes(event.target.value)}
-          onBlur={handleSaveNotes}
-          placeholder='Example: "Grade 1 hamstring strain"'
-          rows={4}
-          className={`${fieldClassName} resize-none`}
-        />
+        </div>
       </Card>
-
-      {isActive && !isCoachReadOnly && (
-        <button
-          type="button"
-          onClick={() => setShowRecoveryModal(true)}
-          className={`w-full ${secondaryButtonClassName}`}
-        >
-          Mark As Recovered
-        </button>
-      )}
-
-      {showRecoveryModal && (
-        <InjuryRecoveryModal
-          currentWeek={currentWeek}
-          onSelect={(option) => {
-            recoverFromInjury(option);
-            setShowRecoveryModal(false);
-          }}
-          onCancel={() => setShowRecoveryModal(false)}
-        />
-      )}
     </div>
   );
 }
