@@ -10,7 +10,7 @@ export default function SettingsPage() {
     <main className="max-w-md mx-auto p-4 pb-20">
       <h1 className="text-3xl font-bold mb-4">Settings</h1>
 
-      <ThemePicker />
+      <AccountSettings />
 
       <div className="mt-4">
         <Link href="/settings/injuries" className="block">
@@ -34,7 +34,7 @@ export default function SettingsPage() {
       </div>
 
       <div className="mt-4">
-        <AccountSettings />
+        <ThemePicker />
       </div>
     </main>
   );
