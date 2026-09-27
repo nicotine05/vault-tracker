@@ -13,6 +13,7 @@ import type { WeekScheduleSnapshot } from "@/lib/storage/programStore";
 import { migrateLegacyPoleRecord } from "@/lib/domain/poleInventory";
 import { normalizeInjuryProfile } from "@/lib/domain/injuryManagement";
 import { normalizeProgramCycleState } from "@/lib/domain/programCycle";
+import { splitPolesByKind } from "@/lib/domain/sharedPoleStorage";
 import { normalizeVaultSessionDraft } from "@/lib/domain/vaultLog";
 import type { PlannerDay } from "@/lib/trainingProgram";
 import {
@@ -238,6 +239,33 @@ function normalizePole(value: unknown): Pole | null {
   return migrateLegacyPoleRecord(value);
 }
 
+function normalizePoleArray(value: unknown): Pole[] {
+  if (!isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map(normalizePole)
+    .filter((pole): pole is Pole => pole !== null);
+}
+
+function normalizePoleStorageFields(
+  data: Record<string, unknown>
+): Record<string, unknown> {
+  const legacyPoles = normalizePoleArray(data[STORAGE_KEYS.POLE_INVENTORY]);
+  const legacySplit = splitPolesByKind(legacyPoles);
+  const sharedPoles = normalizePoleArray(data[STORAGE_KEYS.SHARED_POLE_INVENTORY]);
+  const wishlistPoles = normalizePoleArray(data[STORAGE_KEYS.POLE_WISHLIST]);
+
+  return {
+    [STORAGE_KEYS.SHARED_POLE_INVENTORY]:
+      sharedPoles.length > 0 ? sharedPoles : legacySplit.owned,
+    [STORAGE_KEYS.POLE_WISHLIST]:
+      wishlistPoles.length > 0 ? wishlistPoles : legacySplit.wishlist,
+    [STORAGE_KEYS.POLE_INVENTORY]: [],
+  };
+}
+
 function normalizePoleBag(value: unknown): PoleBag | null {
   if (!isRecord(value) || !isString(value.id) || !isString(value.name)) {
     return null;
@@ -436,11 +464,7 @@ export function normalizeSyncSnapshot(
       data[STORAGE_KEYS.VAULT_STEP_REFERENCES],
       EMPTY_STEP_REFS
     ),
-    [STORAGE_KEYS.POLE_INVENTORY]: isArray(data[STORAGE_KEYS.POLE_INVENTORY])
-      ? (data[STORAGE_KEYS.POLE_INVENTORY] as unknown[])
-          .map(normalizePole)
-          .filter((pole): pole is Pole => pole !== null)
-      : [],
+    ...normalizePoleStorageFields(data),
     [STORAGE_KEYS.POLE_BAGS]: isArray(data[STORAGE_KEYS.POLE_BAGS])
       ? (data[STORAGE_KEYS.POLE_BAGS] as unknown[])
           .map(normalizePoleBag)

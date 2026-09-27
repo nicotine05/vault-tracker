@@ -17,6 +17,9 @@ export const STORAGE_KEYS = {
   VAULT_SESSION_DRAFT: "vaultSessionDraft",
   VAULT_STEP_REFERENCES: "vaultStepReferences",
   POLE_INVENTORY: "poleInventory",
+  POLE_WISHLIST: "poleWishlist",
+  SHARED_POLE_INVENTORY: "sharedPoleInventory",
+  SHARED_POLE_SCOPE_ID: "sharedPoleScopeId",
   POLE_BAGS: "poleBags",
   RECENT_POLE_IDS: "recentPoleIds",
   EXECUTION_HISTORY: "workoutExecutionHistory",
@@ -28,6 +31,7 @@ export const STORAGE_KEYS = {
   MIGRATION_V4: "vaultTracker_migration_v4",
   MIGRATION_V5: "vaultTracker_migration_v5",
   MIGRATION_V6: "vaultTracker_migration_v6",
+  MIGRATION_V7: "vaultTracker_migration_v7",
 } as const;
 
 export const STORAGE_EVENTS = {

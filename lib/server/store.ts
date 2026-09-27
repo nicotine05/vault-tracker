@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { Redis } from "@upstash/redis";
+import type { Pole } from "@/lib/domain/types";
 import type { SyncBlob, UserRecord, UserRole } from "@/lib/server/types";
 
 export type CoachAthleteLink = {
@@ -14,16 +15,23 @@ export type AthleteSyncRecord = {
   updatedAt: string;
 };
 
+export type CoachSharedSyncRecord = {
+  poleInventory: Pole[];
+  updatedAt: string;
+};
+
 export type VaultStore = {
   users: UserRecord[];
   coachAthletes: CoachAthleteLink[];
   athleteSync: Record<string, AthleteSyncRecord>;
+  coachSharedSync?: Record<string, CoachSharedSyncRecord>;
 };
 
 const DEFAULT_STORE: VaultStore = {
   users: [],
   coachAthletes: [],
   athleteSync: {},
+  coachSharedSync: {},
 };
 
 const REDIS_STORE_KEY = "vault-tracker:store";
@@ -77,6 +85,7 @@ function normalizeStore(parsed: Partial<VaultStore> | null): VaultStore {
     users: parsed?.users ?? [],
     coachAthletes: parsed?.coachAthletes ?? [],
     athleteSync: parsed?.athleteSync ?? {},
+    coachSharedSync: parsed?.coachSharedSync ?? {},
   };
 }
 

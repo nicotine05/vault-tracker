@@ -1,5 +1,10 @@
 import { countPlannerSessions, isPlannerComplete } from "@/lib/domain/plannerHealth";
 import { migrateLegacyPoleRecord } from "@/lib/domain/poleInventory";
+import {
+  mergeOwnedPoles,
+  normalizePoleRecords,
+  splitPolesByKind,
+} from "@/lib/domain/sharedPoleStorage";
 import type { Pole } from "@/lib/domain/types";
 import type { PlannerDay } from "@/lib/trainingProgram";
 import {
@@ -268,6 +273,38 @@ function migratePoleWishlistSupport(): void {
   writeJson(STORAGE_KEYS.MIGRATION_V6, true);
 }
 
+function migrateSharedPoleInventory(): void {
+  if (readJson<boolean>(STORAGE_KEYS.MIGRATION_V7, false)) {
+    return;
+  }
+
+  const legacy = readJson<unknown[]>(STORAGE_KEYS.POLE_INVENTORY, []);
+  if (Array.isArray(legacy) && legacy.length > 0) {
+    const normalized = legacy
+      .map((value) =>
+        value && typeof value === "object"
+          ? migrateLegacyPoleRecord(value as Record<string, unknown>)
+          : null
+      )
+      .filter((pole): pole is Pole => pole !== null);
+    const split = splitPolesByKind(normalized);
+    const existingShared = readJson<unknown[]>(
+      STORAGE_KEYS.SHARED_POLE_INVENTORY,
+      []
+    );
+    const mergedOwned = mergeOwnedPoles(
+      normalizePoleRecords(existingShared),
+      split.owned
+    );
+
+    writeJson(STORAGE_KEYS.SHARED_POLE_INVENTORY, mergedOwned);
+    writeJson(STORAGE_KEYS.POLE_WISHLIST, split.wishlist);
+  }
+
+  writeJson(STORAGE_KEYS.POLE_INVENTORY, []);
+  writeJson(STORAGE_KEYS.MIGRATION_V7, true);
+}
+
 const MIGRATIONS: Migration[] = [
   { id: "legacy-generated-schedules", run: migrateLegacyGeneratedSchedules },
   { id: "sprint-strength-pr-history", run: migrateSprintStrengthPRHistory },
@@ -276,6 +313,7 @@ const MIGRATIONS: Migration[] = [
   { id: "pole-status-fields", run: migratePoleStatusFields },
   { id: "pole-carbon-fiber-fields", run: migratePoleCarbonFiberFields },
   { id: "pole-wishlist-support", run: migratePoleWishlistSupport },
+  { id: "shared-pole-inventory", run: migrateSharedPoleInventory },
 ];
 
 let migrationsRan = false;

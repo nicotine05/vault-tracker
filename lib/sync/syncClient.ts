@@ -15,6 +15,7 @@ type SyncResponse = {
   data: Record<string, unknown>;
   updatedAt: string | null;
   athleteId: string;
+  sharedPoleScopeId?: string;
 };
 
 let syncTimer: ReturnType<typeof setTimeout> | null = null;
@@ -93,6 +94,8 @@ function notifyStorageRefresh(): void {
   window.dispatchEvent(new Event(STORAGE_EVENTS.VAULT_RUN_PRS_CHANGED));
 }
 
+const SYNC_CLEAR_PRESERVED_KEYS = [STORAGE_KEYS.SHARED_POLE_INVENTORY] as const;
+
 /** Reset all synced local data to defaults before loading an account's snapshot. */
 export function clearLocalSyncData(options?: { silent?: boolean }): void {
   if (typeof window === "undefined") {
@@ -100,6 +103,10 @@ export function clearLocalSyncData(options?: { silent?: boolean }): void {
   }
 
   const defaults = getDefaultSyncSnapshot();
+  const preservedEntries = SYNC_CLEAR_PRESERVED_KEYS.map((key) => ({
+    key,
+    value: localStorage.getItem(key),
+  }));
 
   localStorage.setItem(
     STORAGE_KEYS.CURRENT_WEEK,
@@ -118,7 +125,20 @@ export function clearLocalSyncData(options?: { silent?: boolean }): void {
       continue;
     }
 
+    if ((SYNC_CLEAR_PRESERVED_KEYS as readonly string[]).includes(key)) {
+      continue;
+    }
+
     setItem(key, value, { skipSync: true });
+  }
+
+  for (const entry of preservedEntries) {
+    if (entry.value === null) {
+      localStorage.removeItem(entry.key);
+      continue;
+    }
+
+    localStorage.setItem(entry.key, entry.value);
   }
 
   lastPushedAt = 0;
@@ -217,6 +237,11 @@ export async function pullRemoteSync(): Promise<SyncResponse | null> {
   }
 
   const payload = (await response.json()) as SyncResponse;
+  if (payload.sharedPoleScopeId) {
+    setItem(STORAGE_KEYS.SHARED_POLE_SCOPE_ID, payload.sharedPoleScopeId, {
+      skipSync: true,
+    });
+  }
   applyRemoteSnapshot(payload.data);
   lastPushedAt = payload.updatedAt
     ? new Date(payload.updatedAt).getTime()

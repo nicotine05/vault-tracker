@@ -5,6 +5,14 @@ import {
   verifySessionToken,
 } from "@/lib/server/session";
 import {
+  attachSharedPolesToAthleteSyncData,
+  migrateAndGetSharedOwnedPoles,
+  resolveSharedPoleScopeId,
+  saveSharedOwnedPoles,
+  splitIncomingSyncPoles,
+  stripSharedPolesFromAthleteSyncData,
+} from "@/lib/server/sharedPoles";
+import {
   loadAthleteSync,
   resolveSyncAthleteId,
   saveAthleteSync,
@@ -42,10 +50,13 @@ export async function GET(request: Request) {
     }
 
     const sync = await loadAthleteSync(resolved.athleteId);
+    const scopeId = await resolveSharedPoleScopeId(resolved.athleteId);
+    const sharedOwnedPoles = await migrateAndGetSharedOwnedPoles(scopeId);
 
     return NextResponse.json({
       athleteId: resolved.athleteId,
-      data: sync.data,
+      sharedPoleScopeId: scopeId,
+      data: attachSharedPolesToAthleteSyncData(sync.data, sharedOwnedPoles),
       updatedAt: sync.updatedAt,
     });
   } catch (error) {
@@ -112,7 +123,12 @@ export async function PUT(request: Request) {
       );
     }
 
-    const updatedAt = await saveAthleteSync(resolved.athleteId, body.data);
+    const scopeId = await resolveSharedPoleScopeId(resolved.athleteId);
+    const { owned, wishlist } = splitIncomingSyncPoles(body.data);
+    await saveSharedOwnedPoles(scopeId, owned);
+
+    const athleteData = stripSharedPolesFromAthleteSyncData(body.data, wishlist);
+    const updatedAt = await saveAthleteSync(resolved.athleteId, athleteData);
 
     return NextResponse.json({ ok: true, updatedAt });
   } catch (error) {
