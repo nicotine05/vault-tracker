@@ -149,42 +149,32 @@ export default function VaultNewSessionPanel({
         <div
           role="group"
           aria-label="Session type"
-          className="grid grid-cols-1 gap-2 sm:grid-cols-2"
+          className="grid grid-cols-2 gap-2"
         >
           <button
             type="button"
             aria-pressed={modeChosen && !competitionMode}
             onClick={() => chooseMode(false)}
-            className={`rounded-xl border px-4 py-3 text-left transition ${
+            className={`rounded-xl border px-4 py-3 text-center text-sm font-bold capitalize transition ${
               modeChosen && !competitionMode
-                ? "border-accent bg-surface-accent ring-2 ring-accent"
-                : "border-border bg-surface hover:bg-surface-muted"
+                ? "border-accent bg-surface-accent text-foreground ring-2 ring-accent"
+                : "border-border bg-surface text-foreground hover:bg-surface-muted"
             }`}
           >
-            <span className="block text-sm font-bold text-foreground">
-              New Vault Practice
-            </span>
-            <span className="mt-0.5 block text-xs text-muted">
-              Keys, grades, and training jumps
-            </span>
+            practice
           </button>
 
           <button
             type="button"
             aria-pressed={modeChosen && competitionMode}
             onClick={() => chooseMode(true)}
-            className={`rounded-xl border px-4 py-3 text-left transition ${
+            className={`rounded-xl border px-4 py-3 text-center text-sm font-bold transition ${
               modeChosen && competitionMode
-                ? "border-amber-400 bg-amber-500/15 ring-2 ring-amber-400"
-                : "border-border bg-surface hover:bg-surface-muted"
+                ? "border-amber-400 bg-amber-500/15 text-foreground ring-2 ring-amber-400"
+                : "border-border bg-surface text-foreground hover:bg-surface-muted"
             }`}
           >
-            <span className="block text-sm font-bold text-foreground">
-              New Vault Competition
-            </span>
-            <span className="mt-0.5 block text-xs text-muted">
-              Bar height, make / miss, and warmups
-            </span>
+            comp
           </button>
         </div>
 
