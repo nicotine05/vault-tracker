@@ -105,10 +105,6 @@ export function useVaultLogState() {
   }, [prHistory, loaded]);
 
   function addJump() {
-    if (competitionMode && !jumpForm.result) {
-      return;
-    }
-
     const selectedPole = getPoleById(poles, jumpForm.poleId);
 
     setJumps((prev) => [
@@ -125,6 +121,7 @@ export function useVaultLogState() {
         ...(competitionMode
           ? {
               result: jumpForm.result,
+              barHeight: jumpForm.barHeight,
               standards: jumpForm.standards,
             }
           : {
@@ -239,6 +236,7 @@ export function useVaultLogState() {
       grip: prev.grip,
       takeoff: prev.takeoff,
       poleId: prev.poleId,
+      barHeight: enabled ? prev.barHeight : "",
       standards: enabled ? prev.standards : "",
     }));
 

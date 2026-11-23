@@ -6,6 +6,7 @@ import {
   countJumpGrades,
   countJumpResults,
   filterVaultSessionsByWeek,
+  getCompetitionJumpTintClass,
   getJumpOutcomeLabel,
   getRunReference,
   getVaultRecentFilterLabel,
@@ -139,6 +140,9 @@ export default function VaultSessionList({
                               <p className="font-medium text-red-700 [data-theme-mode=dark]:text-red-300">
                                 Miss {results.miss}
                               </p>
+                              <p className="font-medium text-muted">
+                                Warmup {results.warmup}
+                              </p>
                             </>
                           ) : (
                             <>
@@ -212,12 +216,13 @@ function JumpDetail({
     <div
       className={`rounded-lg border p-3 text-foreground ${
         competition
-          ? "border-amber-400/40 bg-amber-500/10"
+          ? getCompetitionJumpTintClass(jump.result)
           : "border-border bg-surface-muted"
       }`}
     >
       <div className="flex flex-wrap items-center gap-2">
         <span className="font-medium">{getJumpOutcomeLabel(jump)}</span>
+        {jump.barHeight && <span>Bar {jump.barHeight}</span>}
         {jump.standards && <span>Std {jump.standards}</span>}
         <span>{jump.run}</span>
         {reference && (

@@ -33,6 +33,9 @@ export default function PoleJumpHistoryList({
           </div>
 
           <dl className="mt-2 space-y-1 text-sm">
+            {entry.barHeight ? (
+              <HistoryRow label="Bar height" value={entry.barHeight} />
+            ) : null}
             {entry.standards ? (
               <HistoryRow label="Standards" value={entry.standards} />
             ) : null}

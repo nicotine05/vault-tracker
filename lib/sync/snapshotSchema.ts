@@ -103,7 +103,10 @@ function normalizeJump(value: unknown): Jump | null {
     grade === "green" || grade === "yellow" || grade === "red";
   const hasResult = result === "make" || result === "miss";
 
-  if (!hasGrade && !hasResult) {
+  if (grade !== undefined && !hasGrade) {
+    return null;
+  }
+  if (result !== undefined && !hasResult) {
     return null;
   }
 
@@ -114,6 +117,7 @@ function normalizeJump(value: unknown): Jump | null {
     takeoff: value.takeoff,
     grade: hasGrade ? grade : undefined,
     result: hasResult ? result : undefined,
+    barHeight: isString(value.barHeight) ? value.barHeight : undefined,
     standards: isString(value.standards) ? value.standards : undefined,
     comment: value.comment,
     poleId: isString(value.poleId) ? value.poleId : undefined,

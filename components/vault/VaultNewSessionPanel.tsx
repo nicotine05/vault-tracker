@@ -2,6 +2,7 @@
 
 import type { Jump, Pole, VaultStepReferences } from "@/lib/domain/types";
 import {
+  getCompetitionJumpTintClass,
   getGradeEmoji,
   getJumpOutcomeLabel,
   getRunReference,
@@ -51,8 +52,6 @@ export default function VaultNewSessionPanel({
   canClearSession,
   onSaveSession,
 }: VaultNewSessionPanelProps) {
-  const canAddJump = competitionMode ? Boolean(jumpForm.result) : true;
-
   return (
     <fieldset disabled={readOnly} className="m-0 min-w-0 space-y-4 border-0 p-0">
       <div className="space-y-4">
@@ -124,17 +123,30 @@ export default function VaultNewSessionPanel({
 
           <div className="space-y-3">
             {competitionMode && (
-              <input
-                value={jumpForm.standards}
-                onChange={(event) =>
-                  onJumpFormChange({
-                    ...jumpForm,
-                    standards: event.target.value,
-                  })
-                }
-                placeholder="Standards"
-                className={fieldClassName}
-              />
+              <>
+                <input
+                  value={jumpForm.barHeight}
+                  onChange={(event) =>
+                    onJumpFormChange({
+                      ...jumpForm,
+                      barHeight: event.target.value,
+                    })
+                  }
+                  placeholder="Bar height"
+                  className={fieldClassName}
+                />
+                <input
+                  value={jumpForm.standards}
+                  onChange={(event) =>
+                    onJumpFormChange({
+                      ...jumpForm,
+                      standards: event.target.value,
+                    })
+                  }
+                  placeholder="Standards"
+                  className={fieldClassName}
+                />
+              </>
             )}
 
             <input
@@ -165,33 +177,38 @@ export default function VaultNewSessionPanel({
             />
 
             {competitionMode ? (
-              <div className="grid grid-cols-2 gap-2">
-                {(["make", "miss"] as const).map((result) => {
-                  const selected = jumpForm.result === result;
+              <div className="space-y-2">
+                <p className="text-xs text-muted">
+                  Leave both unselected to log a warmup jump.
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  {(["make", "miss"] as const).map((result) => {
+                    const selected = jumpForm.result === result;
 
-                  return (
-                    <button
-                      key={result}
-                      type="button"
-                      aria-pressed={selected}
-                      onClick={() =>
-                        onJumpFormChange({
-                          ...jumpForm,
-                          result,
-                        })
-                      }
-                      className={`rounded-xl border p-3 text-sm font-semibold uppercase tracking-wide transition ${
-                        selected
-                          ? result === "make"
-                            ? "border-emerald-500 bg-emerald-500/15 text-emerald-800 ring-2 ring-emerald-500 [data-theme-mode=dark]:text-emerald-200"
-                            : "border-red-500 bg-red-500/15 text-red-800 ring-2 ring-red-500 [data-theme-mode=dark]:text-red-200"
-                          : "border-border bg-surface text-foreground hover:bg-surface-muted"
-                      }`}
-                    >
-                      {result}
-                    </button>
-                  );
-                })}
+                    return (
+                      <button
+                        key={result}
+                        type="button"
+                        aria-pressed={selected}
+                        onClick={() =>
+                          onJumpFormChange({
+                            ...jumpForm,
+                            result: selected ? undefined : result,
+                          })
+                        }
+                        className={`rounded-xl border p-3 text-sm font-semibold uppercase tracking-wide transition ${
+                          selected
+                            ? result === "make"
+                              ? "border-emerald-500 bg-emerald-500/15 text-emerald-800 ring-2 ring-emerald-500 [data-theme-mode=dark]:text-emerald-200"
+                              : "border-red-500 bg-red-500/15 text-red-800 ring-2 ring-red-500 [data-theme-mode=dark]:text-red-200"
+                            : "border-border bg-surface text-foreground hover:bg-surface-muted"
+                        }`}
+                      >
+                        {result}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             ) : (
               <div className="grid grid-cols-3 gap-2">
@@ -245,8 +262,7 @@ export default function VaultNewSessionPanel({
             <button
               type="button"
               onClick={onAddJump}
-              disabled={!canAddJump}
-              className="w-full rounded-xl border border-border bg-surface-muted p-3 font-semibold text-foreground hover:bg-surface-accent disabled:cursor-not-allowed disabled:opacity-40"
+              className="w-full rounded-xl border border-border bg-surface-muted p-3 font-semibold text-foreground hover:bg-surface-accent"
             >
               + Add Jump
             </button>
@@ -280,10 +296,10 @@ export default function VaultNewSessionPanel({
                 return (
                   <div
                     key={jump.id}
-                    className={`p-3 text-foreground ${
+                    className={`border-l-4 p-3 text-foreground ${
                       competitionMode
-                        ? "bg-amber-500/5"
-                        : "bg-surface"
+                        ? getCompetitionJumpTintClass(jump.result)
+                        : "border-transparent bg-surface"
                     }`}
                   >
                     <div className="flex justify-between">
@@ -299,6 +315,7 @@ export default function VaultNewSessionPanel({
                       </button>
                     </div>
 
+                    {jump.barHeight && <p>Bar height: {jump.barHeight}</p>}
                     {jump.standards && <p>Standards: {jump.standards}</p>}
                     <p>Run: {jump.run}</p>
                     {reference && (

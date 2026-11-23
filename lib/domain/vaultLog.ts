@@ -193,6 +193,7 @@ export type PoleJumpHistoryEntry = {
   comment: string;
   grade?: Jump["grade"];
   result?: Jump["result"];
+  barHeight?: string;
   standards?: string;
 };
 
@@ -225,6 +226,7 @@ export function getPoleJumpHistory(
         comment: jump.comment,
         grade: jump.grade,
         result: jump.result,
+        barHeight: jump.barHeight,
         standards: jump.standards,
       });
     }
@@ -248,10 +250,12 @@ export function countJumpGrades(jumps: Jump[]): {
 export function countJumpResults(jumps: Jump[]): {
   make: number;
   miss: number;
+  warmup: number;
 } {
   return {
     make: jumps.filter((jump) => jump.result === "make").length,
     miss: jumps.filter((jump) => jump.result === "miss").length,
+    warmup: jumps.filter((jump) => !jump.result).length,
   };
 }
 
@@ -262,7 +266,19 @@ export function getJumpOutcomeLabel(jump: {
   if (jump.result === "make") return "Make";
   if (jump.result === "miss") return "Miss";
   if (jump.grade) return getGradeEmoji(jump.grade);
-  return "—";
+  return "Warmup";
+}
+
+export function getCompetitionJumpTintClass(
+  result?: Jump["result"]
+): string {
+  if (result === "make") {
+    return "border-emerald-400/60 bg-emerald-500/15";
+  }
+  if (result === "miss") {
+    return "border-red-400/60 bg-red-500/15";
+  }
+  return "border-border bg-surface";
 }
 
 export function createJump(params: {
@@ -271,6 +287,7 @@ export function createJump(params: {
   takeoff: string;
   grade?: Jump["grade"];
   result?: Jump["result"];
+  barHeight?: string;
   standards?: string;
   comment: string;
   poleId?: string;
@@ -283,6 +300,9 @@ export function createJump(params: {
     takeoff: params.takeoff,
     grade: params.grade,
     result: params.result,
+    barHeight: params.barHeight?.trim()
+      ? params.barHeight.trim()
+      : undefined,
     standards: params.standards?.trim() ? params.standards.trim() : undefined,
     comment: params.comment,
     poleId: params.poleId,
@@ -366,6 +386,7 @@ export type JumpFormState = {
   takeoff: string;
   grade: NonNullable<Jump["grade"]>;
   result?: Jump["result"];
+  barHeight: string;
   standards: string;
   comment: string;
   poleId?: string;
@@ -378,13 +399,14 @@ export function emptyJumpForm(): JumpFormState {
     takeoff: "",
     grade: "green",
     result: undefined,
+    barHeight: "",
     standards: "",
     comment: "",
     poleId: undefined,
   };
 }
 
-/** Keep run/grip/takeoff/pole/standards for the next jump; clear comment + result. */
+/** Keep run/grip/takeoff/pole/bar height/standards; clear comment + result. */
 export function carryForwardJumpForm(form: JumpFormState): JumpFormState {
   return {
     run: form.run,
@@ -392,6 +414,7 @@ export function carryForwardJumpForm(form: JumpFormState): JumpFormState {
     takeoff: form.takeoff,
     grade: form.grade,
     result: undefined,
+    barHeight: form.barHeight,
     standards: form.standards,
     comment: "",
     poleId: form.poleId,
@@ -426,6 +449,7 @@ export function isVaultSessionDraftEmpty(draft: VaultSessionDraft): boolean {
     form.run.trim() === "" &&
     form.grip.trim() === "" &&
     form.takeoff.trim() === "" &&
+    form.barHeight.trim() === "" &&
     form.standards.trim() === "" &&
     form.comment.trim() === "" &&
     !form.result &&
@@ -459,11 +483,7 @@ export function isPersistedJump(value: unknown): value is Jump {
 
   const hasGrade = entry.grade === undefined || isJumpGrade(entry.grade);
   const hasResult = entry.result === undefined || isJumpResult(entry.result);
-  if (!hasGrade || !hasResult) {
-    return false;
-  }
-
-  return Boolean(entry.grade || entry.result);
+  return hasGrade && hasResult;
 }
 
 export function normalizeVaultSessionDraft(
@@ -496,6 +516,7 @@ export function normalizeVaultSessionDraft(
     takeoff: typeof form.takeoff === "string" ? form.takeoff : "",
     grade,
     result,
+    barHeight: typeof form.barHeight === "string" ? form.barHeight : "",
     standards: typeof form.standards === "string" ? form.standards : "",
     comment: typeof form.comment === "string" ? form.comment : "",
     poleId: typeof form.poleId === "string" ? form.poleId : undefined,

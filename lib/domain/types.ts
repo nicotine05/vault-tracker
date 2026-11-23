@@ -126,9 +126,11 @@ export type Jump = {
   takeoff: string;
   /** Practice quality grade. Optional on competition jumps. */
   grade?: JumpGrade;
-  /** Competition make/miss. Optional on practice jumps. */
+  /** Competition make/miss. Absent = warmup. */
   result?: JumpResult;
-  /** Competition bar/standard height. */
+  /** Competition bar height. */
+  barHeight?: string;
+  /** Competition standards. */
   standards?: string;
   comment: string;
   poleId?: string;
