@@ -408,6 +408,8 @@ export default function ComparePlayerShell({
               drawingEnabled && activeVideo === video ? "mark" : "watch"
             }
             muted={player.isMuted}
+            controlsVisible={controlsVisible}
+            isPlaying={player.isPlaying}
             onAnnotationsChange={onAnnotationsChange}
             onTogglePlay={() => {
               overlay.toggleControls();
@@ -447,6 +449,8 @@ export default function ComparePlayerShell({
                   drawingEnabled && activeVideo === "B" ? "mark" : "watch"
                 }
                 muted={playerB.isMuted}
+                controlsVisible={controlsVisible}
+                isPlaying={playerB.isPlaying}
                 onAnnotationsChange={updateAnnotationsB}
                 onTogglePlay={() => {
                   overlay.toggleControls();
@@ -470,6 +474,8 @@ export default function ComparePlayerShell({
                   drawingEnabled && activeVideo === "A" ? "mark" : "watch"
                 }
                 muted={playerA.isMuted}
+                controlsVisible={controlsVisible}
+                isPlaying={playerA.isPlaying}
                 onAnnotationsChange={updateAnnotationsA}
                 onTogglePlay={() => {
                   overlay.toggleControls();

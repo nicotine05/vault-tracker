@@ -25,6 +25,7 @@ type ImmersiveVideoViewportProps = {
   mode: PlayerInteractionMode;
   muted: boolean;
   controlsVisible?: boolean;
+  isPlaying?: boolean;
   onAnnotationsChange: (annotations: VideoAnnotation[]) => void;
   onTogglePlay: () => void;
   onStepFrames: (delta: number) => void;
@@ -61,6 +62,7 @@ export default function ImmersiveVideoViewport({
   mode,
   muted,
   controlsVisible = true,
+  isPlaying = false,
   onAnnotationsChange,
   onTogglePlay,
   onStepFrames,
@@ -79,12 +81,17 @@ export default function ImmersiveVideoViewport({
   const [draft, setDraft] = useState<VideoAnnotation | null>(null);
   const draftRef = useRef<VideoAnnotation | null>(null);
   const frameAnnotationsRef = useRef<VideoAnnotation[]>([]);
+  const controlsVisibleRef = useRef(controlsVisible);
+  const isPlayingRef = useRef(isPlaying);
   const isDrawingRef = useRef(false);
   const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(
     null,
   );
   const zoom = useVideoZoom();
   const drawingEnabled = mode === "mark" && activeTool !== null;
+
+  controlsVisibleRef.current = controlsVisible;
+  isPlayingRef.current = isPlaying;
 
   const setDraftAnnotation = useCallback((next: VideoAnnotation | null) => {
     draftRef.current = next;
@@ -211,7 +218,7 @@ export default function ImmersiveVideoViewport({
 
   const handleWatchTap = (clientX: number, rect: DOMRect) => {
     // First tap only reveals chrome (iOS-like); next tap plays / steps.
-    if (!controlsVisible) {
+    if (!controlsVisibleRef.current) {
       onInteraction();
       return;
     }
@@ -219,12 +226,13 @@ export default function ImmersiveVideoViewport({
     onInteraction();
     const zone = (clientX - rect.left) / rect.width;
 
-    if (zone < 0.22) {
+    // Edge frame-step only while paused — avoids surprise seeks during play.
+    if (!isPlayingRef.current && zone < 0.22) {
       onStepFrames(-1);
       return;
     }
 
-    if (zone > 0.78) {
+    if (!isPlayingRef.current && zone > 0.78) {
       onStepFrames(1);
       return;
     }

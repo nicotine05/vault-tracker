@@ -258,6 +258,7 @@ export default function VideoPlayerShell({
           mode={mode}
           muted={player.isMuted}
           controlsVisible={controlsVisible}
+          isPlaying={player.isPlaying}
           onAnnotationsChange={handleAnnotationsChange}
           onTogglePlay={() => {
             overlay.notifyActivity();
@@ -272,18 +273,15 @@ export default function VideoPlayerShell({
       </div>
 
       <div className="pointer-events-none absolute inset-0 z-20 flex flex-col justify-between">
-        <div
-          className={`pointer-events-auto flex items-center justify-between gap-3 px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] ${overlayFadeClass(
-            controlsVisible,
-          )}`}
-        >
+        <div className="pointer-events-auto flex items-center justify-between gap-3 px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
           {mode === "watch" ? (
             <>
               <button
                 type="button"
-                className={`${glassButtonClassName} h-10 w-10 text-base`}
+                className={`${glassButtonClassName} h-10 w-10 shrink-0 text-base`}
                 aria-label="Back"
                 onClick={(event) => {
+                  event.preventDefault();
                   event.stopPropagation();
                   player.pause();
                   setImmersive(false);
@@ -293,14 +291,19 @@ export default function VideoPlayerShell({
                 ←
               </button>
 
-              <p className={`${glassPillClassName} max-w-[46%] truncate`}>
+              <p
+                className={`${glassPillClassName} max-w-[46%] truncate ${overlayFadeClass(
+                  controlsVisible,
+                )}`}
+              >
                 {title}
               </p>
 
               <button
                 type="button"
-                className={`${glassButtonClassName} h-10 rounded-full px-3.5 text-sm font-semibold`}
+                className={`${glassButtonClassName} h-10 shrink-0 rounded-full px-3.5 text-sm font-semibold`}
                 onClick={(event) => {
+                  event.preventDefault();
                   event.stopPropagation();
                   enterMarkMode();
                 }}
