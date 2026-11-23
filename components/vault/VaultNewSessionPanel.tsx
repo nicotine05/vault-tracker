@@ -27,6 +27,8 @@ type VaultNewSessionPanelProps = {
   recentPoleIds: string[];
   onAddJump: () => void;
   onRemoveJump: (jumpId: string) => void;
+  onClearSession: () => void;
+  canClearSession: boolean;
   onSaveSession: () => void;
 };
 
@@ -45,6 +47,8 @@ export default function VaultNewSessionPanel({
   recentPoleIds,
   onAddJump,
   onRemoveJump,
+  onClearSession,
+  canClearSession,
   onSaveSession,
 }: VaultNewSessionPanelProps) {
   return (
@@ -214,14 +218,25 @@ export default function VaultNewSessionPanel({
           </div>
         )}
 
-        <button
-          type="button"
-          onClick={onSaveSession}
-          disabled={jumps.length === 0}
-          className="w-full rounded-xl bg-accent p-3 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          Save Vault Session
-        </button>
+        <div className="space-y-2">
+          <button
+            type="button"
+            onClick={onClearSession}
+            disabled={!canClearSession}
+            className="w-full rounded-xl border border-border bg-surface p-3 font-semibold text-foreground hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Clear
+          </button>
+
+          <button
+            type="button"
+            onClick={onSaveSession}
+            disabled={jumps.length === 0}
+            className="w-full rounded-xl bg-accent p-3 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Save Vault Session
+          </button>
+        </div>
       </div>
     </fieldset>
   );

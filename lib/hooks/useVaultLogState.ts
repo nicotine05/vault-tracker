@@ -14,6 +14,7 @@ import {
   createJump,
   createVaultSession,
   emptyJumpForm,
+  isVaultSessionDraftEmpty,
   updateRunPR,
 } from "@/lib/domain/vaultLog";
 import {
@@ -129,6 +130,13 @@ export function useVaultLogState() {
     setJumps((prev) => prev.filter((jump) => jump.id !== jumpId));
   }
 
+  function resetUnsavedSession() {
+    setKeys([""]);
+    setJumps([]);
+    setJumpForm(emptyJumpForm());
+    clearVaultSessionDraft();
+  }
+
   function saveSession() {
     if (jumps.length === 0) {
       return;
@@ -138,10 +146,21 @@ export function useVaultLogState() {
       createVaultSession({ keys, jumps }),
       ...prev,
     ]);
-    setKeys([""]);
-    setJumps([]);
-    setJumpForm(emptyJumpForm());
-    clearVaultSessionDraft();
+    resetUnsavedSession();
+  }
+
+  function clearSession() {
+    if (
+      isVaultSessionDraftEmpty({
+        keys,
+        jumps,
+        jumpForm,
+      })
+    ) {
+      return;
+    }
+
+    resetUnsavedSession();
   }
 
   function deleteSession(sessionId: string) {
@@ -186,6 +205,12 @@ export function useVaultLogState() {
     setJumpForm,
     addJump,
     removeJump,
+    clearSession,
+    canClearSession: !isVaultSessionDraftEmpty({
+      keys,
+      jumps,
+      jumpForm,
+    }),
     saveSession,
     deleteSession,
     saveHeightPRs,

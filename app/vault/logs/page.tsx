@@ -24,6 +24,8 @@ export default function VaultLogsPage() {
     setJumpForm,
     addJump,
     removeJump,
+    clearSession,
+    canClearSession,
     saveSession,
     deleteSession,
     saveHeightPRs,
@@ -87,6 +89,8 @@ export default function VaultLogsPage() {
             recentPoleIds={recentPoleIds}
             onAddJump={addJump}
             onRemoveJump={removeJump}
+            onClearSession={clearSession}
+            canClearSession={canClearSession}
             onSaveSession={saveSession}
           />
         </Card>
