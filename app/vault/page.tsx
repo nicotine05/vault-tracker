@@ -17,6 +17,13 @@ export default function VaultHubPage() {
         />
 
         <HubLinkCard href="/vault/poles" icon="🎯" title="Pole Inventory" />
+
+        <HubLinkCard
+          href="/vault/meets"
+          icon="📅"
+          title="Meet Schedule"
+          description="Plan meets and see them on your training calendar"
+        />
       </div>
     </main>
   );

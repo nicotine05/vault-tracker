@@ -17,6 +17,7 @@ export const STORAGE_KEYS = {
   VAULT_LOGS: "vaultLogs",
   VAULT_SESSION_DRAFT: "vaultSessionDraft",
   VAULT_STEP_REFERENCES: "vaultStepReferences",
+  MEET_SCHEDULE: "meetSchedule",
   POLE_INVENTORY: "poleInventory",
   POLE_WISHLIST: "poleWishlist",
   SHARED_POLE_INVENTORY: "sharedPoleInventory",
@@ -41,6 +42,7 @@ export const STORAGE_EVENTS = {
   VAULT_RUN_PRS_CHANGED: "vaultRunPRsChanged",
   VAULT_HEIGHT_GOAL_CHANGED: "vaultHeightGoalChanged",
   VAULT_LOGS_CHANGED: "vaultLogsChanged",
+  MEET_SCHEDULE_CHANGED: "meetScheduleChanged",
   SPRINT_PRS_CHANGED: "sprintPRsChanged",
   STRENGTH_PRS_CHANGED: "strengthPRsChanged",
 } as const;

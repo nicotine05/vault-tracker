@@ -101,3 +101,13 @@ export const trainingTypeStyles = {
     ring: string;
   }
 >;
+
+/** Distinct marker/row styles for scheduled meets on the training calendar. */
+export const meetCalendarStyles = {
+  row: [
+    "border-rose-200/80 bg-rose-50/80 text-rose-900 hover:bg-rose-100/80",
+    `${dark}border-rose-400/50 ${dark}bg-rose-500/20 ${dark}text-rose-200 ${dark}hover:bg-rose-500/30`,
+  ].join(" "),
+  dot: "bg-rose-500",
+  ring: [`border-rose-400`, `${dark}border-rose-400/70`].join(" "),
+} as const;

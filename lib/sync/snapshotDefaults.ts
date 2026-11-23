@@ -31,6 +31,7 @@ export function getDefaultSyncSnapshot(): Record<string, unknown> {
     [STORAGE_KEYS.VAULT_LOGS]: [],
     [STORAGE_KEYS.VAULT_SESSION_DRAFT]: null,
     [STORAGE_KEYS.VAULT_STEP_REFERENCES]: { ...EMPTY_STEP_REFS },
+    [STORAGE_KEYS.MEET_SCHEDULE]: [],
     [STORAGE_KEYS.SHARED_POLE_INVENTORY]: [],
     [STORAGE_KEYS.POLE_WISHLIST]: [],
     [STORAGE_KEYS.POLE_BAGS]: [],

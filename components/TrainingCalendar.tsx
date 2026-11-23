@@ -1,6 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
+import type { ScheduledMeet } from "@/lib/domain/meetSchedule";
+import {
+  formatMeetTimeLabel,
+  getMeetsForDateKey,
+} from "@/lib/domain/meetSchedule";
 import type { WorkoutExecutionRecord } from "@/lib/domain/types";
 import {
   getRecordCalendarDate,
@@ -12,8 +17,12 @@ import {
   type TrainingType,
 } from "@/lib/trainingProgram";
 import { useProgramState } from "@/lib/hooks/useProgramState";
+import { useScheduledMeets } from "@/lib/hooks/useScheduledMeets";
 import { MAX_PLAN_AHEAD_WEEKS } from "@/lib/storage/programStore";
-import { trainingTypeStyles } from "@/lib/ui/trainingStyles";
+import {
+  meetCalendarStyles,
+  trainingTypeStyles,
+} from "@/lib/ui/trainingStyles";
 
 type DaySessionView = {
   id: string;
@@ -97,6 +106,61 @@ function buildDaySessions(
   return views;
 }
 
+function DayMarkers({
+  sessions,
+  meets,
+  dateKey,
+}: {
+  sessions: DaySessionView[];
+  meets: ScheduledMeet[];
+  dateKey: string;
+}) {
+  const markers: ReactNode[] = [];
+
+  for (const meet of meets.slice(0, 2)) {
+    markers.push(
+      <span
+        key={`${dateKey}-meet-${meet.id}`}
+        className={`inline-block h-2 w-2 shrink-0 rounded-full ${meetCalendarStyles.dot}`}
+        aria-hidden="true"
+      />,
+    );
+  }
+
+  for (const session of sessions) {
+    if (markers.length >= 3) {
+      break;
+    }
+
+    markers.push(
+      session.status === "completed" ? (
+        <span
+          key={`${dateKey}-${session.id}-done`}
+          className={`inline-block h-2 w-2 shrink-0 rounded-full ${trainingTypeStyles[session.type].dot}`}
+          aria-hidden="true"
+        />
+      ) : (
+        <span
+          key={`${dateKey}-${session.id}-plan`}
+          className={`inline-block h-2 w-2 shrink-0 rounded-full border bg-surface ${trainingTypeStyles[session.type].ring}`}
+          aria-hidden="true"
+        />
+      ),
+    );
+  }
+
+  if (markers.length === 0) {
+    return (
+      <span
+        className="inline-block h-2 w-2 shrink-0 rounded-full bg-border"
+        aria-hidden="true"
+      />
+    );
+  }
+
+  return <>{markers}</>;
+}
+
 export default function TrainingCalendar() {
   const {
     currentWeek,
@@ -104,6 +168,7 @@ export default function TrainingCalendar() {
     executionHistory,
     scheduleSnapshotsByWeek,
   } = useProgramState();
+  const { meets } = useScheduledMeets();
   const [currentMonth, setCurrentMonth] = useState(
     () => new Date(new Date().getFullYear(), new Date().getMonth(), 1)
   );
@@ -172,6 +237,11 @@ export default function TrainingCalendar() {
     ]
   );
 
+  const selectedDayMeets = useMemo(
+    () => getMeetsForDateKey(meets, selectedDate),
+    [meets, selectedDate],
+  );
+
   const selectedDateLabel = new Date(
     `${selectedDate}T00:00:00`
   ).toLocaleDateString("en-US", {
@@ -188,6 +258,9 @@ export default function TrainingCalendar() {
   function handleToggleSession(sessionId: string) {
     setExpandedSessionId((prev) => (prev === sessionId ? null : sessionId));
   }
+
+  const dayIsEmpty =
+    selectedDaySessions.length === 0 && selectedDayMeets.length === 0;
 
   return (
     <div className="mt-4 rounded-2xl border border-border bg-surface p-3 shadow-sm">
@@ -250,6 +323,7 @@ export default function TrainingCalendar() {
             currentWeekStartDate,
             schedulesByWeek
           );
+          const dayMeets = getMeetsForDateKey(meets, dateKey);
 
           return (
             <button
@@ -265,28 +339,11 @@ export default function TrainingCalendar() {
               <span className="text-foreground">{date.getDate()}</span>
 
               <div className="mt-1 flex items-center justify-center gap-0.5">
-                {daySessions.length > 0 ? (
-                  daySessions.slice(0, 3).map((session) =>
-                    session.status === "completed" ? (
-                      <span
-                        key={`${dateKey}-${session.id}-done`}
-                        className={`h-2 w-2 rounded-full ${trainingTypeStyles[session.type].dot}`}
-                        aria-hidden="true"
-                      />
-                    ) : (
-                      <span
-                        key={`${dateKey}-${session.id}-plan`}
-                        className={`h-2 w-2 rounded-full border bg-surface ${trainingTypeStyles[session.type].ring}`}
-                        aria-hidden="true"
-                      />
-                    )
-                  )
-                ) : (
-                  <span
-                    className="h-2 w-2 rounded-full bg-border"
-                    aria-hidden="true"
-                  />
-                )}
+                <DayMarkers
+                  sessions={daySessions}
+                  meets={dayMeets}
+                  dateKey={dateKey}
+                />
               </div>
             </button>
           );
@@ -298,10 +355,23 @@ export default function TrainingCalendar() {
           {selectedDateLabel}
         </p>
 
-        {selectedDaySessions.length === 0 ? (
-          <p className="mt-2 text-[11px] text-muted">No training this day</p>
+        {dayIsEmpty ? (
+          <p className="mt-2 text-[11px] text-muted">No training or meets this day</p>
         ) : (
           <ul className="mt-2 space-y-1">
+            {selectedDayMeets.map((meet) => (
+              <li key={`meet-${meet.id}`}>
+                <div
+                  className={`rounded-lg border px-2 py-1.5 text-left text-[11px] ${meetCalendarStyles.row}`}
+                >
+                  <p className="font-medium">Meet · {meet.name}</p>
+                  <p className="mt-0.5 text-[10px] opacity-80">
+                    {formatMeetTimeLabel(meet.startTime)} · {meet.location}
+                  </p>
+                </div>
+              </li>
+            ))}
+
             {selectedDaySessions.map((session) => {
               const isExpanded = expandedSessionId === session.id;
               const catalog = getCatalogWorkout(session.id);
@@ -379,7 +449,7 @@ export default function TrainingCalendar() {
         )}
 
         <p className="mt-2 text-[10px] text-muted">
-          Filled dots = done · Rings = scheduled (includes plan-ahead weeks)
+          Rose dots = meets · Filled dots = done · Rings = scheduled
         </p>
       </div>
     </div>
