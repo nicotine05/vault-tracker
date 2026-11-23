@@ -263,6 +263,29 @@ export function formatCompetitionPlaceLabel(
   }
 }
 
+/** Title with place suffix, e.g. "Norman Preseason 6th Place" or "… 🥇 Place". */
+export function formatCompetitionTitleWithPlace(
+  title: string | undefined,
+  place?: number | null
+): string | null {
+  const name = title?.trim();
+  if (!name) {
+    return null;
+  }
+
+  const medal = getCompetitionPlaceMedal(place);
+  if (medal) {
+    return `${name} ${medal} Place`;
+  }
+
+  const placeLabel = formatCompetitionPlaceLabel(place);
+  if (placeLabel) {
+    return `${name} ${placeLabel} Place`;
+  }
+
+  return name;
+}
+
 /** Highest cleared (make) bar height among competition jumps, or null. */
 export function getHighestMakeBarHeight(jumps: Jump[]): string | null {
   let bestLabel: string | null = null;

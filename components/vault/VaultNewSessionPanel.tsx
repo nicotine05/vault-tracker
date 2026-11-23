@@ -163,13 +163,13 @@ export default function VaultNewSessionPanel({
             type="button"
             aria-pressed={modeChosen && !competitionMode}
             onClick={() => chooseMode(false)}
-            className={`rounded-xl border px-4 py-3 text-center text-sm font-bold capitalize transition ${
+            className={`rounded-xl border px-4 py-3 text-center text-sm font-bold transition ${
               modeChosen && !competitionMode
                 ? "border-accent bg-surface-accent text-foreground ring-2 ring-accent"
                 : "border-border bg-surface text-foreground hover:bg-surface-muted"
             }`}
           >
-            practice
+            Practice
           </button>
 
           <button
@@ -182,7 +182,7 @@ export default function VaultNewSessionPanel({
                 : "border-border bg-surface text-foreground hover:bg-surface-muted"
             }`}
           >
-            comp
+            Competition
           </button>
         </div>
 

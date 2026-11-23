@@ -7,10 +7,9 @@ import {
   countJumpResults,
   filterCompetitionVaultSessions,
   filterVaultSessionsByWeek,
-  formatCompetitionPlaceLabel,
+  formatCompetitionTitleWithPlace,
   getCompetitionJumpTintClass,
   getCompetitionOutcomeTagClass,
-  getCompetitionPlaceMedal,
   getHighestMakeBarHeight,
   getJumpOutcomeLabel,
   getRunReference,
@@ -133,8 +132,11 @@ export default function VaultSessionList({
                 const highestMake = competition
                   ? getHighestMakeBarHeight(session.jumps)
                   : null;
-                const placeMedal = competition
-                  ? getCompetitionPlaceMedal(session.place)
+                const titledPlace = competition
+                  ? formatCompetitionTitleWithPlace(
+                      session.title,
+                      session.place
+                    )
                   : null;
                 const expanded = expandedSessionId === session.id;
 
@@ -156,20 +158,6 @@ export default function VaultSessionList({
                       <div className="flex items-start justify-between">
                         <div>
                           <div className="flex flex-wrap items-center gap-2">
-                            {placeMedal && (
-                              <span
-                                className="text-xl leading-none"
-                                aria-label={`${session.place}${
-                                  session.place === 1
-                                    ? "st"
-                                    : session.place === 2
-                                      ? "nd"
-                                      : "rd"
-                                } place`}
-                              >
-                                {placeMedal}
-                              </span>
-                            )}
                             <p className="font-bold text-foreground">
                               {session.date}
                             </p>
@@ -179,21 +167,13 @@ export default function VaultSessionList({
                               </span>
                             )}
                           </div>
-                          {competition && session.title && (
+                          {titledPlace && (
                             <p className="mt-0.5 font-medium text-foreground">
-                              {session.title}
+                              {titledPlace}
                             </p>
                           )}
                           <p className="text-sm text-muted">
                             {session.jumps.length} jumps
-                            {competition &&
-                              session.place &&
-                              session.place > 3 && (
-                                <>
-                                  {" "}
-                                  · {formatCompetitionPlaceLabel(session.place)}
-                                </>
-                              )}
                           </p>
                           {highestMake && (
                             <p className="text-base font-bold tracking-tight text-foreground">
