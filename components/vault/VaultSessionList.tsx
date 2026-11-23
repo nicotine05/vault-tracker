@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import Card from "@/components/Card";
 import type { Jump, Pole, VaultSession, VaultStepReferences } from "@/lib/domain/types";
 import {
@@ -43,12 +42,6 @@ export default function VaultSessionList({
   onDeleteSession,
   readOnly,
 }: VaultSessionListProps) {
-  const [sectionExpanded, setSectionExpanded] = useState(true);
-
-  if (sessions.length === 0) {
-    return null;
-  }
-
   const weekOptions = getVaultWeekOptions(sessions);
   const filteredSessions = filterVaultSessionsByWeek(sessions, weekFilter);
   const recentFilterLabel = getVaultRecentFilterLabel(sessions);
@@ -57,27 +50,11 @@ export default function VaultSessionList({
 
   return (
     <div>
-      <button
-        type="button"
-        onClick={() => setSectionExpanded((current) => !current)}
-        className="mb-3 flex w-full items-center justify-between gap-3 text-left"
-      >
-        <div className="flex items-center gap-2">
-          <h2 className="text-xl font-bold text-foreground">Vault Sessions</h2>
-          <span className="text-muted">{sectionExpanded ? "▾" : "▸"}</span>
-          {!sectionExpanded && (
-            <span className="text-sm text-muted">
-              ({filteredSessions.length}
-              {isFiltered ? ` of ${sessions.length}` : ""} session
-              {filteredSessions.length === 1 ? "" : "s"})
-            </span>
-          )}
-        </div>
-
-        {sectionExpanded && (
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <h2 className="text-xl font-bold text-foreground">Vault Sessions</h2>
+        {sessions.length > 0 && (
           <select
             value={weekFilter}
-            onClick={(event) => event.stopPropagation()}
             onChange={(event) => onWeekFilterChange(event.target.value)}
             className="rounded-lg border border-border bg-surface-muted px-2 py-1 text-foreground"
           >
@@ -92,77 +69,93 @@ export default function VaultSessionList({
             <option value="all">All</option>
           </select>
         )}
-      </button>
+      </div>
 
-      {sectionExpanded && isFiltered && (
-        <p className="mb-3 text-sm text-muted">
-          Showing {filteredSessions.length} of {sessions.length} sessions.
-          Choose a week to see older logs.
+      {sessions.length === 0 ? (
+        <p className="rounded-2xl border border-dashed border-border bg-surface-muted/50 px-4 py-8 text-center text-sm text-muted">
+          No vault sessions logged yet.
         </p>
-      )}
+      ) : (
+        <>
+          {isFiltered && (
+            <p className="mb-3 text-sm text-muted">
+              Showing {filteredSessions.length} of {sessions.length} sessions.
+              Choose a week to see older logs.
+            </p>
+          )}
 
-      {sectionExpanded && (
-        <div className="space-y-3">
-        {filteredSessions.map((session) => {
-          const grades = countJumpGrades(session.jumps);
-          const expanded = expandedSessionId === session.id;
+          {filteredSessions.length === 0 ? (
+            <p className="rounded-2xl border border-dashed border-border bg-surface-muted/50 px-4 py-8 text-center text-sm text-muted">
+              No sessions in this view. Try another week or All.
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {filteredSessions.map((session) => {
+                const grades = countJumpGrades(session.jumps);
+                const expanded = expandedSessionId === session.id;
 
-          return (
-            <Card key={session.id}>
-              <div
-                onClick={() => onToggleExpanded(expanded ? null : session.id)}
-                className="cursor-pointer"
-              >
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="font-bold text-foreground">{session.date}</p>
-                    <p className="text-sm text-muted">
-                      {session.jumps.length} jumps
-                    </p>
-                  </div>
-
-                  <div className="text-right">
-                    <p>🟢 {grades.green}</p>
-                    <p>🟡 {grades.yellow}</p>
-                    <p>🔴 {grades.red}</p>
-                  </div>
-                </div>
-
-                {session.keys.length > 0 && (
-                  <div className="mt-2 text-sm text-muted">
-                    🎯 {session.keys.join(" • ")}
-                  </div>
-                )}
-              </div>
-
-              {expanded && (
-                <div className="mt-4 border-t border-border pt-4">
-                  <div className="space-y-2">
-                    {session.jumps.map((jump) => (
-                      <JumpDetail
-                        key={jump.id}
-                        jump={jump}
-                        stepRefs={stepRefs}
-                        poles={poles}
-                      />
-                    ))}
-                  </div>
-
-                  {!readOnly && (
-                    <button
-                      type="button"
-                      onClick={() => onDeleteSession(session.id)}
-                      className="mt-4 w-full rounded-xl border border-red-300 p-2 text-red-500 [data-theme=dark]:border-red-400/60 [data-theme=dark]:text-red-400"
+                return (
+                  <Card key={session.id}>
+                    <div
+                      onClick={() =>
+                        onToggleExpanded(expanded ? null : session.id)
+                      }
+                      className="cursor-pointer"
                     >
-                      Delete Session
-                    </button>
-                  )}
-                </div>
-              )}
-            </Card>
-          );
-        })}
-        </div>
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <p className="font-bold text-foreground">
+                            {session.date}
+                          </p>
+                          <p className="text-sm text-muted">
+                            {session.jumps.length} jumps
+                          </p>
+                        </div>
+
+                        <div className="text-right">
+                          <p>🟢 {grades.green}</p>
+                          <p>🟡 {grades.yellow}</p>
+                          <p>🔴 {grades.red}</p>
+                        </div>
+                      </div>
+
+                      {session.keys.length > 0 && (
+                        <div className="mt-2 text-sm text-muted">
+                          🎯 {session.keys.join(" • ")}
+                        </div>
+                      )}
+                    </div>
+
+                    {expanded && (
+                      <div className="mt-4 border-t border-border pt-4">
+                        <div className="space-y-2">
+                          {session.jumps.map((jump) => (
+                            <JumpDetail
+                              key={jump.id}
+                              jump={jump}
+                              stepRefs={stepRefs}
+                              poles={poles}
+                            />
+                          ))}
+                        </div>
+
+                        {!readOnly && (
+                          <button
+                            type="button"
+                            onClick={() => onDeleteSession(session.id)}
+                            className="mt-4 w-full rounded-xl border border-red-300 p-2 text-red-500 [data-theme=dark]:border-red-400/60 [data-theme=dark]:text-red-400"
+                          >
+                            Delete Session
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </>
       )}
     </div>
   );
@@ -179,9 +172,7 @@ function JumpDetail({
 }) {
   const reference = getRunReference(jump.run, stepRefs);
   const pole = getPoleById(poles, jump.poleId);
-  const poleDisplay = pole
-    ? formatPolePickerLabel(pole)
-    : jump.poleLabel;
+  const poleDisplay = pole ? formatPolePickerLabel(pole) : jump.poleLabel;
 
   return (
     <div className="rounded-lg border border-border bg-surface-muted p-3 text-foreground">
@@ -195,7 +186,9 @@ function JumpDetail({
         <span>{jump.takeoff}</span>
         {poleDisplay && (
           <span className="flex items-center gap-1 text-xs text-muted">
-            {pole && <PoleBrandAccent brandId={pole.brandId} className="h-2 w-2" />}
+            {pole && (
+              <PoleBrandAccent brandId={pole.brandId} className="h-2 w-2" />
+            )}
             {poleDisplay}
           </span>
         )}

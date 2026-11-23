@@ -2,11 +2,10 @@
 
 import { useState } from "react";
 import Card from "@/components/Card";
+import HubLinkCard from "@/components/navigation/HubLinkCard";
 import VaultNewSessionPanel from "@/components/vault/VaultNewSessionPanel";
-import VaultSessionList from "@/components/vault/VaultSessionList";
 import VaultStepReferencePanel from "@/components/vault/VaultStepReferencePanel";
 import { useAuth } from "@/components/AuthProvider";
-import { VAULT_SESSION_RECENT_FILTER } from "@/lib/domain/vaultLog";
 import { useVaultLogState } from "@/lib/hooks/useVaultLogState";
 
 export default function VaultLogsPage() {
@@ -27,22 +26,22 @@ export default function VaultLogsPage() {
     clearSession,
     canClearSession,
     saveSession,
-    deleteSession,
     saveHeightPRs,
     updateRunPRField,
     poles,
     recentPoleIds,
   } = useVaultLogState();
 
-  const [expandedSessionId, setExpandedSessionId] = useState<string | null>(
-    null
-  );
-  const [weekFilter, setWeekFilter] = useState(VAULT_SESSION_RECENT_FILTER);
   const [editingRefs, setEditingRefs] = useState(false);
   const [showPRMenu, setShowPRMenu] = useState(false);
 
+  const sessionsDescription =
+    sessions.length === 0
+      ? "No sessions logged yet."
+      : `Review past practice sessions by week · ${sessions.length} saved`;
+
   return (
-    <main className="max-w-5xl mx-auto p-4 pb-20">
+    <main className="mx-auto max-w-5xl p-4 pb-20">
       <h1 className="mb-4 text-3xl font-bold">Vault Logs</h1>
 
       <div className="grid items-start gap-4 md:grid-cols-[320px_1fr]">
@@ -63,16 +62,11 @@ export default function VaultLogsPage() {
             />
           </Card>
 
-          <VaultSessionList
-            sessions={sessions}
-            stepRefs={stepRefs}
-            poles={poles}
-            weekFilter={weekFilter}
-            onWeekFilterChange={setWeekFilter}
-            expandedSessionId={expandedSessionId}
-            onToggleExpanded={setExpandedSessionId}
-            onDeleteSession={deleteSession}
-            readOnly={isCoachReadOnly}
+          <HubLinkCard
+            href="/vault/logs/sessions"
+            icon="📋"
+            title="Vault Sessions"
+            description={sessionsDescription}
           />
         </div>
 
