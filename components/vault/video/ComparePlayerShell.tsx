@@ -28,7 +28,6 @@ import {
   seekToFrame,
   seekToTime,
 } from "@/lib/domain/videoAnalysis";
-import { useFilmstripThumbnails } from "@/lib/hooks/useFilmstripThumbnails";
 import { useOrientationLayout } from "@/lib/hooks/useOrientationLayout";
 import { useOverlayVisibility } from "@/lib/hooks/useOverlayVisibility";
 import { useVideoPlayer } from "@/lib/hooks/useVideoPlayer";
@@ -80,14 +79,6 @@ export default function ComparePlayerShell({
   const [optionsOpen, setOptionsOpen] = useState(false);
 
   const layoutMode = layoutOverride ?? orientationLayout;
-
-  const filmstripUrl = isSynced
-    ? videoUrlA
-    : activeVideo === "A"
-      ? videoUrlA
-      : videoUrlB;
-
-  const { thumbnails } = useFilmstripThumbnails(filmstripUrl);
 
   const drawingEnabled = activeTool !== null;
   const isScrubbing = playerA.isScrubbing || playerB.isScrubbing;
@@ -681,7 +672,6 @@ export default function ComparePlayerShell({
                 <VideoFilmstripTimeline
                   currentTime={timelineTime}
                   duration={timelineDuration}
-                  thumbnails={thumbnails}
                   disabled={drawingEnabled}
                   onScrubStart={handleScrubStart}
                   onScrub={handleScrub}

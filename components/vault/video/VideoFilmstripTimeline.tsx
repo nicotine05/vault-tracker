@@ -5,7 +5,6 @@ import { useEffect, useRef, useState } from "react";
 type VideoFilmstripTimelineProps = {
   currentTime: number;
   duration: number;
-  thumbnails: string[];
   disabled?: boolean;
   compact?: boolean;
   onScrubStart: () => void;
@@ -18,7 +17,6 @@ type VideoFilmstripTimelineProps = {
 export default function VideoFilmstripTimeline({
   currentTime,
   duration,
-  thumbnails,
   disabled = false,
   compact = false,
   onScrubStart,
@@ -38,7 +36,7 @@ export default function VideoFilmstripTimeline({
   const progress = Math.max(0, Math.min(1, displayTime / maxDuration));
   // Compact matches the 44px play/markup buttons in the bottom chrome row.
   const trackHeight = compact ? "h-11" : "h-12";
-  const knobSize = compact ? "h-5 w-5 border-2" : "h-6 w-6 border-[2.5px]";
+  const knobSize = compact ? "h-5 w-5" : "h-6 w-6";
 
   useEffect(() => {
     return () => {
@@ -105,7 +103,7 @@ export default function VideoFilmstripTimeline({
     <div className={`min-w-0 flex-1 ${className}`}>
       <div
         ref={trackRef}
-        className={`relative ${trackHeight} overflow-hidden rounded-xl bg-black/45 ring-1 ring-white/12 ${
+        className={`relative ${trackHeight} overflow-hidden rounded-2xl bg-black/45 backdrop-blur-xl ring-1 ring-white/15 ${
           disabled ? "opacity-40" : "touch-none select-none"
         }`}
         onPointerDown={(event) => {
@@ -130,30 +128,13 @@ export default function VideoFilmstripTimeline({
         onPointerUp={finishScrub}
         onPointerCancel={finishScrub}
       >
-        {thumbnails.length > 0 ? (
-          <div className="absolute inset-0 flex">
-            {thumbnails.map((thumbnail, index) => (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                key={`${index}-${thumbnail.slice(-24)}`}
-                src={thumbnail}
-                alt=""
-                className="h-full flex-1 object-cover"
-                draggable={false}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="absolute inset-0 bg-gradient-to-r from-white/15 via-white/8 to-white/15" />
-        )}
-
         <div
-          className="pointer-events-none absolute inset-y-0 w-[2px] -translate-x-1/2 rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.85)]"
+          className="pointer-events-none absolute inset-y-0 w-[2px] -translate-x-1/2 rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.75)]"
           style={{ left: `${progress * 100}%` }}
         />
 
         <div
-          className={`pointer-events-none absolute top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border-white bg-white shadow-md ${knobSize}`}
+          className={`pointer-events-none absolute top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow-[0_2px_8px_rgba(0,0,0,0.35)] ${knobSize}`}
           style={{ left: `${progress * 100}%` }}
         />
       </div>

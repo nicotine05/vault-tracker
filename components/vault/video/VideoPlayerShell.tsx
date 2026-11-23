@@ -15,7 +15,6 @@ import {
 import type { AnnotationTool, VideoAnnotation } from "@/lib/domain/videoAnalysis";
 import { ANNOTATION_COLOR } from "@/lib/domain/videoAnalysis";
 import { annotationVisibleOnFrame } from "@/lib/domain/videoAnnotations";
-import { useFilmstripThumbnails } from "@/lib/hooks/useFilmstripThumbnails";
 import { useOverlayVisibility } from "@/lib/hooks/useOverlayVisibility";
 import { useVideoPlayer } from "@/lib/hooks/useVideoPlayer";
 import { updateClipAnnotations } from "@/lib/storage/videoLibraryStore";
@@ -79,7 +78,6 @@ export default function VideoPlayerShell({
 }: VideoPlayerShellProps) {
   const { setImmersive } = useVideoImmersive();
   const player = useVideoPlayer({ videoUrl });
-  const { thumbnails } = useFilmstripThumbnails(videoUrl);
   const overlay = useOverlayVisibility(5000);
 
   const [mode, setMode] = useState<PlayerInteractionMode>("watch");
@@ -330,7 +328,6 @@ export default function VideoPlayerShell({
                 <VideoFilmstripTimeline
                   currentTime={player.currentTime}
                   duration={player.duration}
-                  thumbnails={thumbnails}
                   compact
                   onScrubStart={handleScrubStart}
                   onScrub={handleScrub}
