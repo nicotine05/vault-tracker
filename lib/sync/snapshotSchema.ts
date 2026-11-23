@@ -451,6 +451,13 @@ export function normalizeSyncSnapshot(
           .map(normalizeHeightPREntry)
           .filter((entry): entry is HeightPREntry => entry !== null)
       : [],
+    [STORAGE_KEYS.VAULT_HEIGHT_GOAL]: (() => {
+      const raw = data[STORAGE_KEYS.VAULT_HEIGHT_GOAL];
+      if (!isString(raw) || raw.trim() === "") {
+        return defaults[STORAGE_KEYS.VAULT_HEIGHT_GOAL];
+      }
+      return raw.trim();
+    })(),
     [STORAGE_KEYS.SPRINT_PRS]: mergeStringRecord(
       data[STORAGE_KEYS.SPRINT_PRS],
       EMPTY_SPRINT_PRS

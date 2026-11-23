@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import AccountSettings from "@/components/AccountSettings";
+import HeightGoalSettings from "@/components/settings/HeightGoalSettings";
 import ThemePicker from "@/components/settings/ThemePicker";
 import Card from "@/components/Card";
 
@@ -11,6 +12,10 @@ export default function SettingsPage() {
       <h1 className="text-3xl font-bold mb-4">Settings</h1>
 
       <AccountSettings />
+
+      <div className="mt-4">
+        <HeightGoalSettings />
+      </div>
 
       <div className="mt-4">
         <Link href="/settings/injuries" className="block">

@@ -1,6 +1,7 @@
 import { getDefaultCurrentWeekStartDate } from "@/lib/domain/calendarUtils";
 import { DEFAULT_INJURY_PROFILE } from "@/lib/domain/injuryManagement";
 import { createInitialProgramCycle } from "@/lib/domain/programCycle";
+import { DEFAULT_VAULT_HEIGHT_GOAL } from "@/lib/domain/vaultProgress";
 import {
   EMPTY_RUN_PRS,
   EMPTY_SPRINT_PRS,
@@ -22,6 +23,7 @@ export function getDefaultSyncSnapshot(): Record<string, unknown> {
     [STORAGE_KEYS.WEIGHT_HISTORY]: [],
     [STORAGE_KEYS.VAULT_RUN_PRS]: { ...EMPTY_RUN_PRS },
     [STORAGE_KEYS.VAULT_PR_HISTORY]: [],
+    [STORAGE_KEYS.VAULT_HEIGHT_GOAL]: DEFAULT_VAULT_HEIGHT_GOAL,
     [STORAGE_KEYS.SPRINT_PRS]: { ...EMPTY_SPRINT_PRS },
     [STORAGE_KEYS.SPRINT_PR_HISTORY]: [],
     [STORAGE_KEYS.STRENGTH_PRS]: { ...EMPTY_STRENGTH_PRS },
