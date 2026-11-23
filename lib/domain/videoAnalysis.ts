@@ -35,6 +35,8 @@ type AnnotationBase = {
   id: string;
   frame: number;
   color: string;
+  /** When true, mark stays visible while scrubbing any frame until cleared. */
+  persistent?: boolean;
 };
 
 export type VideoAnnotation =

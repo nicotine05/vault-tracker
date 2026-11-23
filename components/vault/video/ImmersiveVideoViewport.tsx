@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AnnotationTool, VideoAnnotation } from "@/lib/domain/videoAnalysis";
 import { createAnnotationId } from "@/lib/domain/videoAnalysis";
 import {
+  annotationVisibleOnFrame,
   createDraftAnnotation,
   getVideoContentRect,
   normalizePointerInContent,
@@ -24,6 +25,7 @@ type ImmersiveVideoViewportProps = {
   annotationColor: string;
   mode: PlayerInteractionMode;
   muted: boolean;
+  persistentDrawing?: boolean;
   controlsVisible?: boolean;
   isPlaying?: boolean;
   onAnnotationsChange: (annotations: VideoAnnotation[]) => void;
@@ -61,6 +63,7 @@ export default function ImmersiveVideoViewport({
   annotationColor,
   mode,
   muted,
+  persistentDrawing = false,
   controlsVisible = true,
   isPlaying = false,
   onAnnotationsChange,
@@ -107,10 +110,14 @@ export default function ImmersiveVideoViewport({
 
   const frameAnnotations = useMemo(
     () =>
-      annotations.filter((annotation) => annotation.frame === currentFrame),
+      annotations.filter((annotation) =>
+        annotationVisibleOnFrame(annotation, currentFrame),
+      ),
     [annotations, currentFrame],
   );
   frameAnnotationsRef.current = frameAnnotations;
+  const persistentDrawingRef = useRef(persistentDrawing);
+  persistentDrawingRef.current = persistentDrawing;
 
   const measureContent = useCallback(() => {
     const container = containerRef.current;
@@ -202,6 +209,7 @@ export default function ImmersiveVideoViewport({
           ...annotation,
           id: createAnnotationId(),
           frame: currentFrame,
+          persistent: persistentDrawingRef.current || undefined,
         },
       ]);
       setDraftAnnotation(null);
@@ -263,6 +271,7 @@ export default function ImmersiveVideoViewport({
           point,
           currentFrame,
           annotationColor,
+          persistentDrawingRef.current,
         ),
       );
       return;
@@ -384,6 +393,7 @@ export default function ImmersiveVideoViewport({
           point,
           currentFrame,
           annotationColor,
+          persistentDrawingRef.current,
         ),
       );
       return;

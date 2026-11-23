@@ -217,36 +217,45 @@ export function createDraftAnnotation(
   start: NormalizedPoint,
   frame: number,
   color: string,
+  persistent = false,
 ): VideoAnnotation {
+  const base = {
+    id: "draft" as const,
+    frame,
+    color,
+    ...(persistent ? { persistent: true as const } : {}),
+  };
+
   if (type === "draw") {
     return {
-      id: "draft",
-      frame,
+      ...base,
       type: "draw",
       points: [start],
-      color,
     };
   }
 
   if (type === "circle") {
     return {
-      id: "draft",
-      frame,
+      ...base,
       type: "circle",
       center: start,
       radius: 0,
-      color,
     };
   }
 
   return {
-    id: "draft",
-    frame,
+    ...base,
     type,
     start,
     end: start,
-    color,
   };
+}
+
+export function annotationVisibleOnFrame(
+  annotation: VideoAnnotation,
+  frame: number,
+): boolean {
+  return Boolean(annotation.persistent) || annotation.frame === frame;
 }
 
 export function updateDraftAnnotation(
