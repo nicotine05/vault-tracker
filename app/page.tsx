@@ -1,6 +1,7 @@
 "use client";
 
 import MealPlanCard from "@/components/home/MealPlanCard";
+import MeetScheduleHomeCard from "@/components/home/MeetScheduleHomeCard";
 import HomeGreeting from "@/components/home/HomeGreeting";
 import TodayTrainingCard from "@/components/home/TodayTrainingCard";
 import VaultGoalCard from "@/components/home/VaultGoalCard";
@@ -77,6 +78,8 @@ export default function Home() {
       <HomeGreeting />
 
       <VaultGoalCard runPRs={runPRs} />
+
+      <MeetScheduleHomeCard />
 
       <div className="mb-4">
         <MealPlanCard planKey={planKey} />

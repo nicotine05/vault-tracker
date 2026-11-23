@@ -48,36 +48,35 @@ export default function MeetScheduleForm({
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="mb-1 block text-sm font-medium text-foreground">
-              Date
-            </label>
-            <input
-              type="date"
-              value={values.dateKey}
-              onChange={(event) =>
-                onChange({ ...values, dateKey: event.target.value })
-              }
-              className={fieldClassName}
-              required
-            />
-          </div>
+        {/* Stacked full-width fields — iOS date/time inputs overflow 2-col grids. */}
+        <div>
+          <label className="mb-1 block text-sm font-medium text-foreground">
+            Date
+          </label>
+          <input
+            type="date"
+            value={values.dateKey}
+            onChange={(event) =>
+              onChange({ ...values, dateKey: event.target.value })
+            }
+            className={`${fieldClassName} box-border min-w-0 max-w-full`}
+            required
+          />
+        </div>
 
-          <div>
-            <label className="mb-1 block text-sm font-medium text-foreground">
-              Start time
-            </label>
-            <input
-              type="time"
-              value={values.startTime}
-              onChange={(event) =>
-                onChange({ ...values, startTime: event.target.value })
-              }
-              className={fieldClassName}
-              required
-            />
-          </div>
+        <div>
+          <label className="mb-1 block text-sm font-medium text-foreground">
+            Start time
+          </label>
+          <input
+            type="time"
+            value={values.startTime}
+            onChange={(event) =>
+              onChange({ ...values, startTime: event.target.value })
+            }
+            className={`${fieldClassName} box-border min-w-0 max-w-full`}
+            required
+          />
         </div>
 
         <div>

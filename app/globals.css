@@ -156,6 +156,15 @@ button {
   font-size: 16px;
 }
 
+/* Safari date/time controls ignore width without an explicit min-width reset. */
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"] {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+}
+
 ::placeholder {
   color: var(--muted);
   opacity: 1;
