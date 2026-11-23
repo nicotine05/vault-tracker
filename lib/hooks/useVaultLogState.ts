@@ -10,6 +10,7 @@ import type {
 } from "@/lib/domain/types";
 import {
   appendHeightPREntry,
+  carryForwardJumpForm,
   createJump,
   createVaultSession,
   emptyJumpForm,
@@ -121,7 +122,7 @@ export function useVaultLogState() {
       });
     }
 
-    setJumpForm(emptyJumpForm());
+    setJumpForm(carryForwardJumpForm(jumpForm));
   }
 
   function removeJump(jumpId: string) {

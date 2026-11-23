@@ -278,14 +278,16 @@ export function appendHeightPREntry(
   };
 }
 
-export function emptyJumpForm(): {
+export type JumpFormState = {
   run: string;
   grip: string;
   takeoff: string;
   grade: Jump["grade"];
   comment: string;
   poleId?: string;
-} {
+};
+
+export function emptyJumpForm(): JumpFormState {
   return {
     run: "",
     grip: "",
@@ -296,10 +298,22 @@ export function emptyJumpForm(): {
   };
 }
 
+/** Keep run/grip/takeoff/pole for the next jump; clear comment. */
+export function carryForwardJumpForm(form: JumpFormState): JumpFormState {
+  return {
+    run: form.run,
+    grip: form.grip,
+    takeoff: form.takeoff,
+    grade: form.grade,
+    comment: "",
+    poleId: form.poleId,
+  };
+}
+
 export type VaultSessionDraft = {
   keys: string[];
   jumps: Jump[];
-  jumpForm: ReturnType<typeof emptyJumpForm>;
+  jumpForm: JumpFormState;
 };
 
 export function emptyVaultSessionDraft(): VaultSessionDraft {
