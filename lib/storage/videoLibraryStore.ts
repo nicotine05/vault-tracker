@@ -153,71 +153,158 @@ export function subscribeVideoLibrary(listener: () => void): () => void {
   };
 }
 
-/** Capture a small JPEG poster from a video blob. */
+function withTimeout<T>(
+  promise: Promise<T>,
+  ms: number,
+  label: string
+): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = window.setTimeout(() => {
+      reject(new Error(`${label} timed out`));
+    }, ms);
+
+    promise.then(
+      (value) => {
+        window.clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        window.clearTimeout(timer);
+        reject(error);
+      }
+    );
+  });
+}
+
+/**
+ * Capture a small JPEG poster from a video blob.
+ * Never hangs forever — times out and returns a placeholder on iOS decode stalls.
+ */
 export async function createVideoThumbnail(
   blob: Blob
-): Promise<{ thumbnailBlob: Blob; duration: number }> {
+): Promise<{ thumbnailBlob?: Blob; duration: number }> {
   const objectUrl = URL.createObjectURL(blob);
+  const video = document.createElement("video");
 
   try {
-    const video = document.createElement("video");
     video.preload = "auto";
     video.muted = true;
+    video.defaultMuted = true;
     video.playsInline = true;
+    video.setAttribute("playsinline", "true");
+    video.setAttribute("webkit-playsinline", "true");
     video.src = objectUrl;
 
-    await new Promise<void>((resolve, reject) => {
-      video.onloadeddata = () => resolve();
-      video.onerror = () => reject(new Error("Could not load video"));
-    });
+    await withTimeout(
+      new Promise<void>((resolve, reject) => {
+        const succeed = () => resolve();
+        const fail = () => reject(new Error("Could not load video"));
 
-    const seekTime = Number.isFinite(video.duration)
-      ? Math.min(0.2, Math.max(0, video.duration * 0.05))
-      : 0;
+        if (video.readyState >= 2) {
+          succeed();
+          return;
+        }
+
+        video.addEventListener("loadeddata", succeed, { once: true });
+        video.addEventListener("loadedmetadata", () => {
+          // Metadata alone is enough to know duration; keep waiting for data briefly.
+        });
+        video.addEventListener("error", fail, { once: true });
+        try {
+          video.load();
+        } catch {
+          // ignore
+        }
+      }),
+      8000,
+      "Video load"
+    );
+
+    // Force a decoded frame on stubborn iOS HEVC/MOV clips.
+    try {
+      await withTimeout(video.play().then(() => undefined), 2500, "Video play");
+      video.pause();
+    } catch {
+      // Autoplay/decode may fail — continue with whatever frame we have.
+      try {
+        video.pause();
+      } catch {
+        // ignore
+      }
+    }
+
+    const duration = Number.isFinite(video.duration) ? video.duration : 0;
+    const seekTime =
+      duration > 0 ? Math.min(0.25, Math.max(0.05, duration * 0.04)) : 0;
 
     if (seekTime > 0) {
-      await new Promise<void>((resolve) => {
-        video.onseeked = () => resolve();
-        video.currentTime = seekTime;
-      });
+      try {
+        await withTimeout(
+          new Promise<void>((resolve) => {
+            const done = () => resolve();
+            video.addEventListener("seeked", done, { once: true });
+            try {
+              video.currentTime = seekTime;
+            } catch {
+              resolve();
+            }
+          }),
+          3000,
+          "Video seek"
+        );
+      } catch {
+        // Keep current frame.
+      }
+    }
+
+    if (video.videoWidth <= 0 || video.videoHeight <= 0) {
+      return { duration };
     }
 
     const canvas = document.createElement("canvas");
     const maxWidth = 480;
-    const scale =
-      video.videoWidth > 0 ? Math.min(1, maxWidth / video.videoWidth) : 1;
+    const scale = Math.min(1, maxWidth / video.videoWidth);
     canvas.width = Math.max(1, Math.round(video.videoWidth * scale));
     canvas.height = Math.max(1, Math.round(video.videoHeight * scale));
 
     const ctx = canvas.getContext("2d");
     if (!ctx) {
-      return {
-        thumbnailBlob: blob.slice(0, 1, "image/jpeg"),
-        duration: video.duration || 0,
-      };
+      return { duration };
     }
 
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    const thumbnailBlob = await new Promise<Blob>((resolve, reject) => {
-      canvas.toBlob(
-        (result) => {
-          if (result) {
-            resolve(result);
-            return;
-          }
-          reject(new Error("Thumbnail encode failed"));
-        },
-        "image/jpeg",
-        0.72
-      );
-    });
+    const thumbnailBlob = await withTimeout(
+      new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob(
+          (result) => {
+            if (result && result.size > 0) {
+              resolve(result);
+              return;
+            }
+            reject(new Error("Thumbnail encode failed"));
+          },
+          "image/jpeg",
+          0.7
+        );
+      }),
+      4000,
+      "Thumbnail encode"
+    );
 
-    return {
-      thumbnailBlob,
-      duration: Number.isFinite(video.duration) ? video.duration : 0,
-    };
+    return { thumbnailBlob, duration };
+  } catch (error) {
+    console.warn("Video thumbnail skipped:", error);
+    return { duration: 0 };
   } finally {
+    try {
+      video.removeAttribute("src");
+      video.load();
+    } catch {
+      // ignore
+    }
     URL.revokeObjectURL(objectUrl);
   }
 }
+
+export { withTimeout };

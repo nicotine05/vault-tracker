@@ -130,7 +130,7 @@ export default function VideoAnalysisLanding() {
   const [importError, setImportError] = useState<string | null>(null);
 
   const handleImport = async (file: File | null) => {
-    if (!file) {
+    if (!file || busy) {
       return;
     }
 
@@ -139,8 +139,11 @@ export default function VideoAnalysisLanding() {
 
     try {
       const record = await importFile(file);
-      router.push(`/vault/video-analysis/single?id=${encodeURIComponent(record.id)}`);
+      router.push(
+        `/vault/video-analysis/single?id=${encodeURIComponent(record.id)}`,
+      );
     } catch (err) {
+      console.error(err);
       setImportError(
         err instanceof Error ? err.message : "Could not import video.",
       );
