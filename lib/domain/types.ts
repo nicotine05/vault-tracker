@@ -146,6 +146,8 @@ export type VaultSession = {
   mode?: VaultSessionMode;
   /** Competition meet / location name. Practice sessions omit this. */
   title?: string;
+  /** Finishing place at the meet (1 = first). Competition only. */
+  place?: number;
 };
 
 export type WorkoutExecutionRecord = {
