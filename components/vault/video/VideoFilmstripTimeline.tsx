@@ -100,17 +100,18 @@ export default function VideoFilmstripTimeline({
   };
 
   return (
-    <div className={`px-4 pb-2 pt-3 ${overlayFadeClass(visible)}`}>
+    <div className={`px-3 pb-2 pt-2 ${overlayFadeClass(visible)}`}>
       {frameLabel && (
-        <p className="mb-2 text-center text-[11px] font-medium tabular-nums text-white/70">
+        <p className="mb-2 text-center text-[12px] font-medium tabular-nums text-white/75">
           {frameLabel}
         </p>
       )}
 
+      {/* Tall hit area for thumb scrubbing on iPhone */}
       <div
         ref={trackRef}
-        className={`relative h-14 overflow-hidden rounded-xl bg-white/10 ${
-          disabled ? "opacity-40" : "cursor-pointer touch-none"
+        className={`relative h-16 overflow-hidden rounded-2xl bg-white/10 ${
+          disabled ? "opacity-40" : "touch-none select-none"
         }`}
         onPointerDown={(event) => {
           if (disabled) {
@@ -137,6 +138,7 @@ export default function VideoFilmstripTimeline({
         {thumbnails.length > 0 ? (
           <div className="absolute inset-0 flex">
             {thumbnails.map((thumbnail, index) => (
+              // eslint-disable-next-line @next/next/no-img-element
               <img
                 key={`${thumbnail.slice(0, 24)}-${index}`}
                 src={thumbnail}
@@ -161,7 +163,7 @@ export default function VideoFilmstripTimeline({
         />
 
         <div
-          className="absolute top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-white/95 shadow-md"
+          className="absolute top-1/2 h-7 w-7 -translate-x-1/2 -translate-y-1/2 rounded-full border-[3px] border-white bg-white/95 shadow-md"
           style={{ left: `${progress * 100}%` }}
         />
       </div>

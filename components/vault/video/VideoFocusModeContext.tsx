@@ -4,6 +4,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -20,7 +21,18 @@ const VideoImmersiveContext = createContext<VideoImmersiveContextValue | null>(
 
 /** @deprecated Use VideoImmersiveProvider semantics via focusMode alias */
 export function VideoFocusModeProvider({ children }: { children: ReactNode }) {
-  const [isImmersive, setImmersive] = useState(false);
+  const [isImmersive, setImmersiveState] = useState(false);
+
+  const setImmersive = useCallback((value: boolean) => {
+    setImmersiveState(value);
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("video-immersive", isImmersive);
+    return () => {
+      document.documentElement.classList.remove("video-immersive");
+    };
+  }, [isImmersive]);
 
   const value = useMemo(
     () => ({
@@ -28,9 +40,9 @@ export function VideoFocusModeProvider({ children }: { children: ReactNode }) {
       setImmersive,
       focusMode: isImmersive,
       setFocusMode: setImmersive,
-      toggleFocusMode: () => setImmersive((current) => !current),
+      toggleFocusMode: () => setImmersive(!isImmersive),
     }),
-    [isImmersive],
+    [isImmersive, setImmersive],
   );
 
   return (

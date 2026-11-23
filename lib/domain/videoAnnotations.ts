@@ -2,7 +2,85 @@ import type {
   NormalizedPoint,
   VideoAnnotation,
 } from "@/lib/domain/videoAnalysis";
-import { ANNOTATION_COLOR } from "@/lib/domain/videoAnalysis";
+
+export type ContentRect = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
+/** Letterboxed / pillarboxed rect for object-fit: contain. */
+export function getObjectContainRect(
+  containerWidth: number,
+  containerHeight: number,
+  mediaWidth: number,
+  mediaHeight: number,
+): ContentRect {
+  if (
+    containerWidth <= 0 ||
+    containerHeight <= 0 ||
+    mediaWidth <= 0 ||
+    mediaHeight <= 0
+  ) {
+    return {
+      x: 0,
+      y: 0,
+      width: Math.max(1, containerWidth),
+      height: Math.max(1, containerHeight),
+    };
+  }
+
+  const containerRatio = containerWidth / containerHeight;
+  const mediaRatio = mediaWidth / mediaHeight;
+
+  if (mediaRatio > containerRatio) {
+    const width = containerWidth;
+    const height = containerWidth / mediaRatio;
+    return {
+      x: 0,
+      y: (containerHeight - height) / 2,
+      width,
+      height,
+    };
+  }
+
+  const height = containerHeight;
+  const width = containerHeight * mediaRatio;
+  return {
+    x: (containerWidth - width) / 2,
+    y: 0,
+    width,
+    height,
+  };
+}
+
+/** Prefer the video element's painted box when available. */
+export function getVideoContentRect(
+  container: HTMLElement,
+  video: HTMLVideoElement | null,
+): ContentRect {
+  const containerRect = container.getBoundingClientRect();
+  const containerWidth = containerRect.width;
+  const containerHeight = containerRect.height;
+
+  if (video && video.videoWidth > 0 && video.videoHeight > 0) {
+    const videoRect = video.getBoundingClientRect();
+    return {
+      x: videoRect.left - containerRect.left,
+      y: videoRect.top - containerRect.top,
+      width: Math.max(1, videoRect.width),
+      height: Math.max(1, videoRect.height),
+    };
+  }
+
+  return getObjectContainRect(
+    containerWidth,
+    containerHeight,
+    video?.videoWidth ?? 0,
+    video?.videoHeight ?? 0,
+  );
+}
 
 function toCanvasPoint(
   point: NormalizedPoint,
@@ -101,6 +179,37 @@ export function normalizePointer(
     x: Math.max(0, Math.min(1, (clientX - rect.left) / rect.width)),
     y: Math.max(0, Math.min(1, (clientY - rect.top) / rect.height)),
   };
+}
+
+/** Normalize pointer into the displayed video content (0–1), not the letterbox. */
+export function normalizePointerInContent(
+  clientX: number,
+  clientY: number,
+  containerRect: DOMRect,
+  content: ContentRect,
+): NormalizedPoint {
+  const x = (clientX - containerRect.left - content.x) / content.width;
+  const y = (clientY - containerRect.top - content.y) / content.height;
+  return {
+    x: Math.max(0, Math.min(1, x)),
+    y: Math.max(0, Math.min(1, y)),
+  };
+}
+
+export function isPointInContent(
+  clientX: number,
+  clientY: number,
+  containerRect: DOMRect,
+  content: ContentRect,
+): boolean {
+  const localX = clientX - containerRect.left;
+  const localY = clientY - containerRect.top;
+  return (
+    localX >= content.x &&
+    localX <= content.x + content.width &&
+    localY >= content.y &&
+    localY <= content.y + content.height
+  );
 }
 
 export function createDraftAnnotation(

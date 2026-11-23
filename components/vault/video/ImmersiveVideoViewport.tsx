@@ -1,15 +1,19 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AnnotationTool, VideoAnnotation } from "@/lib/domain/videoAnalysis";
 import { createAnnotationId } from "@/lib/domain/videoAnalysis";
 import {
   createDraftAnnotation,
-  normalizePointer,
+  getVideoContentRect,
+  normalizePointerInContent,
   renderAnnotations,
   updateDraftAnnotation,
+  type ContentRect,
 } from "@/lib/domain/videoAnnotations";
 import { useVideoZoom } from "@/lib/hooks/useVideoZoom";
+
+export type PlayerInteractionMode = "watch" | "mark";
 
 type ImmersiveVideoViewportProps = {
   videoUrl: string;
@@ -18,11 +22,13 @@ type ImmersiveVideoViewportProps = {
   currentFrame: number;
   activeTool: AnnotationTool | null;
   annotationColor: string;
-  drawingEnabled: boolean;
+  mode: PlayerInteractionMode;
+  muted: boolean;
+  controlsVisible?: boolean;
+  isPlaying?: boolean;
   onAnnotationsChange: (annotations: VideoAnnotation[]) => void;
-  onSingleTap: () => void;
-  onDoubleTapLeft: () => void;
-  onDoubleTapRight: () => void;
+  onTogglePlay: () => void;
+  onStepFrames: (delta: number) => void;
   onInteraction: () => void;
   className?: string;
 };
@@ -37,6 +43,15 @@ function getTouchDistance(touches: React.TouchList | TouchList) {
   return Math.hypot(dx, dy);
 }
 
+function rectsNearlyEqual(a: ContentRect, b: ContentRect) {
+  return (
+    Math.abs(a.x - b.x) < 0.5 &&
+    Math.abs(a.y - b.y) < 0.5 &&
+    Math.abs(a.width - b.width) < 0.5 &&
+    Math.abs(a.height - b.height) < 0.5
+  );
+}
+
 export default function ImmersiveVideoViewport({
   videoUrl,
   videoRef,
@@ -44,38 +59,84 @@ export default function ImmersiveVideoViewport({
   currentFrame,
   activeTool,
   annotationColor,
-  drawingEnabled,
+  mode,
+  muted,
+  controlsVisible = true,
+  isPlaying = false,
   onAnnotationsChange,
-  onSingleTap,
-  onDoubleTapLeft,
-  onDoubleTapRight,
+  onTogglePlay,
+  onStepFrames: _onStepFrames,
   onInteraction,
   className = "",
 }: ImmersiveVideoViewportProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<ContentRect>({ x: 0, y: 0, width: 1, height: 1 });
+  const [contentRect, setContentRect] = useState<ContentRect>({
+    x: 0,
+    y: 0,
+    width: 1,
+    height: 1,
+  });
   const [draft, setDraft] = useState<VideoAnnotation | null>(null);
+  const draftRef = useRef<VideoAnnotation | null>(null);
+  const frameAnnotationsRef = useRef<VideoAnnotation[]>([]);
+  const controlsVisibleRef = useRef(controlsVisible);
+  const isPlayingRef = useRef(isPlaying);
+  const chromeRevealAtRef = useRef(0);
   const isDrawingRef = useRef(false);
-  const lastTapRef = useRef<{ time: number; x: number } | null>(null);
   const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(
     null,
   );
   const zoom = useVideoZoom();
+  const drawingEnabled = mode === "mark" && activeTool !== null;
 
-  const frameAnnotations = annotations.filter(
-    (annotation) => annotation.frame === currentFrame,
+  controlsVisibleRef.current = controlsVisible;
+  isPlayingRef.current = isPlaying;
+
+  useEffect(() => {
+    if (controlsVisible) {
+      chromeRevealAtRef.current = Date.now();
+    }
+  }, [controlsVisible]);
+
+  const setDraftAnnotation = useCallback((next: VideoAnnotation | null) => {
+    draftRef.current = next;
+    setDraft(next);
+  }, []);
+
+  const frameAnnotations = useMemo(
+    () =>
+      annotations.filter((annotation) => annotation.frame === currentFrame),
+    [annotations, currentFrame],
   );
+  frameAnnotationsRef.current = frameAnnotations;
 
-  const paint = useCallback(() => {
-    const canvas = canvasRef.current;
+  const measureContent = useCallback(() => {
     const container = containerRef.current;
-    if (!canvas || !container) {
+    if (!container) {
       return;
     }
 
-    const rect = container.getBoundingClientRect();
-    const width = Math.max(1, Math.floor(rect.width));
-    const height = Math.max(1, Math.floor(rect.height));
+    const next = getVideoContentRect(container, videoRef.current);
+    contentRef.current = next;
+    setContentRect((previous) =>
+      rectsNearlyEqual(previous, next) ? previous : next,
+    );
+  }, [videoRef]);
+
+  const paint = useCallback(() => {
+    const canvas = canvasRef.current;
+    const content = contentRef.current;
+    if (!canvas) {
+      return;
+    }
+
+    const width = Math.max(1, Math.round(content.width * window.devicePixelRatio));
+    const height = Math.max(
+      1,
+      Math.round(content.height * window.devicePixelRatio),
+    );
 
     if (canvas.width !== width || canvas.height !== height) {
       canvas.width = width;
@@ -87,29 +148,51 @@ export default function ImmersiveVideoViewport({
       return;
     }
 
-    const allAnnotations = draft ? [...frameAnnotations, draft] : frameAnnotations;
-    renderAnnotations(ctx, allAnnotations, width, height);
-  }, [draft, frameAnnotations]);
+    ctx.setTransform(window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0);
+    const currentDraft = draftRef.current;
+    const marks = frameAnnotationsRef.current;
+    const allAnnotations = currentDraft ? [...marks, currentDraft] : marks;
+    renderAnnotations(ctx, allAnnotations, content.width, content.height);
+  }, []);
+
+  useEffect(() => {
+    measureContent();
+  }, [measureContent, videoUrl]);
 
   useEffect(() => {
     paint();
-  }, [paint, currentFrame]);
+  }, [paint, draft, frameAnnotations, contentRect, currentFrame]);
 
   useEffect(() => {
     const container = containerRef.current;
+    const video = videoRef.current;
     if (!container) {
       return;
     }
 
-    const observer = new ResizeObserver(paint);
+    const onResize = () => {
+      measureContent();
+      paint();
+    };
+
+    const observer = new ResizeObserver(onResize);
     observer.observe(container);
-    return () => observer.disconnect();
-  }, [paint]);
+    if (video) {
+      video.addEventListener("loadedmetadata", onResize);
+      video.addEventListener("loadeddata", onResize);
+    }
+
+    return () => {
+      observer.disconnect();
+      video?.removeEventListener("loadedmetadata", onResize);
+      video?.removeEventListener("loadeddata", onResize);
+    };
+  }, [measureContent, paint, videoRef, videoUrl]);
 
   const finishDraft = useCallback(
     (annotation: VideoAnnotation | null) => {
       if (!annotation) {
-        setDraft(null);
+        setDraftAnnotation(null);
         return;
       }
 
@@ -121,30 +204,42 @@ export default function ImmersiveVideoViewport({
           frame: currentFrame,
         },
       ]);
-      setDraft(null);
+      setDraftAnnotation(null);
     },
-    [annotations, currentFrame, onAnnotationsChange],
+    [annotations, currentFrame, onAnnotationsChange, setDraftAnnotation],
   );
 
-  const handleTapGesture = (clientX: number, rect: DOMRect) => {
-    const now = Date.now();
-    const lastTap = lastTapRef.current;
+  const pointFromEvent = (clientX: number, clientY: number) => {
+    const container = containerRef.current;
+    if (!container) {
+      return null;
+    }
 
-    if (lastTap && now - lastTap.time < 320) {
-      const zone = (clientX - rect.left) / rect.width;
-      if (zone < 0.35) {
-        onDoubleTapLeft();
-      } else if (zone > 0.65) {
-        onDoubleTapRight();
-      }
+    return normalizePointerInContent(
+      clientX,
+      clientY,
+      container.getBoundingClientRect(),
+      contentRef.current,
+    );
+  };
 
-      lastTapRef.current = null;
+  const handleWatchTap = (_clientX: number, _rect: DOMRect) => {
+    // iOS Photos-style: first tap reveals chrome; next tap toggles play.
+    // Frame stepping stays on the dedicated ‹ › buttons (thumb-reliable).
+    if (!controlsVisibleRef.current) {
+      chromeRevealAtRef.current = Date.now();
       onInteraction();
       return;
     }
 
-    lastTapRef.current = { time: now, x: clientX };
-    onSingleTap();
+    // Guard against reveal-then-immediate-tap counting as play.
+    if (Date.now() - chromeRevealAtRef.current < 350) {
+      onInteraction();
+      return;
+    }
+
+    onInteraction();
+    onTogglePlay();
   };
 
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
@@ -155,21 +250,85 @@ export default function ImmersiveVideoViewport({
     onInteraction();
 
     if (drawingEnabled && activeTool) {
-      const rect = containerRef.current?.getBoundingClientRect();
-      if (!rect) {
+      const point = pointFromEvent(event.clientX, event.clientY);
+      if (!point) {
         return;
       }
 
       isDrawingRef.current = true;
       event.currentTarget.setPointerCapture(event.pointerId);
-      const point = normalizePointer(event.clientX, event.clientY, rect);
-      setDraft(createDraftAnnotation(activeTool, point, currentFrame, annotationColor));
+      setDraftAnnotation(
+        createDraftAnnotation(
+          activeTool,
+          point,
+          currentFrame,
+          annotationColor,
+        ),
+      );
       return;
     }
 
-    if (zoom.scale > 1 && event.buttons === 1) {
+    if (mode === "watch" && zoom.scale > 1 && event.buttons === 1) {
       zoom.handlePanStart(event.clientX, event.clientY);
     }
+  };
+
+  const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === "touch") {
+      return;
+    }
+
+    const currentDraft = draftRef.current;
+    if (isDrawingRef.current && currentDraft && activeTool) {
+      const point = pointFromEvent(event.clientX, event.clientY);
+      if (!point) {
+        return;
+      }
+
+      if (currentDraft.type === "draw") {
+        const last = currentDraft.points[currentDraft.points.length - 1];
+        if (Math.hypot(point.x - last.x, point.y - last.y) < 0.004) {
+          return;
+        }
+      }
+
+      setDraftAnnotation(updateDraftAnnotation(currentDraft, point));
+      return;
+    }
+
+    if (mode === "watch") {
+      zoom.handlePanMove(event.clientX, event.clientY);
+    }
+  };
+
+  const commitDraft = (annotation: VideoAnnotation | null) => {
+    if (!annotation) {
+      setDraftAnnotation(null);
+      return;
+    }
+
+    if (annotation.type === "circle" && annotation.radius < 0.01) {
+      setDraftAnnotation(null);
+      return;
+    }
+
+    if (
+      (annotation.type === "arrow" || annotation.type === "line") &&
+      Math.hypot(
+        annotation.end.x - annotation.start.x,
+        annotation.end.y - annotation.start.y,
+      ) < 0.01
+    ) {
+      setDraftAnnotation(null);
+      return;
+    }
+
+    if (annotation.type === "draw" && annotation.points.length < 2) {
+      setDraftAnnotation(null);
+      return;
+    }
+
+    finishDraft(annotation);
   };
 
   const handlePointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
@@ -178,16 +337,18 @@ export default function ImmersiveVideoViewport({
     }
 
     if (isDrawingRef.current) {
-      finishPointerDraw(event);
+      isDrawingRef.current = false;
+      event.currentTarget.releasePointerCapture(event.pointerId);
+      commitDraft(draftRef.current);
       return;
     }
 
-    if (zoom.scale > 1) {
+    if (mode === "watch" && zoom.scale > 1) {
       zoom.handlePanEnd();
       return;
     }
 
-    if (drawingEnabled || activeTool) {
+    if (mode !== "watch" || drawingEnabled) {
       return;
     }
 
@@ -196,73 +357,11 @@ export default function ImmersiveVideoViewport({
       return;
     }
 
-    handleTapGesture(event.clientX, rect);
-  };
-
-  const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (event.pointerType === "touch") {
-      return;
-    }
-
-    if (isDrawingRef.current && draft && activeTool) {
-      const rect = containerRef.current?.getBoundingClientRect();
-      if (!rect) {
-        return;
-      }
-
-      const point = normalizePointer(event.clientX, event.clientY, rect);
-
-      if (draft.type === "draw") {
-        const last = draft.points[draft.points.length - 1];
-        if (Math.hypot(point.x - last.x, point.y - last.y) < 0.004) {
-          return;
-        }
-      }
-
-      setDraft((current) =>
-        current ? updateDraftAnnotation(current, point) : current,
-      );
-      return;
-    }
-
-    zoom.handlePanMove(event.clientX, event.clientY);
-  };
-
-  const finishPointerDraw = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (!isDrawingRef.current) {
-      return;
-    }
-
-    isDrawingRef.current = false;
-    event.currentTarget.releasePointerCapture(event.pointerId);
-
-    if (!draft) {
-      return;
-    }
-
-    if (draft.type === "circle" && draft.radius < 0.01) {
-      setDraft(null);
-      return;
-    }
-
-    if (
-      (draft.type === "arrow" || draft.type === "line") &&
-      Math.hypot(draft.end.x - draft.start.x, draft.end.y - draft.start.y) < 0.01
-    ) {
-      setDraft(null);
-      return;
-    }
-
-    if (draft.type === "draw" && draft.points.length < 2) {
-      setDraft(null);
-      return;
-    }
-
-    finishDraft(draft);
+    handleWatchTap(event.clientX, rect);
   };
 
   const handleTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
-    if (event.touches.length === 2) {
+    if (mode === "watch" && event.touches.length === 2) {
       onInteraction();
       zoom.handlePinchStart(getTouchDistance(event.touches));
       touchStartRef.current = null;
@@ -272,16 +371,20 @@ export default function ImmersiveVideoViewport({
     if (event.touches.length === 1 && drawingEnabled && activeTool) {
       onInteraction();
       const touch = event.touches[0];
-      const rect = containerRef.current?.getBoundingClientRect();
-      if (!rect) {
+      const point = pointFromEvent(touch.clientX, touch.clientY);
+      if (!point) {
         return;
       }
 
       isDrawingRef.current = true;
       touchStartRef.current = null;
-      const point = normalizePointer(touch.clientX, touch.clientY, rect);
-      setDraft(
-        createDraftAnnotation(activeTool, point, currentFrame, annotationColor),
+      setDraftAnnotation(
+        createDraftAnnotation(
+          activeTool,
+          point,
+          currentFrame,
+          annotationColor,
+        ),
       );
       return;
     }
@@ -297,35 +400,35 @@ export default function ImmersiveVideoViewport({
   };
 
   const handleTouchMove = (event: React.TouchEvent<HTMLDivElement>) => {
+    const currentDraft = draftRef.current;
     if (
       isDrawingRef.current &&
-      draft &&
+      currentDraft &&
       activeTool &&
       event.touches.length === 1
     ) {
+      event.preventDefault();
       const touch = event.touches[0];
-      const rect = containerRef.current?.getBoundingClientRect();
-      if (!rect) {
+      const point = pointFromEvent(touch.clientX, touch.clientY);
+      if (!point) {
         return;
       }
 
       onInteraction();
-      const point = normalizePointer(touch.clientX, touch.clientY, rect);
 
-      if (draft.type === "draw") {
-        const last = draft.points[draft.points.length - 1];
+      if (currentDraft.type === "draw") {
+        const last = currentDraft.points[currentDraft.points.length - 1];
         if (Math.hypot(point.x - last.x, point.y - last.y) < 0.004) {
           return;
         }
       }
 
-      setDraft((current) =>
-        current ? updateDraftAnnotation(current, point) : current,
-      );
+      setDraftAnnotation(updateDraftAnnotation(currentDraft, point));
       return;
     }
 
-    if (event.touches.length === 2) {
+    if (mode === "watch" && event.touches.length === 2) {
+      event.preventDefault();
       onInteraction();
       zoom.handlePinchMove(getTouchDistance(event.touches));
       touchStartRef.current = null;
@@ -352,28 +455,12 @@ export default function ImmersiveVideoViewport({
 
     if (isDrawingRef.current) {
       isDrawingRef.current = false;
-
-      if (draft) {
-        if (draft.type === "circle" && draft.radius < 0.01) {
-          setDraft(null);
-        } else if (
-          (draft.type === "arrow" || draft.type === "line") &&
-          Math.hypot(draft.end.x - draft.start.x, draft.end.y - draft.start.y) <
-            0.01
-        ) {
-          setDraft(null);
-        } else if (draft.type === "draw" && draft.points.length < 2) {
-          setDraft(null);
-        } else {
-          finishDraft(draft);
-        }
-      }
-
+      commitDraft(draftRef.current);
       touchStartRef.current = null;
       return;
     }
 
-    if (drawingEnabled || event.touches.length > 0) {
+    if (mode !== "watch" || event.touches.length > 0) {
       touchStartRef.current = null;
       return;
     }
@@ -390,7 +477,7 @@ export default function ImmersiveVideoViewport({
       return;
     }
 
-    handleTapGesture(start.x, rect);
+    handleWatchTap(start.x, rect);
   };
 
   return (
@@ -407,24 +494,40 @@ export default function ImmersiveVideoViewport({
     >
       <div
         className="relative flex h-full w-full items-center justify-center transition-transform duration-75 ease-out"
-        style={zoom.transformStyle}
+        style={mode === "watch" ? zoom.transformStyle : undefined}
       >
         <video
           key={videoUrl}
-          ref={videoRef}
+          ref={(element) => {
+            if (typeof videoRef === "object" && videoRef) {
+              videoRef.current = element;
+            }
+            if (element) {
+              element.setAttribute("playsinline", "true");
+              element.setAttribute("webkit-playsinline", "true");
+            }
+          }}
           src={videoUrl}
           className="max-h-full max-w-full object-contain"
           playsInline
-          muted
+          muted={muted}
           preload="auto"
+          controls={false}
+          disablePictureInPicture
+          controlsList="nodownload noplaybackrate noremoteplayback"
         />
 
         <canvas
           ref={canvasRef}
-          className={`pointer-events-none absolute inset-0 m-auto max-h-full max-w-full ${
+          className={`pointer-events-none absolute ${
             drawingEnabled && activeTool ? "cursor-crosshair" : ""
           }`}
-          style={{ width: "100%", height: "100%" }}
+          style={{
+            left: contentRect.x,
+            top: contentRect.y,
+            width: contentRect.width,
+            height: contentRect.height,
+          }}
         />
       </div>
     </div>
