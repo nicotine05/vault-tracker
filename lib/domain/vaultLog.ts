@@ -227,18 +227,14 @@ export function getHighestMakeBarHeight(jumps: Jump[]): string | null {
       continue;
     }
 
-    const normalized = normalizeVaultPR(raw);
-    const meters = parseVaultPRToMeters(normalized);
+    const meters = parseVaultPRToMeters(raw);
     if (meters === null) {
-      if (bestLabel === null) {
-        bestLabel = normalized;
-      }
       continue;
     }
 
     if (meters > bestMeters) {
       bestMeters = meters;
-      bestLabel = normalized;
+      bestLabel = normalizeVaultPR(raw);
     }
   }
 
