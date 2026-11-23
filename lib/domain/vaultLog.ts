@@ -330,12 +330,12 @@ export function getCompetitionOutcomeTagClass(
     "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide";
 
   if (result === "make") {
-    return `${base} border-emerald-500/50 bg-emerald-500/20 text-emerald-800 [data-theme-mode=dark]:text-emerald-200`;
+    return `${base} border-emerald-300 bg-emerald-600 text-white shadow-sm`;
   }
   if (result === "miss") {
-    return `${base} border-red-500/50 bg-red-500/20 text-red-800 [data-theme-mode=dark]:text-red-200`;
+    return `${base} border-red-300 bg-red-600 text-white shadow-sm`;
   }
-  return `${base} border-border bg-surface-muted text-muted`;
+  return `${base} border-border bg-zinc-200 text-zinc-800 [data-theme-mode=dark]:border-zinc-500 [data-theme-mode=dark]:bg-zinc-700 [data-theme-mode=dark]:text-zinc-100`;
 }
 
 export function createJump(params: {
