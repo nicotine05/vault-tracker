@@ -153,7 +153,7 @@ export function useVaultLogState() {
     clearVaultSessionDraft();
   }
 
-  function saveSession() {
+  function saveSession(title?: string) {
     if (jumps.length === 0) {
       return;
     }
@@ -163,6 +163,7 @@ export function useVaultLogState() {
         keys,
         jumps,
         mode: competitionMode ? "competition" : "practice",
+        title: competitionMode ? title : undefined,
       }),
       ...prev,
     ]);

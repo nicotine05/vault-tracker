@@ -5,7 +5,10 @@ import type {
   VaultSession,
   VaultStepReferences,
 } from "@/lib/domain/types";
-import { normalizeVaultPR } from "@/lib/domain/vaultUnits";
+import {
+  normalizeVaultPR,
+  parseVaultPRToMeters,
+} from "@/lib/domain/vaultUnits";
 
 export const VAULT_RUN_STEPS = [
   ["3L", "threeL"],
@@ -209,6 +212,39 @@ export function filterCompetitionVaultSessions(
   return sessions.filter(isCompetitionSession);
 }
 
+/** Highest cleared (make) bar height among competition jumps, or null. */
+export function getHighestMakeBarHeight(jumps: Jump[]): string | null {
+  let bestLabel: string | null = null;
+  let bestMeters = -1;
+
+  for (const jump of jumps) {
+    if (jump.result !== "make") {
+      continue;
+    }
+
+    const raw = jump.barHeight?.trim();
+    if (!raw) {
+      continue;
+    }
+
+    const normalized = normalizeVaultPR(raw);
+    const meters = parseVaultPRToMeters(normalized);
+    if (meters === null) {
+      if (bestLabel === null) {
+        bestLabel = normalized;
+      }
+      continue;
+    }
+
+    if (meters > bestMeters) {
+      bestMeters = meters;
+      bestLabel = normalized;
+    }
+  }
+
+  return bestLabel;
+}
+
 export function getPoleJumpHistory(
   sessions: VaultSession[],
   poleId: string
@@ -335,8 +371,10 @@ export function createVaultSession(params: {
   keys: string[];
   jumps: Jump[];
   mode?: VaultSession["mode"];
+  title?: string;
 }): VaultSession {
   const mode = params.mode ?? "practice";
+  const title = params.title?.trim();
 
   return {
     id: crypto.randomUUID(),
@@ -347,6 +385,7 @@ export function createVaultSession(params: {
         : params.keys.filter((key) => key.trim() !== ""),
     jumps: params.jumps,
     mode,
+    ...(mode === "competition" && title ? { title } : {}),
   };
 }
 
