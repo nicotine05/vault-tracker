@@ -242,7 +242,9 @@ export default function VideoPlayerShell({
     <div
       className="fixed inset-0 z-[100] bg-black"
       onMouseMove={() => {
-        if (mode === "watch") {
+        // Only keep chrome alive when already visible — waking via mouse-move
+        // then immediately clicking would otherwise count as a play tap.
+        if (mode === "watch" && controlsVisible) {
           overlay.notifyActivity();
         }
       }}
@@ -276,8 +278,8 @@ export default function VideoPlayerShell({
         <div className="pointer-events-auto flex items-center justify-between gap-3 px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
           {mode === "watch" ? (
             <>
-              <button
-                type="button"
+              <a
+                href={backHref}
                 className={`${glassButtonClassName} h-10 w-10 shrink-0 text-base`}
                 aria-label="Back"
                 onClick={(event) => {
@@ -285,11 +287,13 @@ export default function VideoPlayerShell({
                   event.stopPropagation();
                   player.pause();
                   setImmersive(false);
-                  router.push(backHref);
+                  // Hard navigation avoids rare App Router stalls from the
+                  // fullscreen immersive overlay staying mounted.
+                  window.location.assign(backHref);
                 }}
               >
                 ←
-              </button>
+              </a>
 
               <p
                 className={`${glassPillClassName} max-w-[46%] truncate ${overlayFadeClass(

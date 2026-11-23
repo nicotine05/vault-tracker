@@ -83,6 +83,7 @@ export default function ImmersiveVideoViewport({
   const frameAnnotationsRef = useRef<VideoAnnotation[]>([]);
   const controlsVisibleRef = useRef(controlsVisible);
   const isPlayingRef = useRef(isPlaying);
+  const chromeRevealAtRef = useRef(0);
   const isDrawingRef = useRef(false);
   const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(
     null,
@@ -92,6 +93,12 @@ export default function ImmersiveVideoViewport({
 
   controlsVisibleRef.current = controlsVisible;
   isPlayingRef.current = isPlaying;
+
+  useEffect(() => {
+    if (controlsVisible) {
+      chromeRevealAtRef.current = Date.now();
+    }
+  }, [controlsVisible]);
 
   const setDraftAnnotation = useCallback((next: VideoAnnotation | null) => {
     draftRef.current = next;
@@ -219,6 +226,13 @@ export default function ImmersiveVideoViewport({
   const handleWatchTap = (clientX: number, rect: DOMRect) => {
     // First tap only reveals chrome (iOS-like); next tap plays / steps.
     if (!controlsVisibleRef.current) {
+      chromeRevealAtRef.current = Date.now();
+      onInteraction();
+      return;
+    }
+
+    // Guard against reveal-then-immediate-click counting as play.
+    if (Date.now() - chromeRevealAtRef.current < 350) {
       onInteraction();
       return;
     }
