@@ -19,6 +19,19 @@ export function parseVaultPRToMeters(
     return feet * 0.3048;
   }
 
+  // Competition bar heights are often entered as plain feet ("13") or 13'6".
+  const apostropheMatch = clean.match(/^(\d+(?:\.\d+)?)\s*'\s*(\d+(?:\.\d+)?)?"?$/);
+  if (apostropheMatch) {
+    const feet = Number(apostropheMatch[1] || "0");
+    const inches = Number(apostropheMatch[2] || "0");
+    return (feet * 12 + inches) * 0.0254;
+  }
+
+  const plainFeetMatch = clean.match(/^(\d+(?:\.\d+)?)$/);
+  if (plainFeetMatch) {
+    return Number(plainFeetMatch[1]) * 0.3048;
+  }
+
   return null;
 }
 
