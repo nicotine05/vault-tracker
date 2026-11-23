@@ -10,6 +10,10 @@ import type {
   WorkoutExecutionRecord,
 } from "@/lib/domain/types";
 import type { WeekScheduleSnapshot } from "@/lib/storage/programStore";
+import {
+  normalizeScheduledMeets,
+  type ScheduledMeet,
+} from "@/lib/domain/meetSchedule";
 import { migrateLegacyPoleRecord } from "@/lib/domain/poleInventory";
 import { normalizeInjuryProfile } from "@/lib/domain/injuryManagement";
 import { normalizeProgramCycleState } from "@/lib/domain/programCycle";
@@ -499,6 +503,9 @@ export function normalizeSyncSnapshot(
       data[STORAGE_KEYS.VAULT_STEP_REFERENCES],
       EMPTY_STEP_REFS
     ),
+    [STORAGE_KEYS.MEET_SCHEDULE]: normalizeScheduledMeets(
+      data[STORAGE_KEYS.MEET_SCHEDULE]
+    ) as ScheduledMeet[],
     ...normalizePoleStorageFields(data),
     [STORAGE_KEYS.POLE_BAGS]: isArray(data[STORAGE_KEYS.POLE_BAGS])
       ? (data[STORAGE_KEYS.POLE_BAGS] as unknown[])
