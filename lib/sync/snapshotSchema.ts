@@ -142,6 +142,10 @@ function normalizeVaultSession(value: unknown): VaultSession | null {
     value.mode === "competition" || value.mode === "practice"
       ? value.mode
       : undefined;
+  const title =
+    isString(value.title) && value.title.trim() !== ""
+      ? value.title.trim()
+      : undefined;
 
   return {
     id: value.id,
@@ -149,6 +153,7 @@ function normalizeVaultSession(value: unknown): VaultSession | null {
     keys,
     jumps,
     mode,
+    ...(title ? { title } : {}),
   };
 }
 

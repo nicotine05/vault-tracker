@@ -9,6 +9,7 @@ import {
   filterVaultSessionsByWeek,
   getCompetitionJumpTintClass,
   getCompetitionOutcomeTagClass,
+  getHighestMakeBarHeight,
   getJumpOutcomeLabel,
   getRunReference,
   getVaultRecentFilterLabel,
@@ -127,6 +128,9 @@ export default function VaultSessionList({
                 const competition = isCompetitionSession(session);
                 const grades = countJumpGrades(session.jumps);
                 const results = countJumpResults(session.jumps);
+                const highestMake = competition
+                  ? getHighestMakeBarHeight(session.jumps)
+                  : null;
                 const expanded = expandedSessionId === session.id;
 
                 return (
@@ -156,9 +160,19 @@ export default function VaultSessionList({
                               </span>
                             )}
                           </div>
+                          {competition && session.title && (
+                            <p className="mt-0.5 font-medium text-foreground">
+                              {session.title}
+                            </p>
+                          )}
                           <p className="text-sm text-muted">
                             {session.jumps.length} jumps
                           </p>
+                          {highestMake && (
+                            <p className="text-base font-bold tracking-tight text-foreground">
+                              {highestMake}
+                            </p>
+                          )}
                         </div>
 
                         <div className="text-right text-sm">

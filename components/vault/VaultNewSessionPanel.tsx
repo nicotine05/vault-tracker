@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useId, useRef, useState } from "react";
 import type { Jump, Pole, VaultStepReferences } from "@/lib/domain/types";
 import {
   getCompetitionJumpTintClass,
@@ -29,7 +30,7 @@ type VaultNewSessionPanelProps = {
   onRemoveJump: (jumpId: string) => void;
   onClearSession: () => void;
   canClearSession: boolean;
-  onSaveSession: () => void;
+  onSaveSession: (title?: string) => void;
 };
 
 const fieldClassName =
@@ -53,7 +54,53 @@ export default function VaultNewSessionPanel({
   canClearSession,
   onSaveSession,
 }: VaultNewSessionPanelProps) {
+  const [namingCompetition, setNamingCompetition] = useState(false);
+  const [competitionTitle, setCompetitionTitle] = useState("");
+  const titleInputRef = useRef<HTMLInputElement>(null);
+  const titleInputId = useId();
+
+  useEffect(() => {
+    if (!namingCompetition) {
+      return;
+    }
+
+    titleInputRef.current?.focus();
+    titleInputRef.current?.select();
+  }, [namingCompetition]);
+
+  function requestSave() {
+    if (jumps.length === 0) {
+      return;
+    }
+
+    if (competitionMode) {
+      setCompetitionTitle("");
+      setNamingCompetition(true);
+      return;
+    }
+
+    onSaveSession();
+  }
+
+  function confirmCompetitionSave() {
+    const title = competitionTitle.trim();
+    if (!title) {
+      titleInputRef.current?.focus();
+      return;
+    }
+
+    setNamingCompetition(false);
+    setCompetitionTitle("");
+    onSaveSession(title);
+  }
+
+  function cancelCompetitionSave() {
+    setNamingCompetition(false);
+    setCompetitionTitle("");
+  }
+
   return (
+    <>
     <fieldset disabled={readOnly} className="m-0 min-w-0 space-y-4 border-0 p-0">
       <div className="space-y-4">
         <div
@@ -375,7 +422,7 @@ export default function VaultNewSessionPanel({
 
           <button
             type="button"
-            onClick={onSaveSession}
+            onClick={requestSave}
             disabled={jumps.length === 0}
             className={`w-full rounded-xl p-3 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40 ${
               competitionMode
@@ -388,5 +435,58 @@ export default function VaultNewSessionPanel({
         </div>
       </div>
     </fieldset>
+
+    {namingCompetition && (
+      <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={titleInputId}
+          className="w-full max-w-sm rounded-2xl border border-amber-400/60 bg-surface p-5 shadow-xl"
+        >
+          <p id={titleInputId} className="text-lg font-bold text-foreground">
+            Name this competition
+          </p>
+          <p className="mt-1 text-sm text-muted">
+            Meet name, location, or anything that helps you find it later.
+          </p>
+
+          <form
+            className="mt-4 space-y-4"
+            onSubmit={(event) => {
+              event.preventDefault();
+              confirmCompetitionSave();
+            }}
+          >
+            <input
+              ref={titleInputRef}
+              value={competitionTitle}
+              onChange={(event) => setCompetitionTitle(event.target.value)}
+              placeholder="e.g. Conference Finals — Austin"
+              className={fieldClassName}
+              autoComplete="off"
+            />
+
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={cancelCompetitionSave}
+                className="rounded-xl border border-border bg-surface px-4 py-2.5 text-sm font-semibold text-foreground transition hover:bg-surface-muted"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={competitionTitle.trim() === ""}
+                className="rounded-xl bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-amber-500 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Save
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    )}
+    </>
   );
 }

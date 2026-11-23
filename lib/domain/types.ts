@@ -144,6 +144,8 @@ export type VaultSession = {
   jumps: Jump[];
   /** Defaults to practice when missing (legacy sessions). */
   mode?: VaultSessionMode;
+  /** Competition meet / location name. Practice sessions omit this. */
+  title?: string;
 };
 
 export type WorkoutExecutionRecord = {
