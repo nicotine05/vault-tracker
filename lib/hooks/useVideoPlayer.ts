@@ -57,6 +57,69 @@ export function useVideoPlayer(options: UseVideoPlayerOptions = {}) {
     syncTimeFromVideo();
   }, [syncTimeFromVideo]);
 
+  /** Force Safari/iOS to paint the first frame (avoids black poster until reload). */
+  const primeFirstFrame = useCallback(async (video: HTMLVideoElement) => {
+    video.muted = true;
+    video.playsInline = true;
+    video.setAttribute("playsinline", "true");
+    video.setAttribute("webkit-playsinline", "true");
+
+    const wait = (ms: number) =>
+      new Promise<void>((resolve) => {
+        window.setTimeout(resolve, ms);
+      });
+
+    const waitForEvent = (type: string, ms: number) =>
+      new Promise<void>((resolve) => {
+        let settled = false;
+        const finish = () => {
+          if (settled) {
+            return;
+          }
+          settled = true;
+          video.removeEventListener(type, finish);
+          resolve();
+        };
+        video.addEventListener(type, finish);
+        window.setTimeout(finish, ms);
+      });
+
+    try {
+      if (video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
+        await waitForEvent("loadeddata", 2000);
+      }
+
+      try {
+        await video.play();
+        video.pause();
+      } catch {
+        try {
+          video.pause();
+        } catch {
+          // ignore
+        }
+      }
+
+      // Nudge off exact 0 — iOS often keeps a black frame at t=0 until seek.
+      const nudge =
+        Number.isFinite(video.duration) && video.duration > 0
+          ? Math.min(0.04, video.duration * 0.01)
+          : 0.04;
+
+      if (nudge > 0) {
+        video.currentTime = nudge;
+        await waitForEvent("seeked", 800);
+        await wait(16);
+        video.currentTime = 0;
+        await waitForEvent("seeked", 800);
+      }
+
+      syncTimeFromVideo();
+    } catch (error) {
+      console.warn("First-frame prime failed:", error);
+    }
+  }, [syncTimeFromVideo]);
+
   const play = useCallback(async () => {
     const video = videoRef.current;
     if (!video) {
@@ -255,6 +318,8 @@ export function useVideoPlayer(options: UseVideoPlayerOptions = {}) {
       syncTimeFromVideo();
     };
 
+    let primedFor: HTMLVideoElement | null = null;
+
     const attachListeners = (element: HTMLVideoElement) => {
       element.muted = true;
       element.addEventListener("timeupdate", onTimeUpdate);
@@ -263,6 +328,15 @@ export function useVideoPlayer(options: UseVideoPlayerOptions = {}) {
       element.addEventListener("pause", onPause);
       element.addEventListener("ended", onEnded);
       element.addEventListener("loadedmetadata", handleLoadedMetadata);
+      element.addEventListener("loadeddata", onLoadedData);
+    };
+
+    const onLoadedData = () => {
+      handleLoadedMetadata();
+      if (activeVideo && primedFor !== activeVideo && !cancelled) {
+        primedFor = activeVideo;
+        void primeFirstFrame(activeVideo);
+      }
     };
 
     const detachListeners = (element: HTMLVideoElement) => {
@@ -272,6 +346,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions = {}) {
       element.removeEventListener("pause", onPause);
       element.removeEventListener("ended", onEnded);
       element.removeEventListener("loadedmetadata", handleLoadedMetadata);
+      element.removeEventListener("loadeddata", onLoadedData);
     };
 
     const bindVideo = () => {
@@ -291,10 +366,25 @@ export function useVideoPlayer(options: UseVideoPlayerOptions = {}) {
         setIsPlaying(false);
         setCurrentFrame(0);
         setCurrentTime(0);
+        primedFor = null;
+        try {
+          video.load();
+        } catch {
+          // ignore
+        }
       }
 
       if (activeVideo.readyState >= 1) {
         handleLoadedMetadata();
+      }
+
+      if (
+        activeVideo.readyState >= 2 &&
+        primedFor !== activeVideo &&
+        !cancelled
+      ) {
+        primedFor = activeVideo;
+        void primeFirstFrame(activeVideo);
       }
 
       return true;
@@ -320,7 +410,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions = {}) {
         detachListeners(activeVideo);
       }
     };
-  }, [videoUrl, handleLoadedMetadata, syncTimeFromVideo]);
+  }, [videoUrl, handleLoadedMetadata, primeFirstFrame, syncTimeFromVideo]);
 
   useEffect(() => {
     setTotalFrames(getTotalFrames(duration, fps));

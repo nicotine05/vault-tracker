@@ -28,7 +28,6 @@ import {
   seekToFrame,
   seekToTime,
 } from "@/lib/domain/videoAnalysis";
-import { useFilmstripThumbnails } from "@/lib/hooks/useFilmstripThumbnails";
 import { useOrientationLayout } from "@/lib/hooks/useOrientationLayout";
 import { useOverlayVisibility } from "@/lib/hooks/useOverlayVisibility";
 import { useVideoPlayer } from "@/lib/hooks/useVideoPlayer";
@@ -80,14 +79,6 @@ export default function ComparePlayerShell({
   const [optionsOpen, setOptionsOpen] = useState(false);
 
   const layoutMode = layoutOverride ?? orientationLayout;
-
-  const filmstripUrl = isSynced
-    ? videoUrlA
-    : activeVideo === "A"
-      ? videoUrlA
-      : videoUrlB;
-
-  const { thumbnails } = useFilmstripThumbnails(filmstripUrl);
 
   const drawingEnabled = activeTool !== null;
   const isScrubbing = playerA.isScrubbing || playerB.isScrubbing;
@@ -668,22 +659,26 @@ export default function ComparePlayerShell({
         <div className="pointer-events-auto mt-auto">
           {bothVideosReady && (
             <>
-              <VideoFilmstripTimeline
-                currentTime={timelineTime}
-                duration={timelineDuration}
-                thumbnails={thumbnails}
-                visible={controlsVisible && !drawingEnabled}
-                disabled={drawingEnabled}
-                onScrubStart={handleScrubStart}
-                onScrub={handleScrub}
-                onScrubEnd={handleScrubEnd}
-                onInteraction={overlay.notifyActivity}
-                frameLabel={
-                  isSynced
+              <div
+                className={`px-3 pb-1 ${overlayFadeClass(
+                  controlsVisible && !drawingEnabled,
+                )}`}
+              >
+                <p className="mb-1.5 text-center text-[12px] font-medium tabular-nums text-white/75">
+                  {isSynced
                     ? `Frame ${syncOffset} · ${syncPointA?.label} = 0`
-                    : `Video ${activeVideo} · Frame ${activePlayer.currentFrame}`
-                }
-              />
+                    : `Video ${activeVideo} · Frame ${activePlayer.currentFrame}`}
+                </p>
+                <VideoFilmstripTimeline
+                  currentTime={timelineTime}
+                  duration={timelineDuration}
+                  disabled={drawingEnabled}
+                  onScrubStart={handleScrubStart}
+                  onScrub={handleScrub}
+                  onScrubEnd={handleScrubEnd}
+                  onInteraction={overlay.notifyActivity}
+                />
+              </div>
 
               <div
                 className={`flex items-center justify-center px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2 ${overlayFadeClass(
