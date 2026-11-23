@@ -1,9 +1,19 @@
+/** Normalize fancy feet/inch marks from mobile keyboards to ASCII. */
+function normalizeHeightMarks(value: string): string {
+  return value
+    .toString()
+    .trim()
+    .toLowerCase()
+    .replace(/[\u2018\u2019\u201B\u2032\u00B4`]/g, "'")
+    .replace(/[\u201C\u201D\u2033]/g, '"');
+}
+
 export function parseVaultPRToMeters(
   value: string | undefined | null
 ): number | null {
   if (!value) return null;
 
-  const clean = value.toString().trim().toLowerCase();
+  const clean = normalizeHeightMarks(value);
   if (!clean) return null;
 
   const match = clean.match(/(\d+(?:\.\d+)?)ft\s*(\d+(?:\.\d+)?)in/i);
@@ -19,12 +29,24 @@ export function parseVaultPRToMeters(
     return feet * 0.3048;
   }
 
-  // Competition bar heights are often entered as plain feet ("13") or 13'6".
-  const apostropheMatch = clean.match(/^(\d+(?:\.\d+)?)\s*'\s*(\d+(?:\.\d+)?)?"?$/);
+  // Competition bar heights: plain feet ("13") or feet-inches ("12'6", "12'6\"").
+  const apostropheMatch = clean.match(
+    /^(\d+(?:\.\d+)?)\s*'\s*(\d+(?:\.\d+)?)?\s*"?$/
+  );
   if (apostropheMatch) {
     const feet = Number(apostropheMatch[1] || "0");
     const inches = Number(apostropheMatch[2] || "0");
     return (feet * 12 + inches) * 0.0254;
+  }
+
+  // Also accept 12-6 / 12 6 as feet-inches shorthand.
+  const spacedMatch = clean.match(/^(\d+(?:\.\d+)?)\s*[- ]\s*(\d+(?:\.\d+)?)$/);
+  if (spacedMatch) {
+    const feet = Number(spacedMatch[1] || "0");
+    const inches = Number(spacedMatch[2] || "0");
+    if (inches >= 0 && inches < 12) {
+      return (feet * 12 + inches) * 0.0254;
+    }
   }
 
   const plainFeetMatch = clean.match(/^(\d+(?:\.\d+)?)$/);
