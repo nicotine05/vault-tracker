@@ -56,6 +56,7 @@ export default function VaultNewSessionPanel({
 }: VaultNewSessionPanelProps) {
   const [namingCompetition, setNamingCompetition] = useState(false);
   const [competitionTitle, setCompetitionTitle] = useState("");
+  const [modeChosen, setModeChosen] = useState(false);
   const titleInputRef = useRef<HTMLInputElement>(null);
   const titleInputId = useId();
 
@@ -67,6 +68,35 @@ export default function VaultNewSessionPanel({
     titleInputRef.current?.focus();
     titleInputRef.current?.select();
   }, [namingCompetition]);
+
+  useEffect(() => {
+    if (jumps.length > 0 || canClearSession) {
+      setModeChosen(true);
+    }
+  }, [jumps.length, canClearSession]);
+
+  function chooseMode(competition: boolean) {
+    if (modeChosen && competition === competitionMode) {
+      return;
+    }
+
+    if (modeChosen) {
+      onCompetitionModeChange(competition);
+      return;
+    }
+
+    onCompetitionModeChange(competition);
+    setModeChosen(true);
+  }
+
+  function handleClearSession() {
+    if (canClearSession) {
+      onClearSession();
+    } else if (competitionMode) {
+      onCompetitionModeChange(false);
+    }
+    setModeChosen(false);
+  }
 
   function requestSave() {
     if (jumps.length === 0) {
@@ -80,6 +110,7 @@ export default function VaultNewSessionPanel({
     }
 
     onSaveSession();
+    setModeChosen(false);
   }
 
   function confirmCompetitionSave() {
@@ -92,6 +123,7 @@ export default function VaultNewSessionPanel({
     setNamingCompetition(false);
     setCompetitionTitle("");
     onSaveSession(title);
+    setModeChosen(false);
   }
 
   function cancelCompetitionSave() {
@@ -103,41 +135,63 @@ export default function VaultNewSessionPanel({
     <>
     <fieldset disabled={readOnly} className="m-0 min-w-0 space-y-4 border-0 p-0">
       <div className="space-y-4">
-        <div
-          className={`rounded-xl border p-3 ${
-            competitionMode
-              ? "border-amber-400/70 bg-amber-500/15"
-              : "border-border-accent bg-surface-accent"
-          }`}
-        >
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <h2 className="text-lg font-bold text-foreground">
-                {competitionMode ? "New Competition Log" : "New Vault Session"}
-              </h2>
-              {competitionMode && (
-                <p className="mt-1 text-xs font-medium uppercase tracking-wide text-amber-800 [data-theme-mode=dark]:text-amber-200">
-                  Competition mode
-                </p>
-              )}
-            </div>
-
-            <label className="flex cursor-pointer items-center gap-2 text-sm text-foreground">
-              <span className="text-muted">Competition</span>
-              <input
-                type="checkbox"
-                checked={competitionMode}
-                onChange={(event) =>
-                  onCompetitionModeChange(event.target.checked)
-                }
-                className="h-4 w-4 accent-[var(--accent)]"
-              />
-            </label>
-          </div>
+        <div>
+          <h2 className="text-lg font-bold text-foreground">New Vault Session</h2>
+          <p className="mt-1 text-sm text-muted">
+            {modeChosen
+              ? competitionMode
+                ? "Competition log"
+                : "Practice session"
+              : "Choose practice or competition to start."}
+          </p>
         </div>
 
+        <div
+          role="group"
+          aria-label="Session type"
+          className="grid grid-cols-1 gap-2 sm:grid-cols-2"
+        >
+          <button
+            type="button"
+            aria-pressed={modeChosen && !competitionMode}
+            onClick={() => chooseMode(false)}
+            className={`rounded-xl border px-4 py-3 text-left transition ${
+              modeChosen && !competitionMode
+                ? "border-accent bg-surface-accent ring-2 ring-accent"
+                : "border-border bg-surface hover:bg-surface-muted"
+            }`}
+          >
+            <span className="block text-sm font-bold text-foreground">
+              New Vault Practice
+            </span>
+            <span className="mt-0.5 block text-xs text-muted">
+              Keys, grades, and training jumps
+            </span>
+          </button>
+
+          <button
+            type="button"
+            aria-pressed={modeChosen && competitionMode}
+            onClick={() => chooseMode(true)}
+            className={`rounded-xl border px-4 py-3 text-left transition ${
+              modeChosen && competitionMode
+                ? "border-amber-400 bg-amber-500/15 ring-2 ring-amber-400"
+                : "border-border bg-surface hover:bg-surface-muted"
+            }`}
+          >
+            <span className="block text-sm font-bold text-foreground">
+              New Vault Competition
+            </span>
+            <span className="mt-0.5 block text-xs text-muted">
+              Bar height, make / miss, and warmups
+            </span>
+          </button>
+        </div>
+
+        {modeChosen && (
+          <>
         {!competitionMode && (
-          <div className="space-y-3">
+          <div className="space-y-3 border-t border-border pt-4">
             <p className="font-medium text-foreground">Daily Keys</p>
 
             {keys.map((key, index) => (
@@ -166,7 +220,11 @@ export default function VaultNewSessionPanel({
           </div>
         )}
 
-        <div className="border-t border-border pt-4">
+        <div
+          className={
+            competitionMode ? "border-t border-border pt-4" : "pt-1"
+          }
+        >
           <p className="mb-3 font-semibold text-foreground">Add Jump</p>
 
           <div className="space-y-3">
@@ -413,11 +471,10 @@ export default function VaultNewSessionPanel({
         <div className="space-y-2">
           <button
             type="button"
-            onClick={onClearSession}
-            disabled={!canClearSession}
-            className="w-full rounded-xl border border-border bg-surface p-3 font-semibold text-foreground hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-40"
+            onClick={handleClearSession}
+            className="w-full rounded-xl border border-border bg-surface p-3 font-semibold text-foreground hover:bg-surface-muted"
           >
-            Clear
+            {canClearSession ? "Clear" : "Close"}
           </button>
 
           <button
@@ -433,6 +490,8 @@ export default function VaultNewSessionPanel({
             {competitionMode ? "Save Competition Log" : "Save Vault Session"}
           </button>
         </div>
+          </>
+        )}
       </div>
     </fieldset>
 
