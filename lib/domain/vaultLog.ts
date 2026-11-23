@@ -263,7 +263,7 @@ export function formatCompetitionPlaceLabel(
   }
 }
 
-/** Title with place suffix, e.g. "Norman Preseason 6th Place" or "… 🥇 Place". */
+/** Title with place suffix, e.g. "Norman Preseason 6th Place" or "… 🥇". */
 export function formatCompetitionTitleWithPlace(
   title: string | undefined,
   place?: number | null
@@ -275,7 +275,7 @@ export function formatCompetitionTitleWithPlace(
 
   const medal = getCompetitionPlaceMedal(place);
   if (medal) {
-    return `${name} ${medal} Place`;
+    return `${name} ${medal}`;
   }
 
   const placeLabel = formatCompetitionPlaceLabel(place);
