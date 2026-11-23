@@ -146,6 +146,12 @@ function normalizeVaultSession(value: unknown): VaultSession | null {
     isString(value.title) && value.title.trim() !== ""
       ? value.title.trim()
       : undefined;
+  const place =
+    typeof value.place === "number" &&
+    Number.isInteger(value.place) &&
+    value.place >= 1
+      ? value.place
+      : undefined;
 
   return {
     id: value.id,
@@ -154,6 +160,7 @@ function normalizeVaultSession(value: unknown): VaultSession | null {
     jumps,
     mode,
     ...(title ? { title } : {}),
+    ...(place !== undefined ? { place } : {}),
   };
 }
 

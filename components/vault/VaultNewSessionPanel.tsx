@@ -8,6 +8,7 @@ import {
   getGradeEmoji,
   getJumpOutcomeLabel,
   getRunReference,
+  normalizeCompetitionPlace,
   type JumpFormState,
 } from "@/lib/domain/vaultLog";
 import { formatPolePickerLabel, getPoleById } from "@/lib/domain/poleInventory";
@@ -30,7 +31,7 @@ type VaultNewSessionPanelProps = {
   onRemoveJump: (jumpId: string) => void;
   onClearSession: () => void;
   canClearSession: boolean;
-  onSaveSession: (title?: string) => void;
+  onSaveSession: (details?: { title?: string; place?: number }) => void;
 };
 
 const fieldClassName =
@@ -56,6 +57,7 @@ export default function VaultNewSessionPanel({
 }: VaultNewSessionPanelProps) {
   const [namingCompetition, setNamingCompetition] = useState(false);
   const [competitionTitle, setCompetitionTitle] = useState("");
+  const [competitionPlace, setCompetitionPlace] = useState("");
   const [modeChosen, setModeChosen] = useState(false);
   const titleInputRef = useRef<HTMLInputElement>(null);
   const titleInputId = useId();
@@ -105,6 +107,7 @@ export default function VaultNewSessionPanel({
 
     if (competitionMode) {
       setCompetitionTitle("");
+      setCompetitionPlace("");
       setNamingCompetition(true);
       return;
     }
@@ -122,13 +125,18 @@ export default function VaultNewSessionPanel({
 
     setNamingCompetition(false);
     setCompetitionTitle("");
-    onSaveSession(title);
+    setCompetitionPlace("");
+    onSaveSession({
+      title,
+      place: normalizeCompetitionPlace(competitionPlace),
+    });
     setModeChosen(false);
   }
 
   function cancelCompetitionSave() {
     setNamingCompetition(false);
     setCompetitionTitle("");
+    setCompetitionPlace("");
   }
 
   return (
@@ -515,6 +523,33 @@ export default function VaultNewSessionPanel({
               className={fieldClassName}
               autoComplete="off"
             />
+
+            <div>
+              <label
+                htmlFor="competition-place"
+                className="mb-1.5 block text-sm font-medium text-foreground"
+              >
+                Place{" "}
+                <span className="font-normal text-muted">(optional)</span>
+              </label>
+              <input
+                id="competition-place"
+                type="text"
+                inputMode="numeric"
+                value={competitionPlace}
+                onChange={(event) =>
+                  setCompetitionPlace(
+                    event.target.value.replace(/\D/g, "").slice(0, 3)
+                  )
+                }
+                placeholder="1, 2, 3…"
+                className={fieldClassName}
+                autoComplete="off"
+              />
+              <p className="mt-1.5 text-xs text-muted">
+                1st–3rd show 🥇🥈🥉 on the session card.
+              </p>
+            </div>
 
             <div className="grid grid-cols-2 gap-2">
               <button

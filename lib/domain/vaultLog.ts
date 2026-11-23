@@ -212,6 +212,57 @@ export function filterCompetitionVaultSessions(
   return sessions.filter(isCompetitionSession);
 }
 
+/** Medal emoji for 1st–3rd; otherwise null. */
+export function getCompetitionPlaceMedal(
+  place?: number | null
+): string | null {
+  if (place === 1) return "🥇";
+  if (place === 2) return "🥈";
+  if (place === 3) return "🥉";
+  return null;
+}
+
+export function normalizeCompetitionPlace(
+  value: unknown
+): number | undefined {
+  const place =
+    typeof value === "number"
+      ? value
+      : typeof value === "string"
+        ? Number(value.trim())
+        : NaN;
+
+  if (!Number.isInteger(place) || place < 1) {
+    return undefined;
+  }
+
+  return place;
+}
+
+export function formatCompetitionPlaceLabel(
+  place?: number | null
+): string | null {
+  if (place == null || place < 1) {
+    return null;
+  }
+
+  const remainder = place % 100;
+  if (remainder >= 11 && remainder <= 13) {
+    return `${place}th`;
+  }
+
+  switch (place % 10) {
+    case 1:
+      return `${place}st`;
+    case 2:
+      return `${place}nd`;
+    case 3:
+      return `${place}rd`;
+    default:
+      return `${place}th`;
+  }
+}
+
 /** Highest cleared (make) bar height among competition jumps, or null. */
 export function getHighestMakeBarHeight(jumps: Jump[]): string | null {
   let bestLabel: string | null = null;
@@ -368,9 +419,14 @@ export function createVaultSession(params: {
   jumps: Jump[];
   mode?: VaultSession["mode"];
   title?: string;
+  place?: number;
 }): VaultSession {
   const mode = params.mode ?? "practice";
   const title = params.title?.trim();
+  const place =
+    mode === "competition"
+      ? normalizeCompetitionPlace(params.place)
+      : undefined;
 
   return {
     id: crypto.randomUUID(),
@@ -382,6 +438,7 @@ export function createVaultSession(params: {
     jumps: params.jumps,
     mode,
     ...(mode === "competition" && title ? { title } : {}),
+    ...(place !== undefined ? { place } : {}),
   };
 }
 
