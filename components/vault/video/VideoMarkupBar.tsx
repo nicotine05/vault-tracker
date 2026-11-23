@@ -17,10 +17,12 @@ const TOOL_OPTIONS: { id: AnnotationTool; label: string; glyph: string }[] = [
 type VideoMarkupBarProps = {
   activeTool: AnnotationTool;
   color: string;
+  persistent: boolean;
   canUndo: boolean;
   canClear: boolean;
   onToolChange: (tool: AnnotationTool) => void;
   onColorChange: (color: string) => void;
+  onPersistentChange: (persistent: boolean) => void;
   onUndo: () => void;
   onClear: () => void;
   onDone: () => void;
@@ -29,10 +31,12 @@ type VideoMarkupBarProps = {
 export default function VideoMarkupBar({
   activeTool,
   color,
+  persistent,
   canUndo,
   canClear,
   onToolChange,
   onColorChange,
+  onPersistentChange,
   onUndo,
   onClear,
   onDone,
@@ -74,6 +78,31 @@ export default function VideoMarkupBar({
               </button>
             );
           })}
+        </div>
+
+        <div className="mb-3 flex items-center justify-between gap-3 rounded-2xl bg-white/8 px-3 py-2.5">
+          <div className="min-w-0">
+            <p className="text-[14px] font-semibold text-white">Persistent</p>
+            <p className="text-[11px] leading-snug text-white/55">
+              Stay visible while scrubbing all frames
+            </p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={persistent}
+            aria-label="Persistent lines"
+            onClick={() => onPersistentChange(!persistent)}
+            className={`relative h-8 w-[52px] shrink-0 rounded-full transition-colors touch-manipulation ${
+              persistent ? "bg-[#34C759]" : "bg-white/25"
+            }`}
+          >
+            <span
+              className={`absolute top-0.5 left-0.5 h-7 w-7 rounded-full bg-white shadow transition-transform ${
+                persistent ? "translate-x-[20px]" : "translate-x-0"
+              }`}
+            />
+          </button>
         </div>
 
         <div className="flex items-center justify-between gap-3">

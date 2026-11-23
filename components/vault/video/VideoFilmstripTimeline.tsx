@@ -100,17 +100,17 @@ export default function VideoFilmstripTimeline({
   };
 
   return (
-    <div className={`px-3 pb-2 pt-2 ${overlayFadeClass(visible)}`}>
+    <div className={`px-3 pb-1.5 pt-1.5 ${overlayFadeClass(visible)}`}>
       {frameLabel && (
-        <p className="mb-2 text-center text-[12px] font-medium tabular-nums text-white/75">
+        <p className="mb-1.5 text-center text-[12px] font-medium tabular-nums text-white/75">
           {frameLabel}
         </p>
       )}
 
-      {/* Tall hit area for thumb scrubbing on iPhone */}
+      {/* ~15% shorter than prior h-16 (64px → 54px) */}
       <div
         ref={trackRef}
-        className={`relative h-16 overflow-hidden rounded-2xl bg-white/10 ${
+        className={`relative h-[54px] overflow-hidden rounded-2xl bg-black/40 ring-1 ring-white/10 ${
           disabled ? "opacity-40" : "touch-none select-none"
         }`}
         onPointerDown={(event) => {
@@ -140,7 +140,7 @@ export default function VideoFilmstripTimeline({
             {thumbnails.map((thumbnail, index) => (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                key={`${thumbnail.slice(0, 24)}-${index}`}
+                key={`${index}-${thumbnail.slice(-24)}`}
                 src={thumbnail}
                 alt=""
                 className="h-full flex-1 object-cover"
@@ -149,21 +149,17 @@ export default function VideoFilmstripTimeline({
             ))}
           </div>
         ) : (
-          <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-white/5 to-white/10" />
+          <div className="absolute inset-0 bg-gradient-to-r from-white/15 via-white/8 to-white/15" />
         )}
 
+        {/* iOS-style playhead only — no black wash that hides thumbnails */}
         <div
-          className="absolute inset-y-0 left-0 bg-black/45"
-          style={{ width: `${progress * 100}%` }}
-        />
-
-        <div
-          className="absolute inset-y-0 w-0.5 -translate-x-1/2 bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)]"
+          className="pointer-events-none absolute inset-y-0 w-[3px] -translate-x-1/2 rounded-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.85)]"
           style={{ left: `${progress * 100}%` }}
         />
 
         <div
-          className="absolute top-1/2 h-7 w-7 -translate-x-1/2 -translate-y-1/2 rounded-full border-[3px] border-white bg-white/95 shadow-md"
+          className="pointer-events-none absolute top-1/2 h-6 w-6 -translate-x-1/2 -translate-y-1/2 rounded-full border-[2.5px] border-white bg-white shadow-md"
           style={{ left: `${progress * 100}%` }}
         />
       </div>

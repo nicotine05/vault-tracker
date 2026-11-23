@@ -3,7 +3,45 @@
 import { useEffect, useState } from "react";
 import { seekToTime } from "@/lib/domain/videoAnalysis";
 
-const THUMBNAIL_COUNT = 16;
+const THUMBNAIL_COUNT = 18;
+
+async function waitForSeek(video: HTMLVideoElement, time: number) {
+  const target = Math.max(
+    0,
+    Math.min(Number.isFinite(video.duration) ? video.duration : time, time),
+  );
+
+  if (Math.abs(video.currentTime - target) < 0.001) {
+    return;
+  }
+
+  await new Promise<void>((resolve) => {
+    let settled = false;
+    const finish = () => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      video.removeEventListener("seeked", finish);
+      resolve();
+    };
+
+    video.addEventListener("seeked", finish);
+    seekToTime(video, target, { smooth: true });
+
+    // iOS can miss seeked for near-zero seeks — failsafe.
+    window.setTimeout(finish, 400);
+  });
+
+  // Give Safari a beat to paint the frame before canvas capture.
+  await new Promise<void>((resolve) => {
+    if (typeof video.requestVideoFrameCallback === "function") {
+      video.requestVideoFrameCallback(() => resolve());
+      return;
+    }
+    window.setTimeout(() => resolve(), 32);
+  });
+}
 
 export function useFilmstripThumbnails(videoUrl: string | null) {
   const [thumbnails, setThumbnails] = useState<string[]>([]);
@@ -20,18 +58,23 @@ export function useFilmstripThumbnails(videoUrl: string | null) {
     video.src = videoUrl;
     video.muted = true;
     video.playsInline = true;
+    video.setAttribute("playsinline", "true");
+    video.setAttribute("webkit-playsinline", "true");
     video.preload = "auto";
 
     const generate = async () => {
       setIsGenerating(true);
+      setThumbnails([]);
 
       await new Promise<void>((resolve) => {
-        if (video.readyState >= 1) {
+        if (video.readyState >= 2) {
           resolve();
           return;
         }
 
-        video.addEventListener("loadedmetadata", () => resolve(), { once: true });
+        const onReady = () => resolve();
+        video.addEventListener("loadeddata", onReady, { once: true });
+        video.addEventListener("error", onReady, { once: true });
       });
 
       if (
@@ -44,38 +87,46 @@ export function useFilmstripThumbnails(videoUrl: string | null) {
       }
 
       const canvas = document.createElement("canvas");
-      const context = canvas.getContext("2d");
+      const context = canvas.getContext("2d", { alpha: false });
       if (!context) {
         setIsGenerating(false);
         return;
       }
 
-      canvas.width = 128;
-      canvas.height = 72;
-      const frames: string[] = [];
+      const sourceWidth = video.videoWidth || 320;
+      const sourceHeight = video.videoHeight || 180;
+      const maxWidth = 160;
+      const scale = Math.min(1, maxWidth / sourceWidth);
+      canvas.width = Math.max(1, Math.round(sourceWidth * scale));
+      canvas.height = Math.max(1, Math.round(sourceHeight * scale));
 
-      for (let index = 0; index < THUMBNAIL_COUNT; index += 1) {
+      const frames: string[] = [];
+      const count = THUMBNAIL_COUNT;
+      // Avoid exact 0.0 — iOS often returns a black first frame.
+      const startPad = Math.min(0.04, video.duration * 0.01);
+      const endPad = Math.min(0.04, video.duration * 0.01);
+
+      for (let index = 0; index < count; index += 1) {
         if (cancelled) {
           break;
         }
 
+        const ratio = count <= 1 ? 0 : index / (count - 1);
         const time =
-          (index / Math.max(THUMBNAIL_COUNT - 1, 1)) * video.duration;
+          startPad + ratio * Math.max(0, video.duration - startPad - endPad);
 
-        await new Promise<void>((resolve) => {
-          const onSeeked = () => {
-            video.removeEventListener("seeked", onSeeked);
-            resolve();
-          };
+        await waitForSeek(video, time);
 
-          video.addEventListener("seeked", onSeeked);
-          seekToTime(video, time);
-        });
+        if (cancelled) {
+          break;
+        }
 
+        context.fillStyle = "#111";
+        context.fillRect(0, 0, canvas.width, canvas.height);
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
-        frames.push(canvas.toDataURL("image/jpeg", 0.7));
+        frames.push(canvas.toDataURL("image/jpeg", 0.72));
 
-        if (!cancelled && frames.length % 4 === 0) {
+        if (!cancelled && (frames.length === 1 || frames.length % 3 === 0)) {
           setThumbnails([...frames]);
         }
       }
@@ -91,7 +142,8 @@ export function useFilmstripThumbnails(videoUrl: string | null) {
 
     return () => {
       cancelled = true;
-      video.src = "";
+      video.removeAttribute("src");
+      video.load();
     };
   }, [videoUrl]);
 

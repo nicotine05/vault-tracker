@@ -14,6 +14,7 @@ import {
 } from "@/components/vault/video/videoStyles";
 import type { AnnotationTool, VideoAnnotation } from "@/lib/domain/videoAnalysis";
 import { ANNOTATION_COLOR } from "@/lib/domain/videoAnalysis";
+import { annotationVisibleOnFrame } from "@/lib/domain/videoAnnotations";
 import { useFilmstripThumbnails } from "@/lib/hooks/useFilmstripThumbnails";
 import { useOverlayVisibility } from "@/lib/hooks/useOverlayVisibility";
 import { useVideoPlayer } from "@/lib/hooks/useVideoPlayer";
@@ -38,6 +39,37 @@ function formatClock(seconds: number) {
   return `${mins}:${secs.toString().padStart(2, "0")}`;
 }
 
+function PlayPauseIcon({ playing }: { playing: boolean }) {
+  if (playing) {
+    return (
+      <svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true">
+        <rect x="6" y="4.5" width="4.5" height="15" rx="1.5" fill="currentColor" />
+        <rect x="13.5" y="4.5" width="4.5" height="15" rx="1.5" fill="currentColor" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        d="M8.2 4.8c-.7-.4-1.5.1-1.5.9v12.6c0 .8.8 1.3 1.5.9l11-6.3c.7-.4.7-1.4 0-1.8l-11-6.3z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}
+
+function MarkupIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        d="M15.2 4.3c.5-.5 1.3-.5 1.8 0l2.7 2.7c.5.5.5 1.3 0 1.8L9.2 19.3c-.2.2-.5.3-.8.4l-3.6.8c-.6.1-1.1-.4-1-.1l.8-3.6c.1-.3.2-.6.4-.8L15.2 4.3z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}
+
 export default function VideoPlayerShell({
   videoUrl,
   title,
@@ -48,7 +80,6 @@ export default function VideoPlayerShell({
   const { setImmersive } = useVideoImmersive();
   const player = useVideoPlayer({ videoUrl });
   const { thumbnails } = useFilmstripThumbnails(videoUrl);
-  // iOS Photos-like: chrome stays a bit longer while reviewing frames
   const overlay = useOverlayVisibility(5000);
 
   const [mode, setMode] = useState<PlayerInteractionMode>("watch");
@@ -56,6 +87,7 @@ export default function VideoPlayerShell({
     useState<VideoAnnotation[]>(initialAnnotations);
   const [activeTool, setActiveTool] = useState<AnnotationTool>("draw");
   const [color, setColor] = useState(ANNOTATION_COLOR);
+  const [persistentDrawing, setPersistentDrawing] = useState(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const annotationsRef = useRef(annotations);
   annotationsRef.current = annotations;
@@ -160,7 +192,7 @@ export default function VideoPlayerShell({
   const handleUndo = useCallback(() => {
     setAnnotations((current) => {
       for (let index = current.length - 1; index >= 0; index -= 1) {
-        if (current[index].frame === player.currentFrame) {
+        if (annotationVisibleOnFrame(current[index], player.currentFrame)) {
           const next = [
             ...current.slice(0, index),
             ...current.slice(index + 1),
@@ -174,18 +206,19 @@ export default function VideoPlayerShell({
     });
   }, [persistAnnotations, player.currentFrame]);
 
-  const handleClearFrame = useCallback(() => {
+  const handleClearVisible = useCallback(() => {
     setAnnotations((current) => {
       const next = current.filter(
-        (annotation) => annotation.frame !== player.currentFrame,
+        (annotation) =>
+          !annotationVisibleOnFrame(annotation, player.currentFrame),
       );
       persistAnnotations(next);
       return next;
     });
   }, [persistAnnotations, player.currentFrame]);
 
-  const canUndo = annotations.some(
-    (annotation) => annotation.frame === player.currentFrame,
+  const canUndo = annotations.some((annotation) =>
+    annotationVisibleOnFrame(annotation, player.currentFrame),
   );
 
   return (
@@ -203,6 +236,7 @@ export default function VideoPlayerShell({
           annotationColor={color}
           mode={mode}
           muted={player.isMuted}
+          persistentDrawing={persistentDrawing}
           controlsVisible={controlsVisible}
           isPlaying={player.isPlaying}
           onAnnotationsChange={handleAnnotationsChange}
@@ -238,24 +272,14 @@ export default function VideoPlayerShell({
               </a>
 
               <p
-                className={`${glassPillClassName} max-w-[42%] truncate ${overlayFadeClass(
+                className={`${glassPillClassName} max-w-[70%] truncate ${overlayFadeClass(
                   controlsVisible,
                 )}`}
               >
                 {title}
               </p>
 
-              <button
-                type="button"
-                className={`${glassButtonClassName} h-11 min-w-11 rounded-full px-4 text-[15px] font-semibold`}
-                onClick={(event) => {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  enterMarkMode();
-                }}
-              >
-                Markup
-              </button>
+              <span className="h-11 w-11 shrink-0" aria-hidden="true" />
             </>
           ) : (
             <>
@@ -293,65 +317,28 @@ export default function VideoPlayerShell({
                 />
               </div>
 
-              {/* Always-visible transport — thumb-reach friendly on iPhone */}
-              <div className="flex items-center justify-between gap-2 px-4 pb-[max(1.1rem,env(safe-area-inset-bottom))] pt-1">
+              <div className="flex items-center justify-center gap-10 px-4 pb-[max(1.1rem,env(safe-area-inset-bottom))] pt-1">
                 <button
                   type="button"
-                  aria-label={player.isMuted ? "Unmute" : "Mute"}
-                  className={`${glassButtonClassName} h-12 w-12 text-[15px]`}
+                  aria-label={player.isPlaying ? "Pause" : "Play"}
+                  className="flex h-[68px] w-[68px] items-center justify-center rounded-full bg-white text-black shadow-[0_8px_28px_rgba(0,0,0,0.35)] transition active:scale-95 touch-manipulation"
                   onClick={() => {
                     overlay.notifyActivity();
-                    player.toggleMute();
+                    void player.togglePlay();
                   }}
                 >
-                  {player.isMuted ? "🔇" : "🔊"}
+                  <span className={player.isPlaying ? "" : "translate-x-[1px]"}>
+                    <PlayPauseIcon playing={player.isPlaying} />
+                  </span>
                 </button>
-
-                <div className="flex items-center gap-4">
-                  <button
-                    type="button"
-                    aria-label="Previous frame"
-                    className={`${glassButtonClassName} h-12 w-12 text-[22px] font-semibold leading-none`}
-                    onClick={() => {
-                      overlay.notifyActivity();
-                      player.stepFrames(-1);
-                    }}
-                  >
-                    ‹
-                  </button>
-
-                  <button
-                    type="button"
-                    aria-label={player.isPlaying ? "Pause" : "Play"}
-                    className={`${glassButtonClassName} h-16 w-16 bg-white/15 text-[28px]`}
-                    onClick={() => {
-                      overlay.notifyActivity();
-                      void player.togglePlay();
-                    }}
-                  >
-                    {player.isPlaying ? "⏸" : "▶️"}
-                  </button>
-
-                  <button
-                    type="button"
-                    aria-label="Next frame"
-                    className={`${glassButtonClassName} h-12 w-12 text-[22px] font-semibold leading-none`}
-                    onClick={() => {
-                      overlay.notifyActivity();
-                      player.stepFrames(1);
-                    }}
-                  >
-                    ›
-                  </button>
-                </div>
 
                 <button
                   type="button"
                   aria-label="Open markup"
-                  className={`${glassButtonClassName} h-12 w-12 text-[18px]`}
+                  className={`${glassButtonClassName} h-14 w-14 text-white`}
                   onClick={enterMarkMode}
                 >
-                  ✎
+                  <MarkupIcon />
                 </button>
               </div>
             </>
@@ -361,12 +348,14 @@ export default function VideoPlayerShell({
             <VideoMarkupBar
               activeTool={activeTool}
               color={color}
+              persistent={persistentDrawing}
               canUndo={canUndo}
               canClear={canUndo}
               onToolChange={setActiveTool}
               onColorChange={setColor}
+              onPersistentChange={setPersistentDrawing}
               onUndo={handleUndo}
-              onClear={handleClearFrame}
+              onClear={handleClearVisible}
               onDone={exitMarkMode}
             />
           )}
