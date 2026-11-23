@@ -175,11 +175,6 @@ export default function VaultSessionList({
                           <p className="text-sm text-muted">
                             {session.jumps.length} jumps
                           </p>
-                          {highestMake && (
-                            <p className="text-base font-bold tracking-tight text-foreground">
-                              {highestMake}
-                            </p>
-                          )}
                         </div>
 
                         <div className="text-right text-sm">
@@ -194,6 +189,11 @@ export default function VaultSessionList({
                               <p className="font-medium text-muted">
                                 Warmup {results.warmup}
                               </p>
+                              {highestMake && (
+                                <p className="mt-1 text-base font-bold tracking-tight text-foreground">
+                                  {highestMake}
+                                </p>
+                              )}
                             </>
                           ) : (
                             <>
