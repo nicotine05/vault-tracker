@@ -16,6 +16,7 @@ export default function VaultSessionsPage() {
     null
   );
   const [weekFilter, setWeekFilter] = useState(VAULT_SESSION_RECENT_FILTER);
+  const [competitionOnly, setCompetitionOnly] = useState(false);
 
   return (
     <main className="mx-auto max-w-5xl p-4 pb-20">
@@ -30,6 +31,8 @@ export default function VaultSessionsPage() {
           poles={poles}
           weekFilter={weekFilter}
           onWeekFilterChange={setWeekFilter}
+          competitionOnly={competitionOnly}
+          onCompetitionOnlyChange={setCompetitionOnly}
           expandedSessionId={expandedSessionId}
           onToggleExpanded={setExpandedSessionId}
           onDeleteSession={deleteSession}

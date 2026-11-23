@@ -5,6 +5,7 @@ import type { Jump, Pole, VaultSession, VaultStepReferences } from "@/lib/domain
 import {
   countJumpGrades,
   countJumpResults,
+  filterCompetitionVaultSessions,
   filterVaultSessionsByWeek,
   getCompetitionJumpTintClass,
   getCompetitionOutcomeTagClass,
@@ -29,6 +30,8 @@ type VaultSessionListProps = {
   poles: Pole[];
   weekFilter: string;
   onWeekFilterChange: (week: string) => void;
+  competitionOnly: boolean;
+  onCompetitionOnlyChange: (value: boolean) => void;
   expandedSessionId: string | null;
   onToggleExpanded: (sessionId: string | null) => void;
   onDeleteSession: (sessionId: string) => void;
@@ -41,37 +44,59 @@ export default function VaultSessionList({
   poles,
   weekFilter,
   onWeekFilterChange,
+  competitionOnly,
+  onCompetitionOnlyChange,
   expandedSessionId,
   onToggleExpanded,
   onDeleteSession,
   readOnly,
 }: VaultSessionListProps) {
-  const weekOptions = getVaultWeekOptions(sessions);
-  const filteredSessions = filterVaultSessionsByWeek(sessions, weekFilter);
-  const recentFilterLabel = getVaultRecentFilterLabel(sessions);
+  const scopedSessions = competitionOnly
+    ? filterCompetitionVaultSessions(sessions)
+    : sessions;
+  const weekOptions = getVaultWeekOptions(scopedSessions);
+  const filteredSessions = filterVaultSessionsByWeek(
+    scopedSessions,
+    weekFilter
+  );
+  const recentFilterLabel = getVaultRecentFilterLabel(scopedSessions);
   const isFiltered =
-    weekFilter !== "all" && filteredSessions.length < sessions.length;
+    (weekFilter !== "all" || competitionOnly) &&
+    filteredSessions.length < sessions.length;
 
   return (
     <div>
-      <div className="mb-3 flex items-center justify-between gap-3">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xl font-bold text-foreground">Vault Sessions</h2>
         {sessions.length > 0 && (
-          <select
-            value={weekFilter}
-            onChange={(event) => onWeekFilterChange(event.target.value)}
-            className="rounded-lg border border-border bg-surface-muted px-2 py-1 text-foreground"
-          >
-            <option value={VAULT_SESSION_RECENT_FILTER}>
-              {recentFilterLabel}
-            </option>
-            {weekOptions.map((week) => (
-              <option key={week} value={week}>
-                {week}
+          <div className="flex flex-wrap items-center gap-3">
+            <label className="flex cursor-pointer items-center gap-2 text-sm text-foreground">
+              <span className="text-muted">Competition only</span>
+              <input
+                type="checkbox"
+                checked={competitionOnly}
+                onChange={(event) =>
+                  onCompetitionOnlyChange(event.target.checked)
+                }
+                className="h-4 w-4 accent-[var(--accent)]"
+              />
+            </label>
+            <select
+              value={weekFilter}
+              onChange={(event) => onWeekFilterChange(event.target.value)}
+              className="rounded-lg border border-border bg-surface-muted px-2 py-1 text-foreground"
+            >
+              <option value={VAULT_SESSION_RECENT_FILTER}>
+                {recentFilterLabel}
               </option>
-            ))}
-            <option value="all">All</option>
-          </select>
+              {weekOptions.map((week) => (
+                <option key={week} value={week}>
+                  {week}
+                </option>
+              ))}
+              <option value="all">All</option>
+            </select>
+          </div>
         )}
       </div>
 
@@ -84,13 +109,17 @@ export default function VaultSessionList({
           {isFiltered && (
             <p className="mb-3 text-sm text-muted">
               Showing {filteredSessions.length} of {sessions.length} sessions.
-              Choose a week to see older logs.
+              {competitionOnly
+                ? " Competition only."
+                : " Choose a week to see older logs."}
             </p>
           )}
 
           {filteredSessions.length === 0 ? (
             <p className="rounded-2xl border border-dashed border-border bg-surface-muted/50 px-4 py-8 text-center text-sm text-muted">
-              No sessions in this view. Try another week or All.
+              {competitionOnly
+                ? "No competition sessions in this view. Try another week, All, or turn off Competition only."
+                : "No sessions in this view. Try another week or All."}
             </p>
           ) : (
             <div className="space-y-3">

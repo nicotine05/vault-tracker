@@ -203,6 +203,12 @@ export function isCompetitionSession(
   return session.mode === "competition";
 }
 
+export function filterCompetitionVaultSessions(
+  sessions: VaultSession[]
+): VaultSession[] {
+  return sessions.filter(isCompetitionSession);
+}
+
 export function getPoleJumpHistory(
   sessions: VaultSession[],
   poleId: string
