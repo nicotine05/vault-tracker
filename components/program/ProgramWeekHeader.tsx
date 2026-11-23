@@ -101,12 +101,6 @@ export default function ProgramWeekHeader({
         </button>
       </div>
 
-      {isPlanning && (
-        <p className="mt-3 text-center text-sm text-muted">
-          Pick your sessions, then generate your schedule.
-        </p>
-      )}
-
       {showReturnToActiveWeek && onReturnToActiveWeek && (
         <button
           type="button"

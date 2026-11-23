@@ -145,13 +145,6 @@ export default function VaultNewSessionPanel({
       <div className="space-y-4">
         <div>
           <h2 className="text-lg font-bold text-foreground">New Vault Session</h2>
-          <p className="mt-1 text-sm text-muted">
-            {modeChosen
-              ? competitionMode
-                ? "Competition log"
-                : "Practice session"
-              : "Choose practice or competition to start."}
-          </p>
         </div>
 
         <div

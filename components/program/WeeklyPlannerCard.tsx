@@ -172,11 +172,12 @@ export default function WeeklyPlannerCard({
 
   return (
     <Card title="Weekly Planner">
-      <p className="-mt-1 mb-4 text-sm text-muted">
-        {isModified
-          ? "Plan around your active restrictions. Restricted session types are disabled and weekly minimums are relaxed."
-          : "Select one or more training types for each day. Your choices shape the generated schedule."}
-      </p>
+      {isModified && (
+        <p className="-mt-1 mb-4 text-sm text-muted">
+          Plan around your active restrictions. Restricted session types are
+          disabled and weekly minimums are relaxed.
+        </p>
+      )}
       {plannerContent}
     </Card>
   );

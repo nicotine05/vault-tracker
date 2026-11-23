@@ -4,7 +4,7 @@ import Card from "@/components/Card";
 type HubLinkCardProps = {
   href: string;
   title: string;
-  description: string;
+  description?: string;
   icon?: string;
   badge?: string;
 };
@@ -30,7 +30,9 @@ export default function HubLinkCard({
                 </span>
               )}
             </div>
-            <p className="mt-1 text-sm text-muted">{description}</p>
+            {description ? (
+              <p className="mt-1 text-sm text-muted">{description}</p>
+            ) : null}
           </div>
           <span className="shrink-0 text-xl text-muted">→</span>
         </div>

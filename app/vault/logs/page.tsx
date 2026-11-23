@@ -39,8 +39,8 @@ export default function VaultLogsPage() {
 
   const sessionsDescription =
     sessions.length === 0
-      ? "No sessions logged yet."
-      : `Review past practice and competition logs by week · ${sessions.length} saved`;
+      ? "0 saved"
+      : `${sessions.length} saved`;
 
   return (
     <main className="mx-auto max-w-5xl p-4 pb-20">
