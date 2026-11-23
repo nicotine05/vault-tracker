@@ -1,32 +1,31 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { overlayFadeClass } from "@/components/vault/video/videoStyles";
 
 type VideoFilmstripTimelineProps = {
   currentTime: number;
   duration: number;
   thumbnails: string[];
-  visible: boolean;
   disabled?: boolean;
+  compact?: boolean;
   onScrubStart: () => void;
   onScrub: (time: number) => void;
   onScrubEnd: () => void;
   onInteraction: () => void;
-  frameLabel?: string;
+  className?: string;
 };
 
 export default function VideoFilmstripTimeline({
   currentTime,
   duration,
   thumbnails,
-  visible,
   disabled = false,
+  compact = false,
   onScrubStart,
   onScrub,
   onScrubEnd,
   onInteraction,
-  frameLabel,
+  className = "",
 }: VideoFilmstripTimelineProps) {
   const trackRef = useRef<HTMLDivElement>(null);
   const isScrubbingRef = useRef(false);
@@ -37,6 +36,9 @@ export default function VideoFilmstripTimeline({
   const maxDuration = Math.max(duration, 0.001);
   const displayTime = dragTime ?? currentTime;
   const progress = Math.max(0, Math.min(1, displayTime / maxDuration));
+  // Compact matches the 44px play/markup buttons in the bottom chrome row.
+  const trackHeight = compact ? "h-11" : "h-12";
+  const knobSize = compact ? "h-5 w-5 border-2" : "h-6 w-6 border-[2.5px]";
 
   useEffect(() => {
     return () => {
@@ -100,17 +102,10 @@ export default function VideoFilmstripTimeline({
   };
 
   return (
-    <div className={`px-3 pb-1.5 pt-1.5 ${overlayFadeClass(visible)}`}>
-      {frameLabel && (
-        <p className="mb-1.5 text-center text-[12px] font-medium tabular-nums text-white/75">
-          {frameLabel}
-        </p>
-      )}
-
-      {/* ~15% shorter than prior h-16 (64px → 54px) */}
+    <div className={`min-w-0 flex-1 ${className}`}>
       <div
         ref={trackRef}
-        className={`relative h-[54px] overflow-hidden rounded-2xl bg-black/40 ring-1 ring-white/10 ${
+        className={`relative ${trackHeight} overflow-hidden rounded-xl bg-black/45 ring-1 ring-white/12 ${
           disabled ? "opacity-40" : "touch-none select-none"
         }`}
         onPointerDown={(event) => {
@@ -152,14 +147,13 @@ export default function VideoFilmstripTimeline({
           <div className="absolute inset-0 bg-gradient-to-r from-white/15 via-white/8 to-white/15" />
         )}
 
-        {/* iOS-style playhead only — no black wash that hides thumbnails */}
         <div
-          className="pointer-events-none absolute inset-y-0 w-[3px] -translate-x-1/2 rounded-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.85)]"
+          className="pointer-events-none absolute inset-y-0 w-[2px] -translate-x-1/2 rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.85)]"
           style={{ left: `${progress * 100}%` }}
         />
 
         <div
-          className="pointer-events-none absolute top-1/2 h-6 w-6 -translate-x-1/2 -translate-y-1/2 rounded-full border-[2.5px] border-white bg-white shadow-md"
+          className={`pointer-events-none absolute top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border-white bg-white shadow-md ${knobSize}`}
           style={{ left: `${progress * 100}%` }}
         />
       </div>

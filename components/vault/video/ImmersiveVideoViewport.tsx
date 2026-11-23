@@ -515,10 +515,11 @@ export default function ImmersiveVideoViewport({
             if (element) {
               element.setAttribute("playsinline", "true");
               element.setAttribute("webkit-playsinline", "true");
+              element.muted = muted;
             }
           }}
           src={videoUrl}
-          className="max-h-full max-w-full object-contain"
+          className="max-h-full max-w-full bg-black object-contain"
           playsInline
           muted={muted}
           preload="auto"
