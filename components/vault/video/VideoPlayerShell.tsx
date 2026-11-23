@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import ImmersiveVideoViewport, {
   type PlayerInteractionMode,
@@ -46,6 +46,7 @@ export default function VideoPlayerShell({
   initialAnnotations = [],
   backHref = "/vault/video-analysis",
 }: VideoPlayerShellProps) {
+  const router = useRouter();
   const { setImmersive } = useVideoImmersive();
   const player = useVideoPlayer({ videoUrl });
   const { thumbnails } = useFilmstripThumbnails(videoUrl);
@@ -278,14 +279,19 @@ export default function VideoPlayerShell({
         >
           {mode === "watch" ? (
             <>
-              <Link
-                href={backHref}
+              <button
+                type="button"
                 className={`${glassButtonClassName} h-10 w-10 text-base`}
                 aria-label="Back"
-                onClick={() => overlay.notifyActivity()}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  player.pause();
+                  setImmersive(false);
+                  router.push(backHref);
+                }}
               >
                 ←
-              </Link>
+              </button>
 
               <p className={`${glassPillClassName} max-w-[46%] truncate`}>
                 {title}
@@ -294,7 +300,10 @@ export default function VideoPlayerShell({
               <button
                 type="button"
                 className={`${glassButtonClassName} h-10 rounded-full px-3.5 text-sm font-semibold`}
-                onClick={enterMarkMode}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  enterMarkMode();
+                }}
               >
                 Markup
               </button>

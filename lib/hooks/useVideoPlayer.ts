@@ -77,6 +77,18 @@ export function useVideoPlayer(options: UseVideoPlayerOptions = {}) {
       });
     }
 
+    const ended =
+      video.ended ||
+      (Number.isFinite(video.duration) &&
+        video.duration > 0 &&
+        video.currentTime >= video.duration - 0.05);
+
+    if (ended) {
+      video.currentTime = 0;
+      setCurrentTime(0);
+      setCurrentFrame(0);
+    }
+
     try {
       await video.play();
       setIsPlaying(true);
