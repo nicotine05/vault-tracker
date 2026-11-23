@@ -88,7 +88,7 @@ export default function SingleVideoWorkspace() {
   }, [clipId, loadClip]);
 
   const handleImport = async (file: File | null) => {
-    if (!file) {
+    if (!file || busy) {
       return;
     }
 
@@ -101,6 +101,7 @@ export default function SingleVideoWorkspace() {
         `/vault/video-analysis/single?id=${encodeURIComponent(record.id)}`,
       );
     } catch (error) {
+      console.error(error);
       setMessage(
         error instanceof Error ? error.message : "Could not import video.",
       );
