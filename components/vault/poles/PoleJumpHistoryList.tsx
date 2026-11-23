@@ -1,7 +1,7 @@
 "use client";
 
 import type { PoleJumpHistoryEntry } from "@/lib/domain/vaultLog";
-import { getGradeEmoji } from "@/lib/domain/vaultLog";
+import { getJumpOutcomeLabel } from "@/lib/domain/vaultLog";
 
 type PoleJumpHistoryListProps = {
   entries: PoleJumpHistoryEntry[];
@@ -27,12 +27,15 @@ export default function PoleJumpHistoryList({
         >
           <div className="flex items-center justify-between gap-2">
             <p className="text-sm font-semibold text-foreground">{entry.date}</p>
-            <span className="text-base" aria-hidden="true">
-              {getGradeEmoji(entry.grade)}
+            <span className="text-sm font-medium text-foreground">
+              {getJumpOutcomeLabel(entry)}
             </span>
           </div>
 
           <dl className="mt-2 space-y-1 text-sm">
+            {entry.standards ? (
+              <HistoryRow label="Standards" value={entry.standards} />
+            ) : null}
             <HistoryRow label="Run" value={entry.run || "—"} />
             <HistoryRow label="Grip" value={entry.grip || "—"} />
             <HistoryRow label="Takeoff" value={entry.takeoff || "—"} />

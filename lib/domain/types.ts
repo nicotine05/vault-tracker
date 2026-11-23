@@ -115,12 +115,21 @@ export type PoleBag = {
   poleIds: string[];
 };
 
+export type JumpGrade = "green" | "yellow" | "red";
+export type JumpResult = "make" | "miss";
+export type VaultSessionMode = "practice" | "competition";
+
 export type Jump = {
   id: string;
   run: string;
   grip: string;
   takeoff: string;
-  grade: "green" | "yellow" | "red";
+  /** Practice quality grade. Optional on competition jumps. */
+  grade?: JumpGrade;
+  /** Competition make/miss. Optional on practice jumps. */
+  result?: JumpResult;
+  /** Competition bar/standard height. */
+  standards?: string;
   comment: string;
   poleId?: string;
   poleLabel?: string;
@@ -131,6 +140,8 @@ export type VaultSession = {
   date: string;
   keys: string[];
   jumps: Jump[];
+  /** Defaults to practice when missing (legacy sessions). */
+  mode?: VaultSessionMode;
 };
 
 export type WorkoutExecutionRecord = {

@@ -4,11 +4,13 @@ import Card from "@/components/Card";
 import type { Jump, Pole, VaultSession, VaultStepReferences } from "@/lib/domain/types";
 import {
   countJumpGrades,
+  countJumpResults,
   filterVaultSessionsByWeek,
-  getGradeEmoji,
+  getJumpOutcomeLabel,
   getRunReference,
   getVaultRecentFilterLabel,
   getVaultWeekOptions,
+  isCompetitionSession,
   VAULT_SESSION_RECENT_FILTER,
 } from "@/lib/domain/vaultLog";
 import {
@@ -91,11 +93,20 @@ export default function VaultSessionList({
           ) : (
             <div className="space-y-3">
               {filteredSessions.map((session) => {
+                const competition = isCompetitionSession(session);
                 const grades = countJumpGrades(session.jumps);
+                const results = countJumpResults(session.jumps);
                 const expanded = expandedSessionId === session.id;
 
                 return (
-                  <Card key={session.id}>
+                  <Card
+                    key={session.id}
+                    className={
+                      competition
+                        ? "border-amber-400/70 from-amber-500/15 via-amber-500/5 to-surface"
+                        : ""
+                    }
+                  >
                     <div
                       onClick={() =>
                         onToggleExpanded(expanded ? null : session.id)
@@ -104,22 +115,42 @@ export default function VaultSessionList({
                     >
                       <div className="flex items-start justify-between">
                         <div>
-                          <p className="font-bold text-foreground">
-                            {session.date}
-                          </p>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="font-bold text-foreground">
+                              {session.date}
+                            </p>
+                            {competition && (
+                              <span className="rounded-full border border-amber-400/60 bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-900 [data-theme-mode=dark]:text-amber-200">
+                                Competition
+                              </span>
+                            )}
+                          </div>
                           <p className="text-sm text-muted">
                             {session.jumps.length} jumps
                           </p>
                         </div>
 
-                        <div className="text-right">
-                          <p>🟢 {grades.green}</p>
-                          <p>🟡 {grades.yellow}</p>
-                          <p>🔴 {grades.red}</p>
+                        <div className="text-right text-sm">
+                          {competition ? (
+                            <>
+                              <p className="font-medium text-emerald-700 [data-theme-mode=dark]:text-emerald-300">
+                                Make {results.make}
+                              </p>
+                              <p className="font-medium text-red-700 [data-theme-mode=dark]:text-red-300">
+                                Miss {results.miss}
+                              </p>
+                            </>
+                          ) : (
+                            <>
+                              <p>🟢 {grades.green}</p>
+                              <p>🟡 {grades.yellow}</p>
+                              <p>🔴 {grades.red}</p>
+                            </>
+                          )}
                         </div>
                       </div>
 
-                      {session.keys.length > 0 && (
+                      {!competition && session.keys.length > 0 && (
                         <div className="mt-2 text-sm text-muted">
                           🎯 {session.keys.join(" • ")}
                         </div>
@@ -135,6 +166,7 @@ export default function VaultSessionList({
                               jump={jump}
                               stepRefs={stepRefs}
                               poles={poles}
+                              competition={competition}
                             />
                           ))}
                         </div>
@@ -165,19 +197,28 @@ function JumpDetail({
   jump,
   stepRefs,
   poles,
+  competition,
 }: {
   jump: Jump;
   stepRefs: VaultStepReferences;
   poles: Pole[];
+  competition: boolean;
 }) {
   const reference = getRunReference(jump.run, stepRefs);
   const pole = getPoleById(poles, jump.poleId);
   const poleDisplay = pole ? formatPolePickerLabel(pole) : jump.poleLabel;
 
   return (
-    <div className="rounded-lg border border-border bg-surface-muted p-3 text-foreground">
+    <div
+      className={`rounded-lg border p-3 text-foreground ${
+        competition
+          ? "border-amber-400/40 bg-amber-500/10"
+          : "border-border bg-surface-muted"
+      }`}
+    >
       <div className="flex flex-wrap items-center gap-2">
-        <span>{getGradeEmoji(jump.grade)}</span>
+        <span className="font-medium">{getJumpOutcomeLabel(jump)}</span>
+        {jump.standards && <span>Std {jump.standards}</span>}
         <span>{jump.run}</span>
         {reference && (
           <span className="text-xs text-accent-text">({reference})</span>

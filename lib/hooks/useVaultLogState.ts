@@ -51,6 +51,7 @@ export function useVaultLogState() {
   const [keys, setKeys] = useState<string[]>([""]);
   const [jumps, setJumps] = useState<Jump[]>([]);
   const [jumpForm, setJumpForm] = useState(emptyJumpForm);
+  const [competitionMode, setCompetitionMode] = useState(false);
   const [poles, setPoles] = useState<Pole[]>([]);
   const [recentPoleIds, setRecentPoleIds] = useState<string[]>([]);
 
@@ -69,6 +70,7 @@ export function useVaultLogState() {
         setKeys(draft.keys);
         setJumps(draft.jumps);
         setJumpForm(draft.jumpForm);
+        setCompetitionMode(draft.competitionMode);
       }
     } catch (error) {
       console.error("Failed to load vault logs", error);
@@ -79,8 +81,8 @@ export function useVaultLogState() {
 
   useEffect(() => {
     if (!loaded) return;
-    saveVaultSessionDraft({ keys, jumps, jumpForm });
-  }, [keys, jumps, jumpForm, loaded]);
+    saveVaultSessionDraft({ keys, jumps, jumpForm, competitionMode });
+  }, [keys, jumps, jumpForm, competitionMode, loaded]);
 
   useEffect(() => {
     if (!loaded) return;
@@ -103,15 +105,31 @@ export function useVaultLogState() {
   }, [prHistory, loaded]);
 
   function addJump() {
+    if (competitionMode && !jumpForm.result) {
+      return;
+    }
+
     const selectedPole = getPoleById(poles, jumpForm.poleId);
 
     setJumps((prev) => [
       ...prev,
       createJump({
-        ...jumpForm,
+        run: jumpForm.run,
+        grip: jumpForm.grip,
+        takeoff: jumpForm.takeoff,
+        comment: jumpForm.comment,
+        poleId: jumpForm.poleId,
         poleLabel: selectedPole
           ? formatPolePickerLabel(selectedPole)
           : undefined,
+        ...(competitionMode
+          ? {
+              result: jumpForm.result,
+              standards: jumpForm.standards,
+            }
+          : {
+              grade: jumpForm.grade,
+            }),
       }),
     ]);
 
@@ -134,6 +152,7 @@ export function useVaultLogState() {
     setKeys([""]);
     setJumps([]);
     setJumpForm(emptyJumpForm());
+    setCompetitionMode(false);
     clearVaultSessionDraft();
   }
 
@@ -143,7 +162,11 @@ export function useVaultLogState() {
     }
 
     setSessions((prev) => [
-      createVaultSession({ keys, jumps }),
+      createVaultSession({
+        keys,
+        jumps,
+        mode: competitionMode ? "competition" : "practice",
+      }),
       ...prev,
     ]);
     resetUnsavedSession();
@@ -155,6 +178,7 @@ export function useVaultLogState() {
         keys,
         jumps,
         jumpForm,
+        competitionMode,
       })
     ) {
       return;
@@ -192,6 +216,37 @@ export function useVaultLogState() {
     setRunPRs((prev) => updateRunPR(prev, key, value));
   }
 
+  function updateCompetitionMode(enabled: boolean) {
+    if (enabled === competitionMode) {
+      return;
+    }
+
+    if (jumps.length > 0) {
+      if (
+        !confirm(
+          "Switching between practice and competition clears jumps in the current draft. Continue?"
+        )
+      ) {
+        return;
+      }
+      setJumps([]);
+    }
+
+    setCompetitionMode(enabled);
+    setJumpForm((prev) => ({
+      ...emptyJumpForm(),
+      run: prev.run,
+      grip: prev.grip,
+      takeoff: prev.takeoff,
+      poleId: prev.poleId,
+      standards: enabled ? prev.standards : "",
+    }));
+
+    if (!enabled) {
+      setKeys((prev) => (prev.length > 0 ? prev : [""]));
+    }
+  }
+
   return {
     sessions,
     stepRefs,
@@ -203,6 +258,8 @@ export function useVaultLogState() {
     jumps,
     jumpForm,
     setJumpForm,
+    competitionMode,
+    setCompetitionMode: updateCompetitionMode,
     addJump,
     removeJump,
     clearSession,
@@ -210,6 +267,7 @@ export function useVaultLogState() {
       keys,
       jumps,
       jumpForm,
+      competitionMode,
     }),
     saveSession,
     deleteSession,

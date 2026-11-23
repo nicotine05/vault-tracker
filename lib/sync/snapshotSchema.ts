@@ -98,7 +98,12 @@ function normalizeJump(value: unknown): Jump | null {
   }
 
   const grade = value.grade;
-  if (grade !== "green" && grade !== "yellow" && grade !== "red") {
+  const result = value.result;
+  const hasGrade =
+    grade === "green" || grade === "yellow" || grade === "red";
+  const hasResult = result === "make" || result === "miss";
+
+  if (!hasGrade && !hasResult) {
     return null;
   }
 
@@ -107,7 +112,9 @@ function normalizeJump(value: unknown): Jump | null {
     run: value.run,
     grip: value.grip,
     takeoff: value.takeoff,
-    grade,
+    grade: hasGrade ? grade : undefined,
+    result: hasResult ? result : undefined,
+    standards: isString(value.standards) ? value.standards : undefined,
     comment: value.comment,
     poleId: isString(value.poleId) ? value.poleId : undefined,
     poleLabel: isString(value.poleLabel) ? value.poleLabel : undefined,
@@ -127,12 +134,17 @@ function normalizeVaultSession(value: unknown): VaultSession | null {
         .map(normalizeJump)
         .filter((jump): jump is Jump => jump !== null)
     : [];
+  const mode =
+    value.mode === "competition" || value.mode === "practice"
+      ? value.mode
+      : undefined;
 
   return {
     id: value.id,
     date: value.date,
     keys,
     jumps,
+    mode,
   };
 }
 

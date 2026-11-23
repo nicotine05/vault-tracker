@@ -21,6 +21,8 @@ export default function VaultLogsPage() {
     jumps,
     jumpForm,
     setJumpForm,
+    competitionMode,
+    setCompetitionMode,
     addJump,
     removeJump,
     clearSession,
@@ -38,7 +40,7 @@ export default function VaultLogsPage() {
   const sessionsDescription =
     sessions.length === 0
       ? "No sessions logged yet."
-      : `Review past practice sessions by week · ${sessions.length} saved`;
+      : `Review past practice and competition logs by week · ${sessions.length} saved`;
 
   return (
     <main className="mx-auto max-w-5xl p-4 pb-20">
@@ -70,9 +72,17 @@ export default function VaultLogsPage() {
           />
         </div>
 
-        <Card>
+        <Card
+          className={
+            competitionMode
+              ? "border-amber-400/70 from-amber-500/15 via-amber-500/5 to-surface"
+              : ""
+          }
+        >
           <VaultNewSessionPanel
             readOnly={isCoachReadOnly}
+            competitionMode={competitionMode}
+            onCompetitionModeChange={setCompetitionMode}
             keys={keys}
             onKeysChange={setKeys}
             jumpForm={jumpForm}

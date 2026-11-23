@@ -27,10 +27,11 @@ function normalizeRunPRValue(value: string): string {
   return trimmed === "" ? "" : normalizeVaultPR(trimmed);
 }
 
-export function getGradeEmoji(grade: string): string {
+export function getGradeEmoji(grade?: string): string {
   if (grade === "green") return "🟢";
   if (grade === "yellow") return "🟡";
-  return "🔴";
+  if (grade === "red") return "🔴";
+  return "";
 }
 
 export function getRunReference(
@@ -190,8 +191,16 @@ export type PoleJumpHistoryEntry = {
   grip: string;
   takeoff: string;
   comment: string;
-  grade: Jump["grade"];
+  grade?: Jump["grade"];
+  result?: Jump["result"];
+  standards?: string;
 };
+
+export function isCompetitionSession(
+  session: Pick<VaultSession, "mode">
+): boolean {
+  return session.mode === "competition";
+}
 
 export function getPoleJumpHistory(
   sessions: VaultSession[],
@@ -215,6 +224,8 @@ export function getPoleJumpHistory(
         takeoff: jump.takeoff,
         comment: jump.comment,
         grade: jump.grade,
+        result: jump.result,
+        standards: jump.standards,
       });
     }
   }
@@ -234,11 +245,33 @@ export function countJumpGrades(jumps: Jump[]): {
   };
 }
 
+export function countJumpResults(jumps: Jump[]): {
+  make: number;
+  miss: number;
+} {
+  return {
+    make: jumps.filter((jump) => jump.result === "make").length,
+    miss: jumps.filter((jump) => jump.result === "miss").length,
+  };
+}
+
+export function getJumpOutcomeLabel(jump: {
+  grade?: Jump["grade"];
+  result?: Jump["result"];
+}): string {
+  if (jump.result === "make") return "Make";
+  if (jump.result === "miss") return "Miss";
+  if (jump.grade) return getGradeEmoji(jump.grade);
+  return "—";
+}
+
 export function createJump(params: {
   run: string;
   grip: string;
   takeoff: string;
-  grade: Jump["grade"];
+  grade?: Jump["grade"];
+  result?: Jump["result"];
+  standards?: string;
   comment: string;
   poleId?: string;
   poleLabel?: string;
@@ -249,6 +282,8 @@ export function createJump(params: {
     grip: params.grip,
     takeoff: params.takeoff,
     grade: params.grade,
+    result: params.result,
+    standards: params.standards?.trim() ? params.standards.trim() : undefined,
     comment: params.comment,
     poleId: params.poleId,
     poleLabel: params.poleLabel,
@@ -258,12 +293,19 @@ export function createJump(params: {
 export function createVaultSession(params: {
   keys: string[];
   jumps: Jump[];
+  mode?: VaultSession["mode"];
 }): VaultSession {
+  const mode = params.mode ?? "practice";
+
   return {
     id: crypto.randomUUID(),
     date: new Date().toLocaleDateString(),
-    keys: params.keys.filter((key) => key.trim() !== ""),
+    keys:
+      mode === "competition"
+        ? []
+        : params.keys.filter((key) => key.trim() !== ""),
     jumps: params.jumps,
+    mode,
   };
 }
 
@@ -322,7 +364,9 @@ export type JumpFormState = {
   run: string;
   grip: string;
   takeoff: string;
-  grade: Jump["grade"];
+  grade: NonNullable<Jump["grade"]>;
+  result?: Jump["result"];
+  standards: string;
   comment: string;
   poleId?: string;
 };
@@ -333,18 +377,22 @@ export function emptyJumpForm(): JumpFormState {
     grip: "",
     takeoff: "",
     grade: "green",
+    result: undefined,
+    standards: "",
     comment: "",
     poleId: undefined,
   };
 }
 
-/** Keep run/grip/takeoff/pole for the next jump; clear comment. */
+/** Keep run/grip/takeoff/pole/standards for the next jump; clear comment + result. */
 export function carryForwardJumpForm(form: JumpFormState): JumpFormState {
   return {
     run: form.run,
     grip: form.grip,
     takeoff: form.takeoff,
     grade: form.grade,
+    result: undefined,
+    standards: form.standards,
     comment: "",
     poleId: form.poleId,
   };
@@ -354,6 +402,7 @@ export type VaultSessionDraft = {
   keys: string[];
   jumps: Jump[];
   jumpForm: JumpFormState;
+  competitionMode: boolean;
 };
 
 export function emptyVaultSessionDraft(): VaultSessionDraft {
@@ -361,6 +410,7 @@ export function emptyVaultSessionDraft(): VaultSessionDraft {
     keys: [""],
     jumps: [],
     jumpForm: emptyJumpForm(),
+    competitionMode: false,
   };
 }
 
@@ -370,14 +420,50 @@ export function isVaultSessionDraftEmpty(draft: VaultSessionDraft): boolean {
   const form = draft.jumpForm;
 
   return (
+    !draft.competitionMode &&
     !hasKeys &&
     !hasJumps &&
     form.run.trim() === "" &&
     form.grip.trim() === "" &&
     form.takeoff.trim() === "" &&
+    form.standards.trim() === "" &&
     form.comment.trim() === "" &&
+    !form.result &&
     !form.poleId
   );
+}
+
+function isJumpGrade(value: unknown): value is NonNullable<Jump["grade"]> {
+  return value === "green" || value === "yellow" || value === "red";
+}
+
+function isJumpResult(value: unknown): value is NonNullable<Jump["result"]> {
+  return value === "make" || value === "miss";
+}
+
+export function isPersistedJump(value: unknown): value is Jump {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const entry = value as Jump;
+  if (
+    typeof entry.id !== "string" ||
+    typeof entry.run !== "string" ||
+    typeof entry.grip !== "string" ||
+    typeof entry.takeoff !== "string" ||
+    typeof entry.comment !== "string"
+  ) {
+    return false;
+  }
+
+  const hasGrade = entry.grade === undefined || isJumpGrade(entry.grade);
+  const hasResult = entry.result === undefined || isJumpResult(entry.result);
+  if (!hasGrade || !hasResult) {
+    return false;
+  }
+
+  return Boolean(entry.grade || entry.result);
 }
 
 export function normalizeVaultSessionDraft(
@@ -392,23 +478,7 @@ export function normalizeVaultSessionDraft(
     ? record.keys.filter((key): key is string => typeof key === "string")
     : [""];
   const jumps = Array.isArray(record.jumps)
-    ? record.jumps.filter((jump): jump is Jump => {
-        if (!jump || typeof jump !== "object") {
-          return false;
-        }
-
-        const entry = jump as Jump;
-        return (
-          typeof entry.id === "string" &&
-          typeof entry.run === "string" &&
-          typeof entry.grip === "string" &&
-          typeof entry.takeoff === "string" &&
-          typeof entry.comment === "string" &&
-          (entry.grade === "green" ||
-            entry.grade === "yellow" ||
-            entry.grade === "red")
-        );
-      })
+    ? record.jumps.filter(isPersistedJump)
     : [];
 
   const jumpFormRaw = record.jumpForm;
@@ -417,16 +487,16 @@ export function normalizeVaultSessionDraft(
   }
 
   const form = jumpFormRaw as Record<string, unknown>;
-  const grade = form.grade;
-  if (grade !== "green" && grade !== "yellow" && grade !== "red") {
-    return null;
-  }
+  const grade = isJumpGrade(form.grade) ? form.grade : "green";
+  const result = isJumpResult(form.result) ? form.result : undefined;
 
-  const jumpForm = {
+  const jumpForm: JumpFormState = {
     run: typeof form.run === "string" ? form.run : "",
     grip: typeof form.grip === "string" ? form.grip : "",
     takeoff: typeof form.takeoff === "string" ? form.takeoff : "",
-    grade: grade as Jump["grade"],
+    grade,
+    result,
+    standards: typeof form.standards === "string" ? form.standards : "",
     comment: typeof form.comment === "string" ? form.comment : "",
     poleId: typeof form.poleId === "string" ? form.poleId : undefined,
   };
@@ -435,6 +505,7 @@ export function normalizeVaultSessionDraft(
     keys: keys.length > 0 ? keys : [""],
     jumps,
     jumpForm,
+    competitionMode: record.competitionMode === true,
   };
 
   return isVaultSessionDraftEmpty(draft) ? null : draft;
