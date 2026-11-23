@@ -8,7 +8,7 @@ export const glassPillClassName =
   "rounded-full bg-black/40 backdrop-blur-xl border border-white/10 px-3 py-1 text-xs font-medium text-white/90";
 
 export const overlayFadeClass = (visible: boolean) =>
-  `transition-opacity duration-300 ease-out ${
+  `transition-opacity duration-200 ease-out ${
     visible ? "opacity-100" : "pointer-events-none opacity-0"
   }`;
 

@@ -404,11 +404,15 @@ export default function ComparePlayerShell({
             currentFrame={player.currentFrame}
             activeTool={activeTool}
             annotationColor={ANNOTATION_COLOR}
-            drawingEnabled={drawingEnabled && activeVideo === video}
+            mode={
+              drawingEnabled && activeVideo === video ? "mark" : "watch"
+            }
+            muted={player.isMuted}
             onAnnotationsChange={onAnnotationsChange}
-            onSingleTap={overlay.toggleControls}
-            onDoubleTapLeft={() => handleStep(-5)}
-            onDoubleTapRight={() => handleStep(5)}
+            onTogglePlay={() => {
+              overlay.toggleControls();
+            }}
+            onStepFrames={handleStep}
             onInteraction={overlay.notifyActivity}
           />
         </>
@@ -439,11 +443,15 @@ export default function ComparePlayerShell({
                 currentFrame={playerB.currentFrame}
                 activeTool={activeTool}
                 annotationColor={ANNOTATION_COLOR}
-                drawingEnabled={drawingEnabled && activeVideo === "B"}
+                mode={
+                  drawingEnabled && activeVideo === "B" ? "mark" : "watch"
+                }
+                muted={playerB.isMuted}
                 onAnnotationsChange={updateAnnotationsB}
-                onSingleTap={overlay.toggleControls}
-                onDoubleTapLeft={() => handleStep(-5)}
-                onDoubleTapRight={() => handleStep(5)}
+                onTogglePlay={() => {
+                  overlay.toggleControls();
+                }}
+                onStepFrames={handleStep}
                 onInteraction={overlay.notifyActivity}
               />
             </div>
@@ -458,11 +466,15 @@ export default function ComparePlayerShell({
                 currentFrame={playerA.currentFrame}
                 activeTool={activeTool}
                 annotationColor={ANNOTATION_COLOR}
-                drawingEnabled={drawingEnabled && activeVideo === "A"}
+                mode={
+                  drawingEnabled && activeVideo === "A" ? "mark" : "watch"
+                }
+                muted={playerA.isMuted}
                 onAnnotationsChange={updateAnnotationsA}
-                onSingleTap={overlay.toggleControls}
-                onDoubleTapLeft={() => handleStep(-5)}
-                onDoubleTapRight={() => handleStep(5)}
+                onTogglePlay={() => {
+                  overlay.toggleControls();
+                }}
+                onStepFrames={handleStep}
                 onInteraction={overlay.notifyActivity}
               />
             </div>

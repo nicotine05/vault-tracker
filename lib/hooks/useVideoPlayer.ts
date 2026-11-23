@@ -24,9 +24,14 @@ export function useVideoPlayer(options: UseVideoPlayerOptions = {}) {
   const [currentTime, setCurrentTime] = useState(0);
   const [totalFrames, setTotalFrames] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [isMuted, setIsMuted] = useState(true);
   const [isScrubbing, setIsScrubbing] = useState(false);
   const isScrubbingRef = useRef(false);
-  const wasPlayingBeforeScrub = useRef(false);
+  const fpsRef = useRef(fps);
+  const onFrameChangeRef = useRef(options.onFrameChange);
+
+  fpsRef.current = fps;
+  onFrameChangeRef.current = options.onFrameChange;
 
   const syncTimeFromVideo = useCallback(() => {
     const video = videoRef.current;
@@ -35,11 +40,11 @@ export function useVideoPlayer(options: UseVideoPlayerOptions = {}) {
     }
 
     const time = video.currentTime;
-    const frame = timeToFrame(time, fps);
+    const frame = timeToFrame(time, fpsRef.current);
     setCurrentTime(time);
     setCurrentFrame(frame);
-    options.onFrameChange?.(frame);
-  }, [fps, options.onFrameChange]);
+    onFrameChangeRef.current?.(frame);
+  }, []);
 
   const handleLoadedMetadata = useCallback(() => {
     const video = videoRef.current;
@@ -48,9 +53,9 @@ export function useVideoPlayer(options: UseVideoPlayerOptions = {}) {
     }
 
     setDuration(video.duration);
-    setTotalFrames(getTotalFrames(video.duration, fps));
+    setTotalFrames(getTotalFrames(video.duration, fpsRef.current));
     syncTimeFromVideo();
-  }, [fps, syncTimeFromVideo]);
+  }, [syncTimeFromVideo]);
 
   const play = useCallback(async () => {
     const video = videoRef.current;
@@ -58,8 +63,8 @@ export function useVideoPlayer(options: UseVideoPlayerOptions = {}) {
       return;
     }
 
-    video.muted = true;
     video.playsInline = true;
+    video.muted = isMuted;
 
     if (video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
       await new Promise<void>((resolve) => {
@@ -76,9 +81,22 @@ export function useVideoPlayer(options: UseVideoPlayerOptions = {}) {
       await video.play();
       setIsPlaying(true);
     } catch {
+      // Autoplay with sound often fails — retry muted once.
+      if (!video.muted) {
+        video.muted = true;
+        setIsMuted(true);
+        try {
+          await video.play();
+          setIsPlaying(true);
+          return;
+        } catch {
+          setIsPlaying(false);
+          return;
+        }
+      }
       setIsPlaying(false);
     }
-  }, []);
+  }, [isMuted]);
 
   const pause = useCallback(() => {
     const video = videoRef.current;
@@ -100,6 +118,18 @@ export function useVideoPlayer(options: UseVideoPlayerOptions = {}) {
     await play();
   }, [isPlaying, pause, play]);
 
+  const setMuted = useCallback((muted: boolean) => {
+    const video = videoRef.current;
+    setIsMuted(muted);
+    if (video) {
+      video.muted = muted;
+    }
+  }, []);
+
+  const toggleMute = useCallback(() => {
+    setMuted(!isMuted);
+  }, [isMuted, setMuted]);
+
   const seekToFrame = useCallback(
     (frame: number) => {
       const video = videoRef.current;
@@ -109,30 +139,31 @@ export function useVideoPlayer(options: UseVideoPlayerOptions = {}) {
 
       video.pause();
       setIsPlaying(false);
-      const next = stepVideoFrames(video, frame - timeToFrame(video.currentTime, fps), fps);
+      const next = stepVideoFrames(
+        video,
+        frame - timeToFrame(video.currentTime, fpsRef.current),
+        fpsRef.current,
+      );
       setCurrentFrame(next);
       setCurrentTime(video.currentTime);
-      options.onFrameChange?.(next);
+      onFrameChangeRef.current?.(next);
     },
-    [fps, options.onFrameChange],
+    [],
   );
 
-  const stepFrames = useCallback(
-    (delta: number) => {
-      const video = videoRef.current;
-      if (!video) {
-        return;
-      }
+  const stepFrames = useCallback((delta: number) => {
+    const video = videoRef.current;
+    if (!video) {
+      return;
+    }
 
-      video.pause();
-      setIsPlaying(false);
-      const next = stepVideoFrames(video, delta, fps);
-      setCurrentFrame(next);
-      setCurrentTime(video.currentTime);
-      options.onFrameChange?.(next);
-    },
-    [fps, options.onFrameChange],
-  );
+    video.pause();
+    setIsPlaying(false);
+    const next = stepVideoFrames(video, delta, fpsRef.current);
+    setCurrentFrame(next);
+    setCurrentTime(video.currentTime);
+    onFrameChangeRef.current?.(next);
+  }, []);
 
   const beginScrub = useCallback(() => {
     const video = videoRef.current;
@@ -140,37 +171,33 @@ export function useVideoPlayer(options: UseVideoPlayerOptions = {}) {
       return;
     }
 
-    wasPlayingBeforeScrub.current = isPlaying;
     video.pause();
     setIsPlaying(false);
     isScrubbingRef.current = true;
     setIsScrubbing(true);
-  }, [isPlaying]);
+  }, []);
 
-  const scrubToTime = useCallback(
-    (time: number) => {
-      const video = videoRef.current;
-      if (!video) {
-        return;
-      }
+  const scrubToTime = useCallback((time: number) => {
+    const video = videoRef.current;
+    if (!video) {
+      return;
+    }
 
-      const max = duration || video.duration || 0;
-      const clamped = Math.max(0, Math.min(max, time));
+    const max = duration || video.duration || 0;
+    const clamped = Math.max(0, Math.min(max, time));
 
-      video.pause();
-      setIsPlaying(false);
-      seekToTime(video, clamped, { smooth: isScrubbingRef.current });
-      setCurrentTime(clamped);
-      setCurrentFrame(timeToFrame(clamped, fps));
-    },
-    [duration, fps],
-  );
+    video.pause();
+    setIsPlaying(false);
+    seekToTime(video, clamped, { smooth: isScrubbingRef.current });
+    setCurrentTime(clamped);
+    setCurrentFrame(timeToFrame(clamped, fpsRef.current));
+  }, [duration]);
 
   const scrubToFrame = useCallback(
     (frame: number) => {
-      scrubToTime(frame / fps);
+      scrubToTime(frame / fpsRef.current);
     },
-    [fps, scrubToTime],
+    [scrubToTime],
   );
 
   const endScrub = useCallback(() => {
@@ -198,7 +225,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions = {}) {
       if (isScrubbingRef.current && activeVideo) {
         const time = activeVideo.currentTime;
         setCurrentTime(time);
-        setCurrentFrame(timeToFrame(time, fps));
+        setCurrentFrame(timeToFrame(time, fpsRef.current));
       }
     };
 
@@ -215,6 +242,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions = {}) {
     };
 
     const attachListeners = (element: HTMLVideoElement) => {
+      element.muted = true;
       element.addEventListener("timeupdate", onTimeUpdate);
       element.addEventListener("seeking", onSeeking);
       element.addEventListener("play", onPlay);
@@ -245,6 +273,10 @@ export function useVideoPlayer(options: UseVideoPlayerOptions = {}) {
 
         activeVideo = video;
         attachListeners(activeVideo);
+        setIsMuted(true);
+        setIsPlaying(false);
+        setCurrentFrame(0);
+        setCurrentTime(0);
       }
 
       if (activeVideo.readyState >= 1) {
@@ -274,7 +306,11 @@ export function useVideoPlayer(options: UseVideoPlayerOptions = {}) {
         detachListeners(activeVideo);
       }
     };
-  }, [videoUrl, fps, handleLoadedMetadata, syncTimeFromVideo]);
+  }, [videoUrl, handleLoadedMetadata, syncTimeFromVideo]);
+
+  useEffect(() => {
+    setTotalFrames(getTotalFrames(duration, fps));
+  }, [duration, fps]);
 
   return {
     videoRef,
@@ -284,10 +320,13 @@ export function useVideoPlayer(options: UseVideoPlayerOptions = {}) {
     totalFrames,
     duration,
     fps,
+    isMuted,
     isScrubbing,
     play,
     pause,
     togglePlay,
+    setMuted,
+    toggleMute,
     seekToFrame,
     stepFrames,
     beginScrub,
