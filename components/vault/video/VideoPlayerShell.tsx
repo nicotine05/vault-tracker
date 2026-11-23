@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import ImmersiveVideoViewport, {
   type PlayerInteractionMode,
@@ -46,7 +45,6 @@ export default function VideoPlayerShell({
   initialAnnotations = [],
   backHref = "/vault/video-analysis",
 }: VideoPlayerShellProps) {
-  const router = useRouter();
   const { setImmersive } = useVideoImmersive();
   const player = useVideoPlayer({ videoUrl });
   const { thumbnails } = useFilmstripThumbnails(videoUrl);
@@ -351,11 +349,7 @@ export default function VideoPlayerShell({
                 />
               </div>
 
-              <div
-                className={`flex items-center justify-between gap-3 px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-1 ${overlayFadeClass(
-                  controlsVisible,
-                )}`}
-              >
+              <div className="flex items-center justify-between gap-3 px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-1">
                 <button
                   type="button"
                   aria-label={player.isMuted ? "Unmute" : "Mute"}
