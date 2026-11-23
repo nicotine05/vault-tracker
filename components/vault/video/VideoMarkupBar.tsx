@@ -38,22 +38,24 @@ export default function VideoMarkupBar({
   onDone,
 }: VideoMarkupBarProps) {
   return (
-    <div className="pointer-events-auto w-full px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2">
-      <div className={`mx-auto max-w-lg rounded-[22px] px-3 py-3 ${glassPanelClassName}`}>
+    <div className="pointer-events-auto w-full px-2 pb-[max(0.85rem,env(safe-area-inset-bottom))] pt-2">
+      <div
+        className={`mx-auto max-w-lg rounded-[24px] px-3 py-3 ${glassPanelClassName}`}
+      >
         <div className="mb-3 flex items-center justify-between gap-2">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/55">
+          <p className="pl-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/55">
             Markup
           </p>
           <button
             type="button"
             onClick={onDone}
-            className="rounded-full bg-white px-3.5 py-1.5 text-sm font-semibold text-black"
+            className="flex h-11 min-w-[4.75rem] items-center justify-center rounded-full bg-white px-4 text-[15px] font-semibold text-black active:scale-95 touch-manipulation"
           >
             Done
           </button>
         </div>
 
-        <div className="mb-3 flex items-center justify-between gap-2">
+        <div className="mb-3 grid grid-cols-4 gap-2">
           {TOOL_OPTIONS.map((tool) => {
             const selected = activeTool === tool.id;
             return (
@@ -63,11 +65,11 @@ export default function VideoMarkupBar({
                 aria-label={tool.label}
                 aria-pressed={selected}
                 onClick={() => onToolChange(tool.id)}
-                className={`${glassButtonClassName} h-11 flex-1 gap-1 rounded-2xl text-sm ${
-                  selected ? "bg-white/25 ring-1 ring-white/40" : ""
+                className={`${glassButtonClassName} h-14 flex-col gap-0.5 rounded-2xl ${
+                  selected ? "bg-white/28 ring-2 ring-white/50" : ""
                 }`}
               >
-                <span className="text-base leading-none">{tool.glyph}</span>
+                <span className="text-[22px] leading-none">{tool.glyph}</span>
                 <span className="text-[11px] font-medium">{tool.label}</span>
               </button>
             );
@@ -75,7 +77,7 @@ export default function VideoMarkupBar({
         </div>
 
         <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             {ANNOTATION_COLORS.map((swatch) => {
               const selected = color === swatch;
               return (
@@ -84,10 +86,10 @@ export default function VideoMarkupBar({
                   type="button"
                   aria-label={`Color ${swatch}`}
                   onClick={() => onColorChange(swatch)}
-                  className={`h-7 w-7 rounded-full border transition ${
+                  className={`h-11 w-11 rounded-full border-2 transition active:scale-95 touch-manipulation ${
                     selected
-                      ? "scale-110 border-white"
-                      : "border-white/25 opacity-85"
+                      ? "border-white scale-105"
+                      : "border-white/20 opacity-90"
                   }`}
                   style={{ backgroundColor: swatch }}
                 />
@@ -100,7 +102,7 @@ export default function VideoMarkupBar({
               type="button"
               disabled={!canUndo}
               onClick={onUndo}
-              className={`${glassButtonClassName} h-9 rounded-full px-3 text-xs font-medium disabled:opacity-35`}
+              className={`${glassButtonClassName} h-11 rounded-full px-4 text-[13px] font-semibold disabled:opacity-35`}
             >
               Undo
             </button>
@@ -108,7 +110,7 @@ export default function VideoMarkupBar({
               type="button"
               disabled={!canClear}
               onClick={onClear}
-              className={`${glassButtonClassName} h-9 rounded-full px-3 text-xs font-medium disabled:opacity-35`}
+              className={`${glassButtonClassName} h-11 rounded-full px-4 text-[13px] font-semibold disabled:opacity-35`}
             >
               Clear
             </button>

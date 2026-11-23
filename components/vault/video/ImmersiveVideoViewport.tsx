@@ -65,7 +65,7 @@ export default function ImmersiveVideoViewport({
   isPlaying = false,
   onAnnotationsChange,
   onTogglePlay,
-  onStepFrames,
+  onStepFrames: _onStepFrames,
   onInteraction,
   className = "",
 }: ImmersiveVideoViewportProps) {
@@ -223,34 +223,22 @@ export default function ImmersiveVideoViewport({
     );
   };
 
-  const handleWatchTap = (clientX: number, rect: DOMRect) => {
-    // First tap only reveals chrome (iOS-like); next tap plays / steps.
+  const handleWatchTap = (_clientX: number, _rect: DOMRect) => {
+    // iOS Photos-style: first tap reveals chrome; next tap toggles play.
+    // Frame stepping stays on the dedicated ‹ › buttons (thumb-reliable).
     if (!controlsVisibleRef.current) {
       chromeRevealAtRef.current = Date.now();
       onInteraction();
       return;
     }
 
-    // Guard against reveal-then-immediate-click counting as play.
+    // Guard against reveal-then-immediate-tap counting as play.
     if (Date.now() - chromeRevealAtRef.current < 350) {
       onInteraction();
       return;
     }
 
     onInteraction();
-    const zone = (clientX - rect.left) / rect.width;
-
-    // Edge frame-step only while paused — avoids surprise seeks during play.
-    if (!isPlayingRef.current && zone < 0.22) {
-      onStepFrames(-1);
-      return;
-    }
-
-    if (!isPlayingRef.current && zone > 0.78) {
-      onStepFrames(1);
-      return;
-    }
-
     onTogglePlay();
   };
 
@@ -419,6 +407,7 @@ export default function ImmersiveVideoViewport({
       activeTool &&
       event.touches.length === 1
     ) {
+      event.preventDefault();
       const touch = event.touches[0];
       const point = pointFromEvent(touch.clientX, touch.clientY);
       if (!point) {
@@ -439,6 +428,7 @@ export default function ImmersiveVideoViewport({
     }
 
     if (mode === "watch" && event.touches.length === 2) {
+      event.preventDefault();
       onInteraction();
       zoom.handlePinchMove(getTouchDistance(event.touches));
       touchStartRef.current = null;
@@ -508,12 +498,23 @@ export default function ImmersiveVideoViewport({
       >
         <video
           key={videoUrl}
-          ref={videoRef}
+          ref={(element) => {
+            if (typeof videoRef === "object" && videoRef) {
+              videoRef.current = element;
+            }
+            if (element) {
+              element.setAttribute("playsinline", "true");
+              element.setAttribute("webkit-playsinline", "true");
+            }
+          }}
           src={videoUrl}
           className="max-h-full max-w-full object-contain"
           playsInline
           muted={muted}
           preload="auto"
+          controls={false}
+          disablePictureInPicture
+          controlsList="nodownload noplaybackrate noremoteplayback"
         />
 
         <canvas

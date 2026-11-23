@@ -106,14 +106,14 @@ function ClipCard({
         <button
           type="button"
           onClick={onOpen}
-          className="flex-1 px-3 py-2.5 text-sm font-medium text-accent-text"
+          className="flex min-h-12 flex-1 items-center justify-center px-3 text-[15px] font-semibold text-accent-text active:bg-surface-muted"
         >
           Open
         </button>
         <button
           type="button"
           onClick={onDelete}
-          className="flex-1 border-l border-border px-3 py-2.5 text-sm text-muted"
+          className="flex min-h-12 flex-1 items-center justify-center border-l border-border px-3 text-[15px] text-muted active:bg-surface-muted"
         >
           Delete
         </button>
@@ -167,15 +167,15 @@ export default function VideoAnalysisLanding() {
         </h1>
 
         <p className="mt-2 text-sm leading-relaxed text-muted">
-          Import a vault clip, mark key frames, and reopen it later on this
-          device.
+          Choose a vault clip from Photos, mark key frames, and reopen it later
+          on this iPhone.
         </p>
       </div>
 
       <input
         ref={fileInputRef}
         type="file"
-        accept="video/*,.mp4,.mov,.webm,.m4v"
+        accept="video/mp4,video/quicktime,video/*,.mp4,.mov,.m4v"
         className="hidden"
         onChange={(event) => {
           void handleImport(event.target.files?.[0] ?? null);
@@ -185,10 +185,10 @@ export default function VideoAnalysisLanding() {
       <button
         type="button"
         disabled={busy}
-        className={`${primaryButtonClassName} mb-3 flex min-h-14 w-full items-center justify-center text-base disabled:opacity-60`}
+        className={`${primaryButtonClassName} mb-3 flex min-h-14 w-full items-center justify-center text-[17px] disabled:opacity-60 active:opacity-90`}
         onClick={() => fileInputRef.current?.click()}
       >
-        {busy ? "Importing…" : "Import Video"}
+        {busy ? "Importing…" : "Choose from Photos"}
       </button>
 
       {(importError || error) && (
@@ -207,7 +207,7 @@ export default function VideoAnalysisLanding() {
           <div className="rounded-2xl border border-dashed border-border px-4 py-10 text-center">
             <p className="text-sm font-medium text-foreground">No clips yet</p>
             <p className="mt-1 text-sm text-muted">
-              Import a video from your camera roll to get started.
+              Pick a video from your Photos library to get started.
             </p>
           </div>
         ) : (

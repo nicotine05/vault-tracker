@@ -48,7 +48,8 @@ export default function VideoPlayerShell({
   const { setImmersive } = useVideoImmersive();
   const player = useVideoPlayer({ videoUrl });
   const { thumbnails } = useFilmstripThumbnails(videoUrl);
-  const overlay = useOverlayVisibility(4500);
+  // iOS Photos-like: chrome stays a bit longer while reviewing frames
+  const overlay = useOverlayVisibility(5000);
 
   const [mode, setMode] = useState<PlayerInteractionMode>("watch");
   const [annotations, setAnnotations] =
@@ -187,65 +188,10 @@ export default function VideoPlayerShell({
     (annotation) => annotation.frame === player.currentFrame,
   );
 
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      const target = event.target as HTMLElement | null;
-      if (
-        target &&
-        (target.tagName === "INPUT" ||
-          target.tagName === "TEXTAREA" ||
-          target.isContentEditable)
-      ) {
-        return;
-      }
-
-      overlay.notifyActivity();
-
-      if (event.key === "Escape" && mode === "mark") {
-        event.preventDefault();
-        exitMarkMode();
-        return;
-      }
-
-      if (mode === "mark") {
-        return;
-      }
-
-      if (event.key === "ArrowLeft") {
-        event.preventDefault();
-        player.stepFrames(event.shiftKey ? -5 : -1);
-      }
-
-      if (event.key === "ArrowRight") {
-        event.preventDefault();
-        player.stepFrames(event.shiftKey ? 5 : 1);
-      }
-
-      if (event.key === " ") {
-        event.preventDefault();
-        void player.togglePlay();
-      }
-
-      if (event.key.toLowerCase() === "m") {
-        event.preventDefault();
-        player.toggleMute();
-      }
-    };
-
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [exitMarkMode, mode, overlay, player]);
-
   return (
     <div
-      className="fixed inset-0 z-[100] bg-black"
-      onMouseMove={() => {
-        // Only keep chrome alive when already visible — waking via mouse-move
-        // then immediately clicking would otherwise count as a play tap.
-        if (mode === "watch" && controlsVisible) {
-          overlay.notifyActivity();
-        }
-      }}
+      className="fixed inset-0 z-[100] bg-black touch-manipulation overscroll-none"
+      style={{ height: "100dvh" }}
     >
       <div className="absolute inset-0">
         <ImmersiveVideoViewport
@@ -273,28 +219,26 @@ export default function VideoPlayerShell({
       </div>
 
       <div className="pointer-events-none absolute inset-0 z-20 flex flex-col justify-between">
-        <div className="pointer-events-auto flex items-center justify-between gap-3 px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
+        <div className="pointer-events-auto flex items-center justify-between gap-3 px-3 pb-2 pt-[max(0.85rem,env(safe-area-inset-top))]">
           {mode === "watch" ? (
             <>
               <a
                 href={backHref}
-                className={`${glassButtonClassName} h-10 w-10 shrink-0 text-base`}
-                aria-label="Back"
+                className={`${glassButtonClassName} h-11 min-w-11 px-3 text-[17px] font-semibold`}
+                aria-label="Done"
                 onClick={(event) => {
                   event.preventDefault();
                   event.stopPropagation();
                   player.pause();
                   setImmersive(false);
-                  // Hard navigation avoids rare App Router stalls from the
-                  // fullscreen immersive overlay staying mounted.
                   window.location.assign(backHref);
                 }}
               >
-                ←
+                Done
               </a>
 
               <p
-                className={`${glassPillClassName} max-w-[46%] truncate ${overlayFadeClass(
+                className={`${glassPillClassName} max-w-[42%] truncate ${overlayFadeClass(
                   controlsVisible,
                 )}`}
               >
@@ -303,7 +247,7 @@ export default function VideoPlayerShell({
 
               <button
                 type="button"
-                className={`${glassButtonClassName} h-10 shrink-0 rounded-full px-3.5 text-sm font-semibold`}
+                className={`${glassButtonClassName} h-11 min-w-11 rounded-full px-4 text-[15px] font-semibold`}
                 onClick={(event) => {
                   event.preventDefault();
                   event.stopPropagation();
@@ -315,15 +259,15 @@ export default function VideoPlayerShell({
             </>
           ) : (
             <>
-              <span className={`${glassPillClassName}`}>
+              <span className={`${glassPillClassName} tabular-nums`}>
                 Frame {player.currentFrame}
               </span>
-              <p className={`${glassPillClassName} max-w-[46%] truncate`}>
+              <p className={`${glassPillClassName} max-w-[42%] truncate`}>
                 {title}
               </p>
               <button
                 type="button"
-                className="rounded-full bg-white px-3.5 py-2 text-sm font-semibold text-black"
+                className="flex h-11 min-w-[4.5rem] items-center justify-center rounded-full bg-white px-4 text-[15px] font-semibold text-black active:scale-95 touch-manipulation"
                 onClick={exitMarkMode}
               >
                 Done
@@ -349,11 +293,12 @@ export default function VideoPlayerShell({
                 />
               </div>
 
-              <div className="flex items-center justify-between gap-3 px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-1">
+              {/* Always-visible transport — thumb-reach friendly on iPhone */}
+              <div className="flex items-center justify-between gap-2 px-4 pb-[max(1.1rem,env(safe-area-inset-bottom))] pt-1">
                 <button
                   type="button"
                   aria-label={player.isMuted ? "Unmute" : "Mute"}
-                  className={`${glassButtonClassName} h-11 w-11 text-sm`}
+                  className={`${glassButtonClassName} h-12 w-12 text-[15px]`}
                   onClick={() => {
                     overlay.notifyActivity();
                     player.toggleMute();
@@ -362,11 +307,11 @@ export default function VideoPlayerShell({
                   {player.isMuted ? "🔇" : "🔊"}
                 </button>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-4">
                   <button
                     type="button"
                     aria-label="Previous frame"
-                    className={`${glassButtonClassName} h-11 w-11 text-sm font-semibold`}
+                    className={`${glassButtonClassName} h-12 w-12 text-[22px] font-semibold leading-none`}
                     onClick={() => {
                       overlay.notifyActivity();
                       player.stepFrames(-1);
@@ -378,7 +323,7 @@ export default function VideoPlayerShell({
                   <button
                     type="button"
                     aria-label={player.isPlaying ? "Pause" : "Play"}
-                    className={`${glassButtonClassName} h-14 w-14 text-2xl`}
+                    className={`${glassButtonClassName} h-16 w-16 bg-white/15 text-[28px]`}
                     onClick={() => {
                       overlay.notifyActivity();
                       void player.togglePlay();
@@ -390,7 +335,7 @@ export default function VideoPlayerShell({
                   <button
                     type="button"
                     aria-label="Next frame"
-                    className={`${glassButtonClassName} h-11 w-11 text-sm font-semibold`}
+                    className={`${glassButtonClassName} h-12 w-12 text-[22px] font-semibold leading-none`}
                     onClick={() => {
                       overlay.notifyActivity();
                       player.stepFrames(1);
@@ -403,7 +348,7 @@ export default function VideoPlayerShell({
                 <button
                   type="button"
                   aria-label="Open markup"
-                  className={`${glassButtonClassName} h-11 w-11 text-base`}
+                  className={`${glassButtonClassName} h-12 w-12 text-[18px]`}
                   onClick={enterMarkMode}
                 >
                   ✎

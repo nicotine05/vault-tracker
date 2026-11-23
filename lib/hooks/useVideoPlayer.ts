@@ -64,6 +64,8 @@ export function useVideoPlayer(options: UseVideoPlayerOptions = {}) {
     }
 
     video.playsInline = true;
+    video.setAttribute("playsinline", "true");
+    video.setAttribute("webkit-playsinline", "true");
     video.muted = isMuted;
 
     if (video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {

@@ -95,18 +95,43 @@
 
 html {
   font-size: 17px;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family:
-    Arial,
+    -apple-system,
+    BlinkMacSystemFont,
+    "SF Pro Text",
+    "SF Pro Display",
+    "Helvetica Neue",
     Helvetica,
+    Arial,
     sans-serif;
   min-height: 100vh;
+  min-height: 100dvh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overscroll-behavior: none;
+}
+
+/* Immersive video player: lock page scroll / rubber-banding on iOS */
+html.video-immersive,
+html.video-immersive body {
+  overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: none;
+  height: 100%;
+  height: 100dvh;
+}
+
+html.video-immersive body {
+  position: fixed;
+  inset: 0;
+  width: 100%;
 }
 
 h1,

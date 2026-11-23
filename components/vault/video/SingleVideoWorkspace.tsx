@@ -147,7 +147,7 @@ export default function SingleVideoWorkspace() {
       <input
         ref={fileInputRef}
         type="file"
-        accept="video/*,.mp4,.mov,.webm,.m4v"
+        accept="video/mp4,video/quicktime,video/*,.mp4,.mov,.m4v"
         className="hidden"
         onChange={(event) => {
           void handleImport(event.target.files?.[0] ?? null);
@@ -157,10 +157,10 @@ export default function SingleVideoWorkspace() {
       <button
         type="button"
         disabled={busy || status === "loading"}
-        className={`${primaryButtonClassName} flex min-h-14 w-full items-center justify-center text-base disabled:opacity-60`}
+        className={`${primaryButtonClassName} flex min-h-14 w-full items-center justify-center text-[17px] disabled:opacity-60`}
         onClick={() => fileInputRef.current?.click()}
       >
-        {busy ? "Importing…" : "Import Video"}
+        {busy ? "Importing…" : "Choose from Photos"}
       </button>
     </main>
   );
