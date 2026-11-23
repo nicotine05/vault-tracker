@@ -97,6 +97,9 @@ export function loadVaultSessions(): VaultSession[] {
 
 export function saveVaultSessions(sessions: VaultSession[]): void {
   setItem(STORAGE_KEYS.VAULT_LOGS, sessions);
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event(STORAGE_EVENTS.VAULT_LOGS_CHANGED));
+  }
 }
 
 export function loadVaultSessionDraft(): VaultSessionDraft | null {

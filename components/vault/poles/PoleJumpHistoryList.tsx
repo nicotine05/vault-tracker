@@ -13,7 +13,7 @@ export default function PoleJumpHistoryList({
   if (entries.length === 0) {
     return (
       <p className="rounded-xl border border-dashed border-border bg-surface-muted/50 px-4 py-6 text-center text-sm text-muted">
-        No jumps logged on this pole yet.
+        No jumps logged on this pole for this vaulter yet.
       </p>
     );
   }

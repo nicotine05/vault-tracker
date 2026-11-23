@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import PoleBagSection from "@/components/vault/poles/PoleBagSection";
 import PoleCellDetailSheet from "@/components/vault/poles/PoleCellDetailSheet";
@@ -31,10 +31,10 @@ import {
   gridHasVisibleEntries,
   type ProgressionCellContents,
 } from "@/lib/domain/poleProgression";
-import type { Pole, VaultSession } from "@/lib/domain/types";
+import type { Pole } from "@/lib/domain/types";
 import { getPoleJumpHistory } from "@/lib/domain/vaultLog";
+import { useAccountVaultSessions } from "@/lib/hooks/useAccountVaultSessions";
 import { usePoleInventoryState } from "@/lib/hooks/usePoleInventoryState";
-import { loadVaultSessions } from "@/lib/storage/logStore";
 
 type SheetMode =
   | { type: "add" }
@@ -70,15 +70,7 @@ export default function PoleInventoryPage() {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [sheetMode, setSheetMode] = useState<SheetMode | null>(null);
   const [formValues, setFormValues] = useState(emptyPoleForm());
-  const [vaultSessions, setVaultSessions] = useState<VaultSession[]>([]);
-
-  useEffect(() => {
-    try {
-      setVaultSessions(loadVaultSessions());
-    } catch (error) {
-      console.error("Failed to load vault sessions for pole history", error);
-    }
-  }, []);
+  const vaultSessions = useAccountVaultSessions();
 
   const ownedPoles = useMemo(() => getOwnedPoles(poles), [poles]);
 
@@ -87,6 +79,8 @@ export default function PoleInventoryPage() {
       return [];
     }
 
+    // Vault logs are synced per vaulter/account; shared poles still show
+    // only the currently viewed athlete's jumps on that pole.
     return getPoleJumpHistory(vaultSessions, sheetMode.pole.id);
   }, [sheetMode, vaultSessions]);
 

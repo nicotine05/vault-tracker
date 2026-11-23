@@ -92,6 +92,7 @@ function notifyStorageRefresh(): void {
   window.dispatchEvent(new Event(STORAGE_EVENTS.PROGRAM_CHANGED));
   window.dispatchEvent(new Event(STORAGE_EVENTS.WEIGHT_CHANGED));
   window.dispatchEvent(new Event(STORAGE_EVENTS.VAULT_RUN_PRS_CHANGED));
+  window.dispatchEvent(new Event(STORAGE_EVENTS.VAULT_LOGS_CHANGED));
 }
 
 const SYNC_CLEAR_PRESERVED_KEYS = [STORAGE_KEYS.SHARED_POLE_INVENTORY] as const;

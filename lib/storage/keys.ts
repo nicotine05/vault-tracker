@@ -38,6 +38,7 @@ export const STORAGE_EVENTS = {
   PROGRAM_CHANGED: "vaultTracker:programChanged",
   WEIGHT_CHANGED: "weightChanged",
   VAULT_RUN_PRS_CHANGED: "vaultRunPRsChanged",
+  VAULT_LOGS_CHANGED: "vaultLogsChanged",
   SPRINT_PRS_CHANGED: "sprintPRsChanged",
   STRENGTH_PRS_CHANGED: "strengthPRsChanged",
 } as const;

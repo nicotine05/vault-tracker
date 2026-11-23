@@ -147,6 +147,11 @@ export default function PoleDetailSheet({
                   {jumpHistory.length > 0 ? ` (${jumpHistory.length})` : ""}
                 </button>
               )}
+              {!wishlist && (
+                <p className="px-1 text-xs text-muted">
+                  Shows this vaulter&apos;s logged jumps on this pole only.
+                </p>
+              )}
 
               {!readOnly && (
                 <>
