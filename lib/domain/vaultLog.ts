@@ -90,32 +90,78 @@ export function getVaultWeekOptions(sessions: VaultSession[]): string[] {
   return [...new Set(sessions.map((session) => getWeekLabel(session.date)))];
 }
 
-export function filterRecentVaultSessions(
+export function getVaultSessionsInPastDays(
   sessions: VaultSession[],
+  days: number,
   now: Date = new Date()
 ): VaultSession[] {
   const today = startOfLocalDay(now);
-  const recent = sessions.filter((session) => {
+
+  return sessions.filter((session) => {
     const sessionDate = parseVaultSessionDate(session.date);
     if (!sessionDate) {
       return false;
     }
 
     const daysAgo = (today.getTime() - sessionDate.getTime()) / MS_PER_DAY;
-    return daysAgo >= 0 && daysAgo < VAULT_SESSION_RECENT_DAYS;
+    return daysAgo >= 0 && daysAgo < days;
   });
+}
 
-  if (recent.length > 0) {
-    return recent;
-  }
-
+export function getLatestVaultSessions(
+  sessions: VaultSession[],
+  count: number
+): VaultSession[] {
   return [...sessions]
     .sort((a, b) => {
       const aDate = parseVaultSessionDate(a.date)?.getTime() ?? 0;
       const bDate = parseVaultSessionDate(b.date)?.getTime() ?? 0;
       return bDate - aDate;
     })
-    .slice(0, VAULT_SESSION_RECENT_FALLBACK_COUNT);
+    .slice(0, count);
+}
+
+export function filterRecentVaultSessions(
+  sessions: VaultSession[],
+  now: Date = new Date()
+): VaultSession[] {
+  const recent = getVaultSessionsInPastDays(
+    sessions,
+    VAULT_SESSION_RECENT_DAYS,
+    now
+  );
+
+  if (recent.length > 0) {
+    return recent;
+  }
+
+  return getLatestVaultSessions(
+    sessions,
+    VAULT_SESSION_RECENT_FALLBACK_COUNT
+  );
+}
+
+export function isVaultRecentFallback(
+  sessions: VaultSession[],
+  now: Date = new Date()
+): boolean {
+  if (sessions.length === 0) {
+    return false;
+  }
+
+  return (
+    getVaultSessionsInPastDays(sessions, VAULT_SESSION_RECENT_DAYS, now)
+      .length === 0
+  );
+}
+
+export function getVaultRecentFilterLabel(
+  sessions: VaultSession[],
+  now: Date = new Date()
+): string {
+  return isVaultRecentFallback(sessions, now)
+    ? "Last 3 sessions"
+    : "Past 7 days";
 }
 
 export function filterVaultSessionsByWeek(

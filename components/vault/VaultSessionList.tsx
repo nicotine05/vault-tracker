@@ -8,6 +8,7 @@ import {
   filterVaultSessionsByWeek,
   getGradeEmoji,
   getRunReference,
+  getVaultRecentFilterLabel,
   getVaultWeekOptions,
   VAULT_SESSION_RECENT_FILTER,
 } from "@/lib/domain/vaultLog";
@@ -50,6 +51,9 @@ export default function VaultSessionList({
 
   const weekOptions = getVaultWeekOptions(sessions);
   const filteredSessions = filterVaultSessionsByWeek(sessions, weekFilter);
+  const recentFilterLabel = getVaultRecentFilterLabel(sessions);
+  const isFiltered =
+    weekFilter !== "all" && filteredSessions.length < sessions.length;
 
   return (
     <div>
@@ -63,7 +67,8 @@ export default function VaultSessionList({
           <span className="text-muted">{sectionExpanded ? "▾" : "▸"}</span>
           {!sectionExpanded && (
             <span className="text-sm text-muted">
-              ({filteredSessions.length} session
+              ({filteredSessions.length}
+              {isFiltered ? ` of ${sessions.length}` : ""} session
               {filteredSessions.length === 1 ? "" : "s"})
             </span>
           )}
@@ -76,7 +81,9 @@ export default function VaultSessionList({
             onChange={(event) => onWeekFilterChange(event.target.value)}
             className="rounded-lg border border-border bg-surface-muted px-2 py-1 text-foreground"
           >
-            <option value={VAULT_SESSION_RECENT_FILTER}>Past 7 days</option>
+            <option value={VAULT_SESSION_RECENT_FILTER}>
+              {recentFilterLabel}
+            </option>
             {weekOptions.map((week) => (
               <option key={week} value={week}>
                 {week}
@@ -86,6 +93,13 @@ export default function VaultSessionList({
           </select>
         )}
       </button>
+
+      {sectionExpanded && isFiltered && (
+        <p className="mb-3 text-sm text-muted">
+          Showing {filteredSessions.length} of {sessions.length} sessions.
+          Choose a week to see older logs.
+        </p>
+      )}
 
       {sectionExpanded && (
         <div className="space-y-3">
