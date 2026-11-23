@@ -182,6 +182,46 @@ export function filterVaultSessionsByWeek(
   );
 }
 
+export type PoleJumpHistoryEntry = {
+  jumpId: string;
+  sessionId: string;
+  date: string;
+  run: string;
+  grip: string;
+  takeoff: string;
+  comment: string;
+  grade: Jump["grade"];
+};
+
+export function getPoleJumpHistory(
+  sessions: VaultSession[],
+  poleId: string
+): PoleJumpHistoryEntry[] {
+  const entries: PoleJumpHistoryEntry[] = [];
+
+  for (const session of sessions) {
+    for (let index = session.jumps.length - 1; index >= 0; index -= 1) {
+      const jump = session.jumps[index];
+      if (jump.poleId !== poleId) {
+        continue;
+      }
+
+      entries.push({
+        jumpId: jump.id,
+        sessionId: session.id,
+        date: session.date,
+        run: jump.run,
+        grip: jump.grip,
+        takeoff: jump.takeoff,
+        comment: jump.comment,
+        grade: jump.grade,
+      });
+    }
+  }
+
+  return entries;
+}
+
 export function countJumpGrades(jumps: Jump[]): {
   green: number;
   yellow: number;

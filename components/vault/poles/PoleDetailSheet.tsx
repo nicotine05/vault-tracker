@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { Pole } from "@/lib/domain/types";
 import {
   formatPoleLengthRangeDisplay,
@@ -11,8 +12,10 @@ import {
   isNeedsReplacePole,
   isWishlistPole,
 } from "@/lib/domain/poleInventory";
+import type { PoleJumpHistoryEntry } from "@/lib/domain/vaultLog";
 import { getBrandName, getModelName } from "@/lib/poleCatalog";
 import PoleBrandAccent from "@/components/vault/poles/PoleBrandAccent";
+import PoleJumpHistoryList from "@/components/vault/poles/PoleJumpHistoryList";
 import {
   destructiveOutlineButtonClassName,
   primaryButtonClassName,
@@ -22,6 +25,7 @@ import {
 
 type PoleDetailSheetProps = {
   pole: Pole;
+  jumpHistory: PoleJumpHistoryEntry[];
   readOnly: boolean;
   onEdit: () => void;
   onDelete: () => void;
@@ -32,6 +36,7 @@ type PoleDetailSheetProps = {
 
 export default function PoleDetailSheet({
   pole,
+  jumpHistory,
   readOnly,
   onEdit,
   onDelete,
@@ -39,6 +44,7 @@ export default function PoleDetailSheet({
   onUnretire,
   onClose,
 }: PoleDetailSheetProps) {
+  const [showJumpHistory, setShowJumpHistory] = useState(false);
   const wishlist = isWishlistPole(pole);
   const retired = isRetiredPole(pole);
   const needsReplace = isNeedsReplacePole(pole);
@@ -80,8 +86,9 @@ export default function PoleDetailSheet({
               )}
             </div>
             <p className="mt-1 text-sm text-muted">
-              {formatPoleLengthRangeDisplay(pole)} ·{" "}
-              {formatPoleWeightRangeDisplay(pole)}
+              {showJumpHistory
+                ? `${jumpHistory.length} jump${jumpHistory.length === 1 ? "" : "s"} logged`
+                : `${formatPoleLengthRangeDisplay(pole)} · ${formatPoleWeightRangeDisplay(pole)}`}
             </p>
           </div>
           <button
@@ -93,64 +100,92 @@ export default function PoleDetailSheet({
           </button>
         </div>
 
-        <dl className="space-y-3 text-sm">
-          {wishlist ? (
-            <>
-              <DetailRow label="Brands" value={formatWishlistBrandLabel(pole)} />
-              <DetailRow label="Models" value={formatWishlistModelLabel(pole)} />
-            </>
-          ) : (
-            <>
-              <DetailRow label="Brand" value={getBrandName(pole.brandId)} />
-              <DetailRow label="Model" value={getModelName(pole.modelId)} />
-            </>
-          )}
-          <DetailRow label="Length" value={formatPoleLengthRangeDisplay(pole)} />
-          <DetailRow label="Weight" value={formatPoleWeightRangeDisplay(pole)} />
-          <DetailRow label="Flex" value={pole.flex || "—"} />
-          {pole.notes && (
-            <div>
-              <dt className="text-muted">Notes</dt>
-              <dd className="mt-1 text-foreground">{pole.notes}</dd>
-            </div>
-          )}
-        </dl>
-
-        {!readOnly && (
-          <div className="mt-5 space-y-2">
+        {showJumpHistory ? (
+          <div className="space-y-4">
             <button
               type="button"
-              onClick={onEdit}
-              className={primaryButtonClassName}
+              onClick={() => setShowJumpHistory(false)}
+              className="text-sm text-accent-text transition hover:opacity-80"
             >
-              {wishlist ? "Edit Wishlist Item" : "Edit Pole"}
+              ← Pole details
             </button>
-            {!wishlist && !retired && onRetire && (
-              <button
-                type="button"
-                onClick={onRetire}
-                className={`${secondaryButtonClassName} py-2.5 text-sm`}
-              >
-                Retire Pole
-              </button>
-            )}
-            {!wishlist && retired && onUnretire && (
-              <button
-                type="button"
-                onClick={onUnretire}
-                className={`${secondaryButtonClassName} py-2.5 text-sm`}
-              >
-                Restore to Inventory
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={onDelete}
-              className={`${destructiveOutlineButtonClassName} w-full py-2.5 text-sm`}
-            >
-              {wishlist ? "Remove from Wishlist" : "Delete Pole"}
-            </button>
+            <PoleJumpHistoryList entries={jumpHistory} />
           </div>
+        ) : (
+          <>
+            <dl className="space-y-3 text-sm">
+              {wishlist ? (
+                <>
+                  <DetailRow label="Brands" value={formatWishlistBrandLabel(pole)} />
+                  <DetailRow label="Models" value={formatWishlistModelLabel(pole)} />
+                </>
+              ) : (
+                <>
+                  <DetailRow label="Brand" value={getBrandName(pole.brandId)} />
+                  <DetailRow label="Model" value={getModelName(pole.modelId)} />
+                </>
+              )}
+              <DetailRow label="Length" value={formatPoleLengthRangeDisplay(pole)} />
+              <DetailRow label="Weight" value={formatPoleWeightRangeDisplay(pole)} />
+              <DetailRow label="Flex" value={pole.flex || "—"} />
+              {pole.notes && (
+                <div>
+                  <dt className="text-muted">Notes</dt>
+                  <dd className="mt-1 text-foreground">{pole.notes}</dd>
+                </div>
+              )}
+            </dl>
+
+            <div className="mt-5 space-y-2">
+              {!wishlist && (
+                <button
+                  type="button"
+                  onClick={() => setShowJumpHistory(true)}
+                  className={secondaryButtonClassName}
+                >
+                  Jump History
+                  {jumpHistory.length > 0 ? ` (${jumpHistory.length})` : ""}
+                </button>
+              )}
+
+              {!readOnly && (
+                <>
+                  <button
+                    type="button"
+                    onClick={onEdit}
+                    className={primaryButtonClassName}
+                  >
+                    {wishlist ? "Edit Wishlist Item" : "Edit Pole"}
+                  </button>
+                  {!wishlist && !retired && onRetire && (
+                    <button
+                      type="button"
+                      onClick={onRetire}
+                      className={`${secondaryButtonClassName} py-2.5 text-sm`}
+                    >
+                      Retire Pole
+                    </button>
+                  )}
+                  {!wishlist && retired && onUnretire && (
+                    <button
+                      type="button"
+                      onClick={onUnretire}
+                      className={`${secondaryButtonClassName} py-2.5 text-sm`}
+                    >
+                      Restore to Inventory
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={onDelete}
+                    className={`${destructiveOutlineButtonClassName} w-full py-2.5 text-sm`}
+                  >
+                    {wishlist ? "Remove from Wishlist" : "Delete Pole"}
+                  </button>
+                </>
+              )}
+            </div>
+          </>
         )}
       </div>
     </div>
