@@ -1,12 +1,13 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import ImmersiveVideoViewport from "@/components/vault/video/ImmersiveVideoViewport";
-import VideoDrawingMenu from "@/components/vault/video/VideoDrawingMenu";
+import ImmersiveVideoViewport, {
+  type PlayerInteractionMode,
+} from "@/components/vault/video/ImmersiveVideoViewport";
 import VideoFilmstripTimeline from "@/components/vault/video/VideoFilmstripTimeline";
 import VideoInlineUploadPane from "@/components/vault/video/VideoInlineUploadPane";
 import { useVideoImmersive } from "@/components/vault/video/VideoFocusModeContext";
+import VideoMarkupBar from "@/components/vault/video/VideoMarkupBar";
 import {
   glassButtonClassName,
   glassPanelClassName,
@@ -17,17 +18,16 @@ import type {
   AnnotationTool,
   CompareLayoutMode,
   SyncPoint,
-  SyncPointLabel,
   VideoAnnotation,
 } from "@/lib/domain/videoAnalysis";
 import {
   ANNOTATION_COLOR,
-  SYNC_POINT_LABELS,
   clampSyncOffset,
   getSyncOffsetBounds,
   seekToFrame,
   seekToTime,
 } from "@/lib/domain/videoAnalysis";
+import { annotationVisibleOnFrame } from "@/lib/domain/videoAnnotations";
 import { useOrientationLayout } from "@/lib/hooks/useOrientationLayout";
 import { useOverlayVisibility } from "@/lib/hooks/useOverlayVisibility";
 import { useVideoPlayer } from "@/lib/hooks/useVideoPlayer";
@@ -44,6 +44,48 @@ type ComparePlayerShellProps = {
 
 type ActiveVideo = "A" | "B";
 
+function formatClock(seconds: number) {
+  if (!Number.isFinite(seconds) || seconds < 0) {
+    return "0:00";
+  }
+
+  const whole = Math.floor(seconds);
+  const mins = Math.floor(whole / 60);
+  const secs = whole % 60;
+  return `${mins}:${secs.toString().padStart(2, "0")}`;
+}
+
+function PlayPauseIcon({ playing }: { playing: boolean }) {
+  if (playing) {
+    return (
+      <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+        <rect x="6" y="4.5" width="4.5" height="15" rx="1.5" fill="currentColor" />
+        <rect x="13.5" y="4.5" width="4.5" height="15" rx="1.5" fill="currentColor" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        d="M8.2 4.8c-.7-.4-1.5.1-1.5.9v12.6c0 .8.8 1.3 1.5.9l11-6.3c.7-.4.7-1.4 0-1.8l-11-6.3z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}
+
+function MarkupIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        d="M15.2 4.3c.5-.5 1.3-.5 1.8 0l2.7 2.7c.5.5.5 1.3 0 1.8L9.2 19.3c-.2.2-.5.3-.8.4l-3.6.8c-.6.1-1.1-.4-1-.1l.8-3.6c.1-.3.2-.6.4-.8L15.2 4.3z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}
+
 export default function ComparePlayerShell({
   videoUrlA,
   videoUrlB,
@@ -56,16 +98,19 @@ export default function ComparePlayerShell({
   const { setImmersive } = useVideoImmersive();
   const playerA = useVideoPlayer({ videoUrl: videoUrlA });
   const playerB = useVideoPlayer({ videoUrl: videoUrlB });
-  const overlay = useOverlayVisibility();
+  const overlay = useOverlayVisibility(5000);
   const orientationLayout = useOrientationLayout();
   const lastAnnotationTarget = useRef<ActiveVideo>("A");
   const syncOffsetRef = useRef(0);
 
   const bothVideosReady = Boolean(videoUrlA && videoUrlB);
 
+  const [mode, setMode] = useState<PlayerInteractionMode>("watch");
   const [annotationsA, setAnnotationsA] = useState<VideoAnnotation[]>([]);
   const [annotationsB, setAnnotationsB] = useState<VideoAnnotation[]>([]);
-  const [activeTool, setActiveTool] = useState<AnnotationTool | null>(null);
+  const [activeTool, setActiveTool] = useState<AnnotationTool>("draw");
+  const [color, setColor] = useState(ANNOTATION_COLOR);
+  const [persistentDrawing, setPersistentDrawing] = useState(false);
   const [layoutOverride, setLayoutOverride] = useState<CompareLayoutMode | null>(
     null,
   );
@@ -75,18 +120,16 @@ export default function ComparePlayerShell({
   const [syncPointB, setSyncPointB] = useState<SyncPoint | null>(null);
   const [isSynced, setIsSynced] = useState(false);
   const [syncOffset, setSyncOffset] = useState(0);
-  const [syncMenuOpen, setSyncMenuOpen] = useState(false);
   const [optionsOpen, setOptionsOpen] = useState(false);
 
   const layoutMode = layoutOverride ?? orientationLayout;
-
-  const drawingEnabled = activeTool !== null;
+  const drawingEnabled = mode === "mark";
   const isScrubbing = playerA.isScrubbing || playerB.isScrubbing;
   const controlsVisible =
+    mode === "mark" ||
     overlay.controlsVisible ||
     isScrubbing ||
-    optionsOpen ||
-    syncMenuOpen;
+    optionsOpen;
 
   useEffect(() => {
     setImmersive(true);
@@ -98,7 +141,7 @@ export default function ComparePlayerShell({
   }, [syncOffset]);
 
   const syncBounds = useMemo(() => {
-    if (!syncPointA || !syncPointB || syncPointA.label !== syncPointB.label) {
+    if (!syncPointA || !syncPointB) {
       return { min: 0, max: 0 };
     }
 
@@ -192,7 +235,8 @@ export default function ComparePlayerShell({
     playerB.pause();
     playerA.beginScrub();
     playerB.beginScrub();
-  }, [playerA, playerB]);
+    overlay.notifyActivity();
+  }, [overlay, playerA, playerB]);
 
   const handleScrub = useCallback(
     (time: number) => {
@@ -252,11 +296,18 @@ export default function ComparePlayerShell({
     await playerB.play();
   }, [applySyncOffset, bothVideosReady, isSynced, playerA, playerB]);
 
-  const setSyncPointForActive = (label: SyncPointLabel) => {
+  const setFrameForActive = useCallback(() => {
     playerA.pause();
     playerB.pause();
 
-    const point = { label, frame: activePlayer.currentFrame };
+    const point: SyncPoint = {
+      label: "Custom",
+      frame: activePlayer.currentFrame,
+    };
+
+    setIsSynced(false);
+    setSyncOffset(0);
+    syncOffsetRef.current = 0;
 
     if (activeVideo === "A") {
       setSyncPointA(point);
@@ -264,52 +315,54 @@ export default function ComparePlayerShell({
       setSyncPointB(point);
     }
 
-    setSyncMenuOpen(false);
     overlay.notifyActivity();
-  };
+  }, [activePlayer.currentFrame, activeVideo, overlay, playerA, playerB]);
 
-  const openSyncMenu = () => {
-    playerA.pause();
-    playerB.pause();
-    setSyncMenuOpen((current) => !current);
-    overlay.notifyActivity();
-  };
-
-  const unsync = () => {
+  const unsync = useCallback(() => {
     setIsSynced(false);
     setSyncOffset(0);
     syncOffsetRef.current = 0;
+    setSyncPointA(null);
+    setSyncPointB(null);
     setOptionsOpen(false);
     overlay.notifyActivity();
-  };
+  }, [overlay]);
 
   useEffect(() => {
-    if (
-      !isSynced &&
-      syncPointA &&
-      syncPointB &&
-      syncPointA.label === syncPointB.label
-    ) {
+    if (!isSynced && syncPointA && syncPointB) {
       setIsSynced(true);
       applySyncOffset(0);
     }
   }, [applySyncOffset, isSynced, syncPointA, syncPointB]);
 
-  const updateAnnotationsA = (next: VideoAnnotation[]) => {
+  const enterMarkMode = useCallback(() => {
+    playerA.pause();
+    playerB.pause();
+    setMode("mark");
+    setOptionsOpen(false);
+    overlay.showControls();
+  }, [overlay, playerA, playerB]);
+
+  const exitMarkMode = useCallback(() => {
+    setMode("watch");
+    overlay.notifyActivity();
+  }, [overlay]);
+
+  const updateAnnotationsA = useCallback((next: VideoAnnotation[]) => {
     if (next.length > annotationsA.length) {
       lastAnnotationTarget.current = "A";
     }
     setAnnotationsA(next);
-  };
+  }, [annotationsA.length]);
 
-  const updateAnnotationsB = (next: VideoAnnotation[]) => {
+  const updateAnnotationsB = useCallback((next: VideoAnnotation[]) => {
     if (next.length > annotationsB.length) {
       lastAnnotationTarget.current = "B";
     }
     setAnnotationsB(next);
-  };
+  }, [annotationsB.length]);
 
-  const handleUndo = () => {
+  const handleUndo = useCallback(() => {
     const frame =
       lastAnnotationTarget.current === "A"
         ? playerA.currentFrame
@@ -322,17 +375,45 @@ export default function ComparePlayerShell({
 
     setter((current) => {
       for (let index = current.length - 1; index >= 0; index -= 1) {
-        if (current[index].frame === frame) {
+        if (
+          annotationVisibleOnFrame(current[index], frame) ||
+          current[index].frame === frame
+        ) {
           return [...current.slice(0, index), ...current.slice(index + 1)];
         }
       }
       return current;
     });
-  };
+  }, [playerA.currentFrame, playerB.currentFrame]);
+
+  const handleClearVisible = useCallback(() => {
+    const target = lastAnnotationTarget.current;
+    const frame =
+      target === "A" ? playerA.currentFrame : playerB.currentFrame;
+    const setter = target === "A" ? setAnnotationsA : setAnnotationsB;
+
+    setter((current) =>
+      current.filter(
+        (annotation) =>
+          !(
+            annotationVisibleOnFrame(annotation, frame) ||
+            annotation.frame === frame
+          ),
+      ),
+    );
+  }, [playerA.currentFrame, playerB.currentFrame]);
 
   const canUndo =
-    annotationsA.some((a) => a.frame === playerA.currentFrame) ||
-    annotationsB.some((a) => a.frame === playerB.currentFrame);
+    annotationsA.some(
+      (a) =>
+        annotationVisibleOnFrame(a, playerA.currentFrame) ||
+        a.frame === playerA.currentFrame,
+    ) ||
+    annotationsB.some(
+      (a) =>
+        annotationVisibleOnFrame(a, playerB.currentFrame) ||
+        a.frame === playerB.currentFrame,
+    );
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -357,6 +438,9 @@ export default function ComparePlayerShell({
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [handleStep, handleTogglePlay, overlay]);
+
+  const markModeFor = (video: ActiveVideo): PlayerInteractionMode =>
+    drawingEnabled && activeVideo === video ? "mark" : "watch";
 
   const renderPane = (
     video: ActiveVideo,
@@ -394,10 +478,9 @@ export default function ComparePlayerShell({
             annotations={annotations}
             currentFrame={player.currentFrame}
             activeTool={activeTool}
-            annotationColor={ANNOTATION_COLOR}
-            mode={
-              drawingEnabled && activeVideo === video ? "mark" : "watch"
-            }
+            annotationColor={color}
+            mode={markModeFor(video)}
+            persistentDrawing={persistentDrawing}
             muted={player.isMuted}
             controlsVisible={controlsVisible}
             isPlaying={player.isPlaying}
@@ -415,10 +498,15 @@ export default function ComparePlayerShell({
     </div>
   );
 
+  const isPlaying = playerA.isPlaying || playerB.isPlaying;
+  const frameLabel = isSynced
+    ? `Synced · Δ ${syncOffset >= 0 ? "+" : ""}${syncOffset}`
+    : `Video ${activeVideo} · ${formatClock(activePlayer.currentTime)} · Frame ${activePlayer.currentFrame}`;
+
   return (
     <div className="fixed inset-0 z-[100] bg-black">
       <div
-        className={`absolute inset-0 pb-[max(7.5rem,calc(env(safe-area-inset-bottom)+6rem))] pt-[max(3rem,calc(env(safe-area-inset-top)+2.5rem))] ${
+        className={`absolute inset-0 pb-[max(5.5rem,calc(env(safe-area-inset-bottom)+4.5rem))] pt-[max(3rem,calc(env(safe-area-inset-top)+2.5rem))] ${
           layoutMode === "side"
             ? "flex flex-row gap-0.5"
             : layoutMode === "stack"
@@ -435,10 +523,9 @@ export default function ComparePlayerShell({
                 annotations={annotationsB}
                 currentFrame={playerB.currentFrame}
                 activeTool={activeTool}
-                annotationColor={ANNOTATION_COLOR}
-                mode={
-                  drawingEnabled && activeVideo === "B" ? "mark" : "watch"
-                }
+                annotationColor={color}
+                mode={markModeFor("B")}
+                persistentDrawing={persistentDrawing}
                 muted={playerB.isMuted}
                 controlsVisible={controlsVisible}
                 isPlaying={playerB.isPlaying}
@@ -460,10 +547,9 @@ export default function ComparePlayerShell({
                 annotations={annotationsA}
                 currentFrame={playerA.currentFrame}
                 activeTool={activeTool}
-                annotationColor={ANNOTATION_COLOR}
-                mode={
-                  drawingEnabled && activeVideo === "A" ? "mark" : "watch"
-                }
+                annotationColor={color}
+                mode={markModeFor("A")}
+                persistentDrawing={persistentDrawing}
                 muted={playerA.isMuted}
                 controlsVisible={controlsVisible}
                 isPlaying={playerA.isPlaying}
@@ -519,214 +605,228 @@ export default function ComparePlayerShell({
         )}
       </div>
 
-      <div className="pointer-events-none absolute inset-0 flex flex-col justify-between">
-        <div
-          className={`pointer-events-auto flex items-center justify-between px-4 pb-2 pt-[max(0.75rem,env(safe-area-inset-top))] ${overlayFadeClass(
-            controlsVisible,
-          )}`}
-        >
-          <Link
-            href={backHref}
-            className={`${glassButtonClassName} h-10 w-10 text-base`}
-            aria-label="Back"
+      <div className="pointer-events-none absolute inset-0 z-20 flex flex-col justify-between">
+        <div className="pointer-events-auto">
+          <div
+            className={`flex items-center justify-between gap-3 px-3 pb-2 pt-[max(0.85rem,env(safe-area-inset-top))] ${overlayFadeClass(
+              controlsVisible,
+            )}`}
           >
-            ←
-          </Link>
+            {mode === "watch" ? (
+              <>
+                <a
+                  href={backHref}
+                  className={`${glassButtonClassName} h-11 min-w-11 px-3 text-[17px] font-semibold`}
+                  aria-label="Done"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    playerA.pause();
+                    playerB.pause();
+                    setImmersive(false);
+                    window.location.assign(backHref);
+                  }}
+                >
+                  Done
+                </a>
 
-          <p className={`${glassPillClassName} max-w-[44%] truncate`}>
-            Compare
-          </p>
+                <p className={`${glassPillClassName} max-w-[50%] truncate`}>
+                  Compare
+                </p>
 
-          <div className="relative">
-            <button
-              type="button"
-              className={`${glassButtonClassName} h-10 w-10 text-base`}
-              onClick={() => {
-                overlay.notifyActivity();
-                setSyncMenuOpen(false);
-                setOptionsOpen((current) => !current);
-              }}
-            >
-              •••
-            </button>
-
-            {optionsOpen && controlsVisible && (
-              <div
-                className={`absolute right-0 top-full z-50 mt-2 min-w-[190px] rounded-2xl ${glassPanelClassName} p-2 shadow-xl`}
-              >
-                {(["side", "stack", "swipe"] as CompareLayoutMode[]).map(
-                  (mode) => (
-                    <button
-                      key={mode}
-                      type="button"
-                      className={`block w-full rounded-xl px-3 py-2 text-left text-sm capitalize text-white hover:bg-white/10 ${
-                        layoutMode === mode ? "bg-white/10 font-semibold" : ""
-                      }`}
-                      onClick={() => {
-                        setLayoutOverride(mode);
-                        setOptionsOpen(false);
-                        overlay.notifyActivity();
-                      }}
-                    >
-                      {mode === "side"
-                        ? "Side-by-Side"
-                        : mode === "stack"
-                          ? "Vertical Stack"
-                          : "Swipe Compare"}
-                    </button>
-                  ),
-                )}
-                {isSynced && (
+                <div className="relative">
                   <button
                     type="button"
-                    className="block w-full rounded-xl px-3 py-2 text-left text-sm text-white hover:bg-white/10"
-                    onClick={unsync}
+                    className={`${glassButtonClassName} h-11 w-11 text-base`}
+                    aria-label="Options"
+                    onClick={() => {
+                      overlay.notifyActivity();
+                      setOptionsOpen((current) => !current);
+                    }}
                   >
-                    Unsync Videos
+                    •••
                   </button>
-                )}
-              </div>
+
+                  {optionsOpen && (
+                    <div
+                      className={`absolute right-0 top-full z-50 mt-2 min-w-[190px] rounded-2xl ${glassPanelClassName} p-2 shadow-xl`}
+                    >
+                      {(["side", "stack", "swipe"] as CompareLayoutMode[]).map(
+                        (layout) => (
+                          <button
+                            key={layout}
+                            type="button"
+                            className={`block w-full rounded-xl px-3 py-2 text-left text-sm capitalize text-white hover:bg-white/10 ${
+                              layoutMode === layout
+                                ? "bg-white/10 font-semibold"
+                                : ""
+                            }`}
+                            onClick={() => {
+                              setLayoutOverride(layout);
+                              setOptionsOpen(false);
+                              overlay.notifyActivity();
+                            }}
+                          >
+                            {layout === "side"
+                              ? "Side-by-Side"
+                              : layout === "stack"
+                                ? "Vertical Stack"
+                                : "Swipe Compare"}
+                          </button>
+                        ),
+                      )}
+                      {isSynced && (
+                        <button
+                          type="button"
+                          className="block w-full rounded-xl px-3 py-2 text-left text-sm text-white hover:bg-white/10"
+                          onClick={unsync}
+                        >
+                          Unsync Videos
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </>
+            ) : (
+              <>
+                <span className={`${glassPillClassName} tabular-nums`}>
+                  Video {activeVideo} · Frame {activePlayer.currentFrame}
+                </span>
+                <p className={`${glassPillClassName} max-w-[42%] truncate`}>
+                  Compare
+                </p>
+                <button
+                  type="button"
+                  className="flex h-11 min-w-[4.5rem] items-center justify-center rounded-full bg-white px-4 text-[15px] font-semibold text-black active:scale-95 touch-manipulation"
+                  onClick={exitMarkMode}
+                >
+                  Done
+                </button>
+              </>
             )}
           </div>
-        </div>
 
-        {bothVideosReady && controlsVisible && !optionsOpen && (
-          <div className="pointer-events-auto absolute left-1/2 top-[max(4.5rem,calc(env(safe-area-inset-top)+3.5rem))] z-30 -translate-x-1/2">
-            {!isSynced ? (
-              <>
-                <div className="flex flex-wrap justify-center gap-2">
-                  {(["A", "B"] as ActiveVideo[]).map((video) => (
-                    <button
-                      key={video}
-                      type="button"
-                      className={`${glassPillClassName} ${
-                        activeVideo === video ? "bg-white/20" : ""
-                      }`}
-                      onClick={() => {
-                        setActiveVideo(video);
-                        overlay.notifyActivity();
-                      }}
-                    >
-                      Video {video}
-                    </button>
-                  ))}
+          {bothVideosReady && mode === "watch" && !optionsOpen && (
+            <div
+              className={`px-3 ${overlayFadeClass(controlsVisible)}`}
+            >
+              <div className="mx-auto flex max-w-lg flex-wrap items-center justify-center gap-2">
+                {(["A", "B"] as ActiveVideo[]).map((video) => (
+                  <button
+                    key={video}
+                    type="button"
+                    className={`${glassPillClassName} ${
+                      activeVideo === video ? "bg-white/20" : ""
+                    }`}
+                    onClick={() => {
+                      setActiveVideo(video);
+                      overlay.notifyActivity();
+                    }}
+                  >
+                    Video {video}
+                  </button>
+                ))}
+
+                {!isSynced ? (
                   <button
                     type="button"
                     className={`${glassPillClassName} bg-white/20`}
-                    onClick={openSyncMenu}
+                    onClick={setFrameForActive}
                   >
-                    Set Sync
+                    Set Frame
                   </button>
-                </div>
-
-                {syncMenuOpen && (
-                  <div
-                    className={`mt-2 overflow-hidden rounded-2xl ${glassPanelClassName}`}
+                ) : (
+                  <button
+                    type="button"
+                    className={`${glassPillClassName} bg-white/15`}
+                    onClick={unsync}
                   >
-                    {SYNC_POINT_LABELS.map((label) => (
-                      <button
-                        key={label}
-                        type="button"
-                        className="block w-full px-4 py-2.5 text-left text-sm text-white hover:bg-white/10"
-                        onClick={() => setSyncPointForActive(label)}
-                      >
-                        {label}
-                      </button>
-                    ))}
-                  </div>
+                    Synced · Unsync
+                  </button>
                 )}
-
-                {(syncPointA || syncPointB) && (
-                  <p className="mt-2 text-center text-xs text-white/70">
-                    {syncPointA
-                      ? `A: ${syncPointA.label} · frame ${syncPointA.frame}`
-                      : "A: not set"}
-                    {" · "}
-                    {syncPointB
-                      ? `B: ${syncPointB.label} · frame ${syncPointB.frame}`
-                      : "B: not set"}
-                  </p>
-                )}
-              </>
-            ) : (
-              <p className={`${glassPillClassName} bg-white/15`}>
-                Synced at {syncPointA?.label} · scrub moves both
-              </p>
-            )}
-          </div>
-        )}
-
-        <div className="pointer-events-auto mt-auto">
-          {bothVideosReady && (
-            <>
-              <div
-                className={`px-3 pb-1 ${overlayFadeClass(
-                  controlsVisible && !drawingEnabled,
-                )}`}
-              >
-                <p className="mb-1.5 text-center text-[12px] font-medium tabular-nums text-white/75">
-                  {isSynced
-                    ? `Frame ${syncOffset} · ${syncPointA?.label} = 0`
-                    : `Video ${activeVideo} · Frame ${activePlayer.currentFrame}`}
-                </p>
-                <VideoFilmstripTimeline
-                  currentTime={timelineTime}
-                  duration={timelineDuration}
-                  disabled={drawingEnabled}
-                  onScrubStart={handleScrubStart}
-                  onScrub={handleScrub}
-                  onScrubEnd={handleScrubEnd}
-                  onInteraction={overlay.notifyActivity}
-                />
               </div>
 
-              <div
-                className={`flex items-center justify-center px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2 ${overlayFadeClass(
-                  controlsVisible && !drawingEnabled,
-                )}`}
-              >
+              {(syncPointA || syncPointB) && !isSynced && (
+                <p className="mt-1.5 text-center text-[11px] text-white/65">
+                  {syncPointA
+                    ? `A: frame ${syncPointA.frame}`
+                    : "A: not set"}
+                  {" · "}
+                  {syncPointB
+                    ? `B: frame ${syncPointB.frame}`
+                    : "B: not set"}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="pointer-events-auto mt-auto">
+          {bothVideosReady && mode === "watch" && (
+            <div
+              className={`px-3 pt-1 pb-[max(0.75rem,env(safe-area-inset-bottom))] ${overlayFadeClass(
+                controlsVisible,
+              )}`}
+            >
+              <p className="mb-1.5 text-center text-[11px] font-medium tabular-nums text-white/70">
+                {frameLabel}
+              </p>
+
+              <div className="flex items-center gap-2.5">
                 <button
                   type="button"
-                  className={`${glassButtonClassName} h-14 w-14 text-2xl`}
+                  aria-label={isPlaying ? "Pause" : "Play"}
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-black shadow-[0_6px_20px_rgba(0,0,0,0.35)] transition active:scale-95 touch-manipulation"
                   onClick={() => {
                     overlay.notifyActivity();
                     void handleTogglePlay();
                   }}
                 >
-                  {playerA.isPlaying || playerB.isPlaying ? "⏸" : "▶️"}
+                  <span className={isPlaying ? "" : "translate-x-[1px]"}>
+                    <PlayPauseIcon playing={isPlaying} />
+                  </span>
+                </button>
+
+                <VideoFilmstripTimeline
+                  currentTime={timelineTime}
+                  duration={timelineDuration}
+                  compact
+                  onScrubStart={handleScrubStart}
+                  onScrub={handleScrub}
+                  onScrubEnd={handleScrubEnd}
+                  onInteraction={overlay.notifyActivity}
+                />
+
+                <button
+                  type="button"
+                  aria-label="Open markup"
+                  className={`${glassButtonClassName} h-11 w-11 shrink-0 text-white`}
+                  onClick={enterMarkMode}
+                >
+                  <MarkupIcon />
                 </button>
               </div>
-            </>
+            </div>
+          )}
+
+          {bothVideosReady && mode === "mark" && (
+            <VideoMarkupBar
+              activeTool={activeTool}
+              color={color}
+              persistent={persistentDrawing}
+              canUndo={canUndo}
+              canClear={canUndo}
+              onToolChange={setActiveTool}
+              onColorChange={setColor}
+              onPersistentChange={setPersistentDrawing}
+              onUndo={handleUndo}
+              onClear={handleClearVisible}
+              onDone={exitMarkMode}
+            />
           )}
         </div>
       </div>
-
-      {bothVideosReady && (
-        <VideoDrawingMenu
-          activeTool={activeTool}
-          controlsVisible={controlsVisible}
-          onToolChange={(tool) => {
-            playerA.pause();
-            playerB.pause();
-            setActiveTool(tool);
-          }}
-          onUndo={handleUndo}
-          onClear={() => {
-            if (lastAnnotationTarget.current === "A") {
-              setAnnotationsA((current) =>
-                current.filter((a) => a.frame !== playerA.currentFrame),
-              );
-            } else {
-              setAnnotationsB((current) =>
-                current.filter((a) => a.frame !== playerB.currentFrame),
-              );
-            }
-          }}
-          canUndo={canUndo}
-          canClear={canUndo}
-          onInteraction={overlay.notifyActivity}
-        />
-      )}
     </div>
   );
 }
