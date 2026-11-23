@@ -3,6 +3,7 @@ import {
   normalizeVaultSessionDraft,
   type VaultSessionDraft,
 } from "@/lib/domain/vaultLog";
+import { DEFAULT_VAULT_HEIGHT_GOAL } from "@/lib/domain/vaultProgress";
 import type {
   HeightPREntry,
   RunPRs,
@@ -13,7 +14,7 @@ import type {
   VaultSession,
   VaultStepReferences,
 } from "@/lib/domain/types";
-import { getItem, removeItem, setItem } from "@/lib/storage/localStore";
+import { getItem, getString, removeItem, setItem } from "@/lib/storage/localStore";
 import { STORAGE_EVENTS, STORAGE_KEYS } from "@/lib/storage/keys";
 
 export const EMPTY_SPRINT_PRS: SprintPRs = {
@@ -153,6 +154,36 @@ export function getVaultHeightPRValues(runPRs: RunPRs): string[] {
     runPRs.sixL,
     runPRs.sevenL,
   ].filter((value) => value.trim() !== "");
+}
+
+export function loadVaultHeightGoal(): string {
+  const stored = getString(
+    STORAGE_KEYS.VAULT_HEIGHT_GOAL,
+    DEFAULT_VAULT_HEIGHT_GOAL
+  ).trim();
+  return stored !== "" ? stored : DEFAULT_VAULT_HEIGHT_GOAL;
+}
+
+export function saveVaultHeightGoal(goal: string): void {
+  setItem(STORAGE_KEYS.VAULT_HEIGHT_GOAL, goal);
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event(STORAGE_EVENTS.VAULT_HEIGHT_GOAL_CHANGED));
+  }
+}
+
+export function subscribeVaultHeightGoal(listener: () => void): () => void {
+  const handler = () => listener();
+
+  window.addEventListener(STORAGE_EVENTS.VAULT_HEIGHT_GOAL_CHANGED, handler);
+  window.addEventListener("storage", handler);
+
+  return () => {
+    window.removeEventListener(
+      STORAGE_EVENTS.VAULT_HEIGHT_GOAL_CHANGED,
+      handler
+    );
+    window.removeEventListener("storage", handler);
+  };
 }
 
 export function subscribeVaultRunPRs(listener: () => void): () => void {

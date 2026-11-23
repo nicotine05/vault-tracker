@@ -1,17 +1,23 @@
+"use client";
+
 import Card from "@/components/Card";
 import type { RunPRs } from "@/lib/domain/types";
 import {
   computeVaultGoalProgress,
+  formatVaultHeightGoalDisplay,
   getHighestPRDisplay,
 } from "@/lib/domain/vaultProgress";
+import { useVaultHeightGoal } from "@/lib/hooks/useVaultHeightGoal";
 
 type VaultGoalCardProps = {
   runPRs: RunPRs;
 };
 
 export default function VaultGoalCard({ runPRs }: VaultGoalCardProps) {
+  const { goalHeight } = useVaultHeightGoal();
   const maxPRString = getHighestPRDisplay(runPRs);
-  const goalProgress = computeVaultGoalProgress(runPRs);
+  const goalProgress = computeVaultGoalProgress(runPRs, goalHeight);
+  const goalLabel = formatVaultHeightGoalDisplay(goalHeight);
 
   return (
     <Card className="mb-4">
@@ -31,7 +37,7 @@ export default function VaultGoalCard({ runPRs }: VaultGoalCardProps) {
           />
         </div>
 
-        <p className="mt-2 text-sm text-muted">Goal: 15ft</p>
+        <p className="mt-2 text-sm text-muted">Goal: {goalLabel}</p>
       </div>
     </Card>
   );
