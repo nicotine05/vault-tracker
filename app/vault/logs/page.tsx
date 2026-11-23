@@ -6,6 +6,7 @@ import VaultNewSessionPanel from "@/components/vault/VaultNewSessionPanel";
 import VaultSessionList from "@/components/vault/VaultSessionList";
 import VaultStepReferencePanel from "@/components/vault/VaultStepReferencePanel";
 import { useAuth } from "@/components/AuthProvider";
+import { VAULT_SESSION_RECENT_FILTER } from "@/lib/domain/vaultLog";
 import { useVaultLogState } from "@/lib/hooks/useVaultLogState";
 
 export default function VaultLogsPage() {
@@ -34,7 +35,7 @@ export default function VaultLogsPage() {
   const [expandedSessionId, setExpandedSessionId] = useState<string | null>(
     null
   );
-  const [weekFilter, setWeekFilter] = useState("all");
+  const [weekFilter, setWeekFilter] = useState(VAULT_SESSION_RECENT_FILTER);
   const [editingRefs, setEditingRefs] = useState(false);
   const [showPRMenu, setShowPRMenu] = useState(false);
 

@@ -9,6 +9,7 @@ import {
   getGradeEmoji,
   getRunReference,
   getVaultWeekOptions,
+  VAULT_SESSION_RECENT_FILTER,
 } from "@/lib/domain/vaultLog";
 import {
   formatPolePickerLabel,
@@ -75,12 +76,13 @@ export default function VaultSessionList({
             onChange={(event) => onWeekFilterChange(event.target.value)}
             className="rounded-lg border border-border bg-surface-muted px-2 py-1 text-foreground"
           >
-            <option value="all">All</option>
+            <option value={VAULT_SESSION_RECENT_FILTER}>Past 7 days</option>
             {weekOptions.map((week) => (
               <option key={week} value={week}>
                 {week}
               </option>
             ))}
+            <option value="all">All</option>
           </select>
         )}
       </button>

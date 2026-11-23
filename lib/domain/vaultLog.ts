@@ -53,6 +53,25 @@ export function getRunReference(
   }
 }
 
+export const VAULT_SESSION_RECENT_FILTER = "recent";
+export const VAULT_SESSION_RECENT_DAYS = 7;
+export const VAULT_SESSION_RECENT_FALLBACK_COUNT = 3;
+
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+function startOfLocalDay(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+export function parseVaultSessionDate(dateString: string): Date | null {
+  const parsed = new Date(dateString);
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+
+  return startOfLocalDay(parsed);
+}
+
 export function getWeekLabel(dateString: string): string {
   const date = new Date(dateString);
   const day = date.getDay();
@@ -71,10 +90,43 @@ export function getVaultWeekOptions(sessions: VaultSession[]): string[] {
   return [...new Set(sessions.map((session) => getWeekLabel(session.date)))];
 }
 
+export function filterRecentVaultSessions(
+  sessions: VaultSession[],
+  now: Date = new Date()
+): VaultSession[] {
+  const today = startOfLocalDay(now);
+  const recent = sessions.filter((session) => {
+    const sessionDate = parseVaultSessionDate(session.date);
+    if (!sessionDate) {
+      return false;
+    }
+
+    const daysAgo = (today.getTime() - sessionDate.getTime()) / MS_PER_DAY;
+    return daysAgo >= 0 && daysAgo < VAULT_SESSION_RECENT_DAYS;
+  });
+
+  if (recent.length > 0) {
+    return recent;
+  }
+
+  return [...sessions]
+    .sort((a, b) => {
+      const aDate = parseVaultSessionDate(a.date)?.getTime() ?? 0;
+      const bDate = parseVaultSessionDate(b.date)?.getTime() ?? 0;
+      return bDate - aDate;
+    })
+    .slice(0, VAULT_SESSION_RECENT_FALLBACK_COUNT);
+}
+
 export function filterVaultSessionsByWeek(
   sessions: VaultSession[],
-  weekFilter: string
+  weekFilter: string,
+  now: Date = new Date()
 ): VaultSession[] {
+  if (weekFilter === VAULT_SESSION_RECENT_FILTER) {
+    return filterRecentVaultSessions(sessions, now);
+  }
+
   if (weekFilter === "all") {
     return sessions;
   }
