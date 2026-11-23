@@ -1,6 +1,6 @@
 import type { TrafficLightLevel, TrainingType } from "@/lib/trainingProgram";
 
-const dark = "[data-theme=dark]:";
+const dark = "[data-theme-mode=dark]:";
 
 export const trafficStyles: Record<TrafficLightLevel, string> = {
   Green: [

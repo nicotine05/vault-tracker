@@ -32,18 +32,19 @@
 }
 
 [data-theme="ember"] {
-  --background: #fafafa;
-  --foreground: #171717;
-  --surface: #ffffff;
-  --surface-muted: #f5f5f5;
-  --surface-accent: #fef2f2;
-  --border: #e5e5e5;
-  --border-accent: #fca5a5;
-  --muted: #737373;
-  --accent: #dc2626;
-  --accent-soft: #fef2f2;
-  --accent-text: #b91c1c;
-  --nav-bg: #ffffff;
+  --background: #141414;
+  --foreground: #f5f5f5;
+  --surface: #1f1f1f;
+  --surface-muted: #2a2a2a;
+  --surface-accent: #3a2222;
+  --border: #3f3f3f;
+  --border-accent: #7f1d1d;
+  --muted: #a3a3a3;
+  --accent: #ef4444;
+  --accent-soft: rgba(239, 68, 68, 0.18);
+  --accent-text: #f87171;
+  --nav-bg: rgba(31, 31, 31, 0.78);
+  color-scheme: dark;
 }
 
 [data-theme="dark"] {
@@ -62,14 +63,14 @@
   color-scheme: dark;
 }
 
-[data-theme="dark"] nav {
+[data-theme-mode="dark"] nav {
   backdrop-filter: saturate(180%) blur(20px);
   -webkit-backdrop-filter: saturate(180%) blur(20px);
 }
 
-[data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]),
-[data-theme="dark"] select,
-[data-theme="dark"] textarea {
+[data-theme-mode="dark"] input:not([type="checkbox"]):not([type="radio"]),
+[data-theme-mode="dark"] select,
+[data-theme-mode="dark"] textarea {
   background-color: var(--surface-muted);
   color: var(--foreground);
   border-color: var(--border);

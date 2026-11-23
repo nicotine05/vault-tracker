@@ -19,7 +19,7 @@ export default function TargetIndicators({ metrics }: TargetIndicatorsProps) {
             <span
               className={`font-medium ${
                 met
-                  ? "text-emerald-700 [data-theme=dark]:text-emerald-300"
+                  ? "text-emerald-700 [data-theme-mode=dark]:text-emerald-300"
                   : "text-muted"
               }`}
             >
@@ -28,7 +28,7 @@ export default function TargetIndicators({ metrics }: TargetIndicatorsProps) {
             <span
               className={`text-xs font-semibold ${
                 met
-                  ? "text-emerald-600 [data-theme=dark]:text-emerald-400"
+                  ? "text-emerald-600 [data-theme-mode=dark]:text-emerald-400"
                   : "text-foreground"
               }`}
             >

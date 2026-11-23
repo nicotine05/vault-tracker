@@ -99,13 +99,13 @@ export default function ScheduleDaySection({
                       </p>
                     )}
                   </div>
-                  <span className="rounded-lg bg-black/5 px-2 py-1 text-xs font-bold [data-theme=dark]:bg-white/10">
+                  <span className="rounded-lg bg-black/5 px-2 py-1 text-xs font-bold [data-theme-mode=dark]:bg-white/10">
                     Load {session.load}
                   </span>
                 </div>
 
                 {workout && (
-                  <div className="mt-3 border-t border-black/10 pt-3 [data-theme=dark]:border-white/10">
+                  <div className="mt-3 border-t border-black/10 pt-3 [data-theme-mode=dark]:border-white/10">
                     <WorkoutExpandPanel
                       workout={workout}
                       planningWeek={planningWeek}

@@ -37,7 +37,7 @@ export default function WorkoutExpandPanel({
                     {STRENGTH_CATEGORY_LABELS[workout.category]}
                   </span>
                   {deload && (
-                    <span className="rounded-full border border-amber-300/60 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-800 [data-theme=dark]:text-amber-200">
+                    <span className="rounded-full border border-amber-300/60 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-800 [data-theme-mode=dark]:text-amber-200">
                       DELOAD
                     </span>
                   )}

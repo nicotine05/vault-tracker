@@ -80,7 +80,7 @@ export default function PoleDetailSheet({
                 <span className={`${todayBadgeClassName} normal-case`}>Wishlist</span>
               )}
               {needsReplace && (
-                <span className="rounded-full border border-rose-300/70 bg-rose-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-rose-700 [data-theme=dark]:border-rose-400/40 [data-theme=dark]:text-rose-300">
+                <span className="rounded-full border border-rose-300/70 bg-rose-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-rose-700 [data-theme-mode=dark]:border-rose-400/40 [data-theme-mode=dark]:text-rose-300">
                   Replace
                 </span>
               )}

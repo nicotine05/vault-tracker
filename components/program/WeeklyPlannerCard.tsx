@@ -108,8 +108,8 @@ export default function WeeklyPlannerCard({
               activeTypes.length > 0
                 ? singleType
                   ? `${styles!.card} ring-1 ${styles!.ring}`
-                  : "border-border bg-surface-muted ring-1 ring-border/60 [data-theme=dark]:border-border [data-theme=dark]:bg-surface"
-                : "border-border bg-surface-muted [data-theme=dark]:bg-surface [data-theme=dark]:border-border"
+                  : "border-border bg-surface-muted ring-1 ring-border/60 [data-theme-mode=dark]:border-border [data-theme-mode=dark]:bg-surface"
+                : "border-border bg-surface-muted [data-theme-mode=dark]:bg-surface [data-theme-mode=dark]:border-border"
             }`}
           >
             {singleType && (

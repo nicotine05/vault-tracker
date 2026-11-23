@@ -29,7 +29,7 @@ export const themeOptions: ThemeOption[] = [
   {
     id: "ember",
     name: "Ember",
-    swatches: ["#fafafa", "#dc2626", "#fef2f2"],
+    swatches: ["#171717", "#ef4444", "#262626"],
   },
   {
     id: "dark",
@@ -40,6 +40,10 @@ export const themeOptions: ThemeOption[] = [
 
 export function isThemeId(value: string | null | undefined): value is ThemeId {
   return themeIds.includes(value as ThemeId);
+}
+
+export function isDarkTheme(theme: ThemeId): boolean {
+  return theme === "dark" || theme === "ember";
 }
 
 export function getThemeStorageKey(userId?: string | null): string {

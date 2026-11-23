@@ -15,7 +15,7 @@ import PoleBrandAccent from "@/components/vault/poles/PoleBrandAccent";
 import { secondaryButtonClassName, todayBadgeClassName } from "@/lib/ui/componentStyles";
 
 const replaceBadgeClassName =
-  "rounded-full border border-rose-300/70 bg-rose-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-rose-700 [data-theme=dark]:border-rose-400/40 [data-theme=dark]:text-rose-300";
+  "rounded-full border border-rose-300/70 bg-rose-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-rose-700 [data-theme-mode=dark]:border-rose-400/40 [data-theme-mode=dark]:text-rose-300";
 
 type PoleCellDetailSheetProps = {
   contents: ProgressionCellContents;
@@ -105,9 +105,9 @@ function CellPoleCard({
     <div
       className={`rounded-xl border p-3 ${
         wishlist
-          ? "border-amber-300/60 bg-amber-500/5 [data-theme=dark]:border-amber-400/40 [data-theme=dark]:bg-amber-500/10"
+          ? "border-amber-300/60 bg-amber-500/5 [data-theme-mode=dark]:border-amber-400/40 [data-theme-mode=dark]:bg-amber-500/10"
           : needsReplace
-            ? "border-rose-300/60 bg-rose-500/5 [data-theme=dark]:border-rose-400/40 [data-theme=dark]:bg-rose-500/10"
+            ? "border-rose-300/60 bg-rose-500/5 [data-theme-mode=dark]:border-rose-400/40 [data-theme-mode=dark]:bg-rose-500/10"
             : "border-border bg-surface-muted"
       }`}
     >

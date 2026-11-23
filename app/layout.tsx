@@ -17,7 +17,7 @@ export default function RootLayout({
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem("vault-theme");if(t)document.documentElement.dataset.theme=t;}catch(e){}})();`,
+            __html: `(function(){try{var t=localStorage.getItem("vault-theme");if(t){document.documentElement.dataset.theme=t;document.documentElement.dataset.themeMode=(t==="dark"||t==="ember")?"dark":"light";}}catch(e){}})();`,
           }}
         />
       </head>

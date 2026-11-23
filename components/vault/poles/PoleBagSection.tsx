@@ -161,7 +161,7 @@ export default function PoleBagSection({
                               onClick={() =>
                                 onRemovePoleFromBag(bag.id, pole.id)
                               }
-                              className="text-xs text-red-500 [data-theme=dark]:text-red-400"
+                              className="text-xs text-red-500 [data-theme-mode=dark]:text-red-400"
                             >
                               Remove
                             </button>
@@ -213,7 +213,7 @@ export default function PoleBagSection({
                           setExpandedBagId(null);
                         }
                       }}
-                      className="mt-3 w-full rounded-xl border border-red-300 p-2 text-sm text-red-500 [data-theme=dark]:border-red-400/60 [data-theme=dark]:text-red-400"
+                      className="mt-3 w-full rounded-xl border border-red-300 p-2 text-sm text-red-500 [data-theme-mode=dark]:border-red-400/60 [data-theme-mode=dark]:text-red-400"
                     >
                       Delete Bag
                     </button>

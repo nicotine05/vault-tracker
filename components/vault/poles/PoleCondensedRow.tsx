@@ -30,7 +30,7 @@ export default function PoleCondensedRow({ pole, onPress }: PoleCondensedRowProp
         retired
           ? "bg-surface-muted/50 opacity-60 hover:bg-surface-muted/70"
           : wishlist
-            ? "border-l-2 border-l-amber-400/80 bg-amber-500/5 hover:bg-amber-500/10 [data-theme=dark]:border-l-amber-300/70 [data-theme=dark]:bg-amber-500/10"
+            ? "border-l-2 border-l-amber-400/80 bg-amber-500/5 hover:bg-amber-500/10 [data-theme-mode=dark]:border-l-amber-300/70 [data-theme-mode=dark]:bg-amber-500/10"
             : "bg-surface hover:bg-surface-muted"
       }`}
     >
@@ -63,7 +63,7 @@ export default function PoleCondensedRow({ pole, onPress }: PoleCondensedRowProp
             </span>
           )}
           {needsReplace && (
-            <span className="shrink-0 rounded-full border border-rose-300/70 bg-rose-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-rose-700 [data-theme=dark]:border-rose-400/40 [data-theme=dark]:text-rose-300">
+            <span className="shrink-0 rounded-full border border-rose-300/70 bg-rose-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-rose-700 [data-theme-mode=dark]:border-rose-400/40 [data-theme-mode=dark]:text-rose-300">
               Replace
             </span>
           )}

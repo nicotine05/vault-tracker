@@ -39,8 +39,8 @@ export default function PlannerHealthBar({
               <div
                 className={`mt-2 text-lg font-bold ${
                   isWarning
-                    ? "text-red-700 [data-theme=dark]:text-red-300"
-                    : "text-emerald-700 [data-theme=dark]:text-emerald-300"
+                    ? "text-red-700 [data-theme-mode=dark]:text-red-300"
+                    : "text-emerald-700 [data-theme-mode=dark]:text-emerald-300"
                 }`}
               >
                 {current}/{required}
@@ -68,7 +68,7 @@ export default function PlannerHealthBar({
       )}
 
       {healthWarnings.length > 0 && (
-        <div className="mt-3 space-y-1 text-xs font-medium text-red-700 [data-theme=dark]:text-red-300">
+        <div className="mt-3 space-y-1 text-xs font-medium text-red-700 [data-theme-mode=dark]:text-red-300">
           {healthWarnings.map((warning) => (
             <div key={warning}>
               •{" "}

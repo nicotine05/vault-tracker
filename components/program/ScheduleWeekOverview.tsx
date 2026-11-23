@@ -75,11 +75,11 @@ export default function ScheduleWeekOverview({
             onClick={() => onSelectDay(day)}
             className={`rounded-2xl border p-3 text-left transition hover:shadow-sm ${
               isRestDay
-                ? "border-border/70 bg-surface-muted/60 [data-theme=dark]:border-border/30 [data-theme=dark]:bg-surface-muted/20"
+                ? "border-border/70 bg-surface-muted/60 [data-theme-mode=dark]:border-border/30 [data-theme-mode=dark]:bg-surface-muted/20"
                 : isToday
                   ? todayCardClassName
                   : allComplete
-                    ? "border-emerald-300/50 bg-emerald-500/5 [data-theme=dark]:border-emerald-500/30"
+                    ? "border-emerald-300/50 bg-emerald-500/5 [data-theme-mode=dark]:border-emerald-500/30"
                     : "border-border bg-surface hover:bg-surface-muted"
             }`}
           >

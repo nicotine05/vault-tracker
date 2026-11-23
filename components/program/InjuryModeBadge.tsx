@@ -18,7 +18,7 @@ export default function InjuryModeBadge({ profile }: InjuryModeBadgeProps) {
   return (
     <Link
       href="/settings/injuries"
-      className="block rounded-2xl border border-amber-300/60 bg-amber-500/10 px-4 py-3 transition hover:bg-amber-500/15 [data-theme=dark]:border-amber-500/30"
+      className="block rounded-2xl border border-amber-300/60 bg-amber-500/10 px-4 py-3 transition hover:bg-amber-500/15 [data-theme-mode=dark]:border-amber-500/30"
     >
       <div className="flex items-start gap-3">
         <span className="text-lg">🩹</span>

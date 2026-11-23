@@ -69,7 +69,7 @@ export default function ProgramWeekHeader({
             className={`mt-1 inline-block rounded-full px-3 py-0.5 text-xs font-semibold ${
               isActiveWeek
                 ? getPhaseBadgeClass(phaseName)
-                : "border border-border bg-surface/80 text-muted [data-theme=dark]:bg-surface/40"
+                : "border border-border bg-surface/80 text-muted [data-theme-mode=dark]:bg-surface/40"
             }`}
           >
             {phaseName}

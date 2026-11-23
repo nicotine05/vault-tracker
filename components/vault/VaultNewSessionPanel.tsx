@@ -192,7 +192,7 @@ export default function VaultNewSessionPanel({
                       <button
                         type="button"
                         onClick={() => onRemoveJump(jump.id)}
-                        className="text-sm text-red-500 [data-theme=dark]:text-red-400"
+                        className="text-sm text-red-500 [data-theme-mode=dark]:text-red-400"
                       >
                         Delete
                       </button>

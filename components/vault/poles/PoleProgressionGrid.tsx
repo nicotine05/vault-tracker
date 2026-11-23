@@ -116,7 +116,7 @@ export default function PoleProgressionGrid({
           Multiple owned
         </span>
         <span className="inline-flex items-center gap-1.5">
-          <span className="inline-flex h-3 w-3 items-center justify-center rounded-full border-2 border-dashed border-amber-500 text-[8px] font-bold text-amber-600 [data-theme=dark]:border-amber-300 [data-theme=dark]:text-amber-300">
+          <span className="inline-flex h-3 w-3 items-center justify-center rounded-full border-2 border-dashed border-amber-500 text-[8px] font-bold text-amber-600 [data-theme-mode=dark]:border-amber-300 [data-theme-mode=dark]:text-amber-300">
             ★
           </span>
           Wishlist
@@ -163,8 +163,8 @@ function ProgressionCell({
       className={`relative min-h-[44px] border-b border-r border-border/40 p-1 transition ${
         populated
           ? hasMultiple
-            ? "bg-accent-soft/35 ring-1 ring-inset ring-accent/25 hover:bg-accent-soft/50 [data-theme=dark]:bg-accent-soft/20 [data-theme=dark]:ring-accent/30"
-            : "hover:brightness-95 [data-theme=dark]:hover:brightness-110"
+            ? "bg-accent-soft/35 ring-1 ring-inset ring-accent/25 hover:bg-accent-soft/50 [data-theme-mode=dark]:bg-accent-soft/20 [data-theme-mode=dark]:ring-accent/30"
+            : "hover:brightness-95 [data-theme-mode=dark]:hover:brightness-110"
           : "bg-surface-muted/30"
       }`}
       style={backgroundStyle}
@@ -217,7 +217,7 @@ function WishlistCellMarker({
 }) {
   return (
     <span
-      className={`inline-flex items-center justify-center rounded-full border-2 border-dashed border-amber-500 font-bold leading-none text-amber-600 [data-theme=dark]:border-amber-300 [data-theme=dark]:text-amber-300 ${
+      className={`inline-flex items-center justify-center rounded-full border-2 border-dashed border-amber-500 font-bold leading-none text-amber-600 [data-theme-mode=dark]:border-amber-300 [data-theme-mode=dark]:text-amber-300 ${
         multiple ? "h-3.5 w-3.5 text-[9px]" : "h-3 w-3 text-[8px]"
       }`}
     >

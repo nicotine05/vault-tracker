@@ -11,6 +11,7 @@ import {
 import { useAuth } from "@/components/AuthProvider";
 import {
   getThemeStorageKey,
+  isDarkTheme,
   isThemeId,
   THEME_STORAGE_KEY,
   type ThemeId,
@@ -82,6 +83,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     }
 
     document.documentElement.dataset.theme = theme;
+    document.documentElement.dataset.themeMode = isDarkTheme(theme)
+      ? "dark"
+      : "light";
   }, [theme, hydrated]);
 
   const setTheme = useCallback((nextTheme: ThemeId) => {

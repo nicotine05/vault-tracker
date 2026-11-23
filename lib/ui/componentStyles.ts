@@ -20,22 +20,22 @@ export const linkTextClassName =
   "text-sm text-accent-text transition hover:opacity-80";
 
 export const destructiveTextClassName =
-  "text-sm text-red-600 [data-theme=dark]:text-red-400";
+  "text-sm text-red-600 [data-theme-mode=dark]:text-red-400";
 
 export const positiveDeltaClassName =
-  "text-emerald-700 [data-theme=dark]:text-emerald-300";
+  "text-emerald-700 [data-theme-mode=dark]:text-emerald-300";
 
 export const negativeDeltaClassName =
-  "text-red-600 [data-theme=dark]:text-red-400";
+  "text-red-600 [data-theme-mode=dark]:text-red-400";
 
 export const statusBadgeActiveClassName =
-  "mt-1 inline-block rounded-full border border-emerald-200/80 bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-800 [data-theme=dark]:border-emerald-500/30 [data-theme=dark]:bg-emerald-500/15 [data-theme=dark]:text-emerald-300";
+  "mt-1 inline-block rounded-full border border-emerald-200/80 bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-800 [data-theme-mode=dark]:border-emerald-500/30 [data-theme-mode=dark]:bg-emerald-500/15 [data-theme-mode=dark]:text-emerald-300";
 
 export const statusBadgeFutureClassName =
-  "mt-1 inline-block rounded-full border border-amber-200/80 bg-amber-500/10 px-2 py-0.5 text-xs text-amber-800 [data-theme=dark]:border-amber-500/30 [data-theme=dark]:bg-amber-500/15 [data-theme=dark]:text-amber-300";
+  "mt-1 inline-block rounded-full border border-amber-200/80 bg-amber-500/10 px-2 py-0.5 text-xs text-amber-800 [data-theme-mode=dark]:border-amber-500/30 [data-theme-mode=dark]:bg-amber-500/15 [data-theme-mode=dark]:text-amber-300";
 
 export const warningTextClassName =
-  "text-amber-700 [data-theme=dark]:text-amber-300";
+  "text-amber-700 [data-theme-mode=dark]:text-amber-300";
 
 export const navButtonClassName =
   "rounded-lg border border-border bg-surface px-3 py-1 text-foreground transition hover:bg-surface-muted disabled:opacity-40";
@@ -59,19 +59,19 @@ export const programWeekHeaderPlanningClassName =
   "border-accent/30 bg-gradient-to-br from-surface via-surface-accent to-accent-soft/40";
 
 export const programWeekHeaderInactiveClassName =
-  "border-border/60 bg-surface-muted/90 [data-theme=dark]:border-border/35 [data-theme=dark]:bg-surface-muted/50";
+  "border-border/60 bg-surface-muted/90 [data-theme-mode=dark]:border-border/35 [data-theme-mode=dark]:bg-surface-muted/50";
 
 export const coachBannerClassName =
-  "border-b border-amber-200/80 bg-amber-500/10 px-4 py-2 text-center text-sm text-amber-900 [data-theme=dark]:border-amber-500/30 [data-theme=dark]:bg-amber-500/15 [data-theme=dark]:text-amber-200";
+  "border-b border-amber-200/80 bg-amber-500/10 px-4 py-2 text-center text-sm text-amber-900 [data-theme-mode=dark]:border-amber-500/30 [data-theme-mode=dark]:bg-amber-500/15 [data-theme-mode=dark]:text-amber-200";
 
 export const syncConflictBannerClassName =
-  "border-b border-red-200/80 bg-red-500/10 px-4 py-3 text-sm text-red-900 [data-theme=dark]:border-red-500/30 [data-theme=dark]:bg-red-500/15 [data-theme=dark]:text-red-200";
+  "border-b border-red-200/80 bg-red-500/10 px-4 py-3 text-sm text-red-900 [data-theme-mode=dark]:border-red-500/30 [data-theme-mode=dark]:bg-red-500/15 [data-theme-mode=dark]:text-red-200";
 
 export const destructiveButtonClassName =
-  "rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:opacity-90 disabled:opacity-60 [data-theme=dark]:bg-red-500";
+  "rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:opacity-90 disabled:opacity-60 [data-theme-mode=dark]:bg-red-500";
 
 export const destructiveOutlineButtonClassName =
-  "rounded-lg border border-red-300 bg-surface px-3 py-1.5 text-xs font-semibold text-red-700 transition hover:bg-surface-muted disabled:opacity-60 [data-theme=dark]:border-red-400/60 [data-theme=dark]:text-red-300";
+  "rounded-lg border border-red-300 bg-surface px-3 py-1.5 text-xs font-semibold text-red-700 transition hover:bg-surface-muted disabled:opacity-60 [data-theme-mode=dark]:border-red-400/60 [data-theme-mode=dark]:text-red-300";
 
 export const successTextClassName =
-  "text-xs font-medium text-emerald-700 [data-theme=dark]:text-emerald-300";
+  "text-xs font-medium text-emerald-700 [data-theme-mode=dark]:text-emerald-300";

@@ -143,7 +143,7 @@ export default function VaultSessionList({
                           <button
                             type="button"
                             onClick={() => onDeleteSession(session.id)}
-                            className="mt-4 w-full rounded-xl border border-red-300 p-2 text-red-500 [data-theme=dark]:border-red-400/60 [data-theme=dark]:text-red-400"
+                            className="mt-4 w-full rounded-xl border border-red-300 p-2 text-red-500 [data-theme-mode=dark]:border-red-400/60 [data-theme-mode=dark]:text-red-400"
                           >
                             Delete Session
                           </button>

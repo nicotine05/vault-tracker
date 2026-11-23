@@ -54,7 +54,7 @@ export default function ScheduleWarningModal({
           {warnings.map((warning) => (
             <li
               key={warning}
-              className="rounded-lg border border-amber-200/80 bg-amber-500/10 px-3 py-2 text-sm text-amber-900 [data-theme=dark]:border-amber-500/30 [data-theme=dark]:bg-amber-500/15 [data-theme=dark]:text-amber-200"
+              className="rounded-lg border border-amber-200/80 bg-amber-500/10 px-3 py-2 text-sm text-amber-900 [data-theme-mode=dark]:border-amber-500/30 [data-theme-mode=dark]:bg-amber-500/15 [data-theme-mode=dark]:text-amber-200"
             >
               {formatWarningMessage(warning)}
             </li>
