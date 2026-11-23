@@ -281,6 +281,21 @@ export function getCompetitionJumpTintClass(
   return "border-border bg-surface";
 }
 
+export function getCompetitionOutcomeTagClass(
+  result?: Jump["result"]
+): string {
+  const base =
+    "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide";
+
+  if (result === "make") {
+    return `${base} border-emerald-500/50 bg-emerald-500/20 text-emerald-800 [data-theme-mode=dark]:text-emerald-200`;
+  }
+  if (result === "miss") {
+    return `${base} border-red-500/50 bg-red-500/20 text-red-800 [data-theme-mode=dark]:text-red-200`;
+  }
+  return `${base} border-border bg-surface-muted text-muted`;
+}
+
 export function createJump(params: {
   run: string;
   grip: string;

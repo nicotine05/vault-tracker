@@ -3,6 +3,7 @@
 import type { Jump, Pole, VaultStepReferences } from "@/lib/domain/types";
 import {
   getCompetitionJumpTintClass,
+  getCompetitionOutcomeTagClass,
   getGradeEmoji,
   getJumpOutcomeLabel,
   getRunReference,
@@ -302,10 +303,27 @@ export default function VaultNewSessionPanel({
                         : "border-transparent bg-surface"
                     }`}
                   >
-                    <div className="flex justify-between">
-                      <span className="font-medium">
-                        {getJumpOutcomeLabel(jump)}
-                      </span>
+                    <div className="flex justify-between gap-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                        {competitionMode ? (
+                          <span
+                            className={getCompetitionOutcomeTagClass(
+                              jump.result
+                            )}
+                          >
+                            {getJumpOutcomeLabel(jump)}
+                          </span>
+                        ) : (
+                          <span className="font-medium">
+                            {getJumpOutcomeLabel(jump)}
+                          </span>
+                        )}
+                        {jump.barHeight && (
+                          <span className="text-lg font-bold tracking-tight text-foreground">
+                            {jump.barHeight}
+                          </span>
+                        )}
+                      </div>
                       <button
                         type="button"
                         onClick={() => onRemoveJump(jump.id)}
@@ -315,8 +333,11 @@ export default function VaultNewSessionPanel({
                       </button>
                     </div>
 
-                    {jump.barHeight && <p>Bar height: {jump.barHeight}</p>}
-                    {jump.standards && <p>Standards: {jump.standards}</p>}
+                    {jump.standards && (
+                      <p className="text-sm text-muted">
+                        Standards: {jump.standards}
+                      </p>
+                    )}
                     <p>Run: {jump.run}</p>
                     {reference && (
                       <p className="text-sm text-muted">Ref: {reference}</p>

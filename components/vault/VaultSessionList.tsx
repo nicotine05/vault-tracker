@@ -7,6 +7,7 @@ import {
   countJumpResults,
   filterVaultSessionsByWeek,
   getCompetitionJumpTintClass,
+  getCompetitionOutcomeTagClass,
   getJumpOutcomeLabel,
   getRunReference,
   getVaultRecentFilterLabel,
@@ -221,9 +222,21 @@ function JumpDetail({
       }`}
     >
       <div className="flex flex-wrap items-center gap-2">
-        <span className="font-medium">{getJumpOutcomeLabel(jump)}</span>
-        {jump.barHeight && <span>Bar {jump.barHeight}</span>}
-        {jump.standards && <span>Std {jump.standards}</span>}
+        {competition ? (
+          <span className={getCompetitionOutcomeTagClass(jump.result)}>
+            {getJumpOutcomeLabel(jump)}
+          </span>
+        ) : (
+          <span>{getJumpOutcomeLabel(jump)}</span>
+        )}
+        {jump.barHeight && (
+          <span className="text-lg font-bold tracking-tight text-foreground">
+            {jump.barHeight}
+          </span>
+        )}
+        {jump.standards && (
+          <span className="text-sm text-muted">Std {jump.standards}</span>
+        )}
         <span>{jump.run}</span>
         {reference && (
           <span className="text-xs text-accent-text">({reference})</span>
